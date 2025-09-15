@@ -1,0 +1,38 @@
+// Prisma schema for LatamTCG MTG catalog and pricing
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MtgCard {
+  id                String   @id @default(cuid())
+  scryfallId        String   @unique
+  name              String
+  setCode           String
+  collectorNumber   String
+  rarity            String?
+  finishes          String[]
+  imageNormalUrl    String?
+  legalitiesJson    Json?
+  priceUsd          Decimal? @db.Decimal(10, 2)
+  priceUsdFoil      Decimal? @db.Decimal(10, 2)
+  priceEur          Decimal? @db.Decimal(10, 2)
+  priceTix          Decimal? @db.Decimal(10, 2)
+  scryfallUpdatedAt DateTime?
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+}
+
+model KvMeta {
+  key       String  @id
+  value     String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+
