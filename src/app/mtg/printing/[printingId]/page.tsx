@@ -71,8 +71,8 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             Data & Images © Scryfall
           </div>
         </div>
-        <div className="flex-1">
-          <h1 className="text-2xl font-semibold">{data.name}</h1>
+        <div className="flex-1 card card-2xl p-4">
+          <h1 className="text-2xl font-semibold" style={{ letterSpacing: '-0.01em' }}>{data.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="badge">{(data.setCode || '').toUpperCase()}</span>
             {data.setName ? <span className="badge">{data.setName}</span> : null}
@@ -83,22 +83,23 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             {data.finish ? <span className="badge">{data.finish}</span> : null}
             {data.treatment ? <span className="badge">{data.treatment}</span> : null}
           </div>
-          <div className="mt-4 text-xl">
-            Price: {formatUsd(data.priceUsd) || '—'}
+          <div className="mt-4 text-xl" style={{ color: 'var(--primary)' }}>
+            {formatUsd(data.priceUsd) || '—'}
           </div>
-          <div className="mt-4">
-            <button className="btn-primary btn" disabled>Condition: NM (stub)</button>
+          <div className="mt-4 flex gap-2">
+            <button className="btn-gradient btn transition-soft">Add to Wishlist</button>
+            <button className="btn transition-soft" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>Track Price</button>
           </div>
         </div>
       </div>
 
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">See other printings</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="flex overflow-x-auto gap-3 py-2">
           {siblings.filter((s) => s.scryfallId !== data.id).map((s) => (
-            <Link key={s.scryfallId} href={`/mtg/printing/${s.scryfallId}`} className="card p-3 hover:opacity-90">
+            <Link key={s.scryfallId} href={`/mtg/printing/${s.scryfallId}`} className="card card-2xl p-3 min-w-[200px] hover-glow-purple transition-soft">
               <div className="font-medium truncate">{s.name}</div>
-              <div className="text-xs" style={{ color: 'var(--mutedText)' }}>{s.setName ?? (s.setCode || '').toUpperCase()} • #{s.collectorNumber}</div>
+              <div className="text-xs" style={{ color: 'var(--mutedText)' }}>{s.setName ?? (s.setCode || '').toUpperCase()} {s.collectorNumber ? `• #${s.collectorNumber}` : ''}</div>
             </Link>
           ))}
         </div>

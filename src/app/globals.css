@@ -10,9 +10,12 @@
   --text: #111114; /* ~#111 */
   --mutedText: #5e5e66; /* ~#666 */
 
-  /* Brand / Accents */
-  --primary: #2563eb; /* blue-600 */
-  --primaryHover: #1d4ed8; /* blue-700 */
+  /* Brand / Accents (Lilac/Purple) */
+  --primary: #7c3aed; /* purple-600 */
+  --primaryHover: #6d28d9; /* purple-700 */
+  --primarySoft: #ede9fe; /* purple-50 */
+  --primaryGradientFrom: #a78bfa; /* purple-400 */
+  --primaryGradientTo: #7c3aed;   /* purple-600 */
 
   /* Status */
   --success: #16a34a; /* green-600 */
@@ -40,11 +43,14 @@
   --surface: #121317;
   --surface-2: #181a20;
 
-  --text: #e8e8ea;
+  --text: #eaeaf0;
   --mutedText: #a1a1aa;
 
-  --primary: #60a5fa; /* blue-400 */
-  --primaryHover: #3b82f6; /* blue-500 */
+  --primary: #a78bfa; /* purple-400 */
+  --primaryHover: #8b5cf6; /* purple-500 */
+  --primarySoft: #1b1526;
+  --primaryGradientFrom: #8b5cf6;
+  --primaryGradientTo: #7c3aed;
 
   --success: #22c55e; /* green-500 */
   --warning: #f59e0b; /* amber-500 */
@@ -77,6 +83,8 @@ body {
 .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
 .btn-primary { background: var(--primary); color: white; border-color: transparent; }
 .btn-primary:hover { background: var(--primaryHover); }
+.btn-gradient { background: linear-gradient(135deg, var(--primaryGradientFrom), var(--primaryGradientTo)); color: white; border: none; }
+.btn-gradient:hover { filter: brightness(0.95); }
 .btn-ghost { background: transparent; border-color: transparent; }
 .btn-ghost:hover { background: var(--surface-2); }
 
@@ -86,6 +94,14 @@ body {
 
 /* Cards */
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 0.75rem; }
+.card-2xl { border-radius: 1rem; box-shadow: 0 10px 30px rgba(124, 58, 237, 0.08); }
+
+/* Inputs focus */
+.input:focus-visible { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 25%, transparent); outline: none; }
+.input::placeholder { color: var(--mutedText); }
+.hover-glow-purple:hover { box-shadow: 0 10px 24px rgba(124,58,237,0.18); transform: translateY(-1px); }
+.transition-soft { transition: all .2s ease; }
+
 
 /* Tables */
 .table { width: 100%; border-collapse: separate; border-spacing: 0; }

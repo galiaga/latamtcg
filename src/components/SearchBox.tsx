@@ -120,10 +120,10 @@ export default function SearchBox({ placeholder = 'Search printings…', default
   return (
     <div className="relative w-full max-w-xl">
       <div className="flex items-center gap-2">
-        <span className="badge">MTG</span>
+        <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>MTG</span>
         <input
           ref={inputRef}
-          className="input flex-1"
+          className="input flex-1 transition-soft"
           placeholder={placeholder}
           role="combobox"
           aria-controls={listboxId}
@@ -139,8 +139,8 @@ export default function SearchBox({ placeholder = 'Search printings…', default
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute z-20 mt-1 w-full max-w-xl rounded-md"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}
+          className="absolute z-20 mt-1 w-full max-w-xl rounded-md card-2xl"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
           <li className="px-3 py-1 text-[11px]" style={{ color: 'var(--mutedText)', borderBottom: '1px solid var(--divider)' }}>
             in Magic: The Gathering
@@ -153,8 +153,8 @@ export default function SearchBox({ placeholder = 'Search printings…', default
               key={`${item.kind}-${item.id ?? item.groupId}-${idx}`}
               role="option"
               aria-selected={highlight === idx}
-              className={`px-3 py-2 flex items-center gap-2 cursor-pointer`}
-              style={highlight === idx ? { background: 'var(--surface-2)' } : undefined}
+              className={`px-3 py-2 flex items-center gap-2 cursor-pointer transition-soft`}
+              style={highlight === idx ? { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 2px var(--primarySoft)' } : undefined}
               onMouseEnter={() => setHighlight(idx)}
               onMouseDown={(e) => { e.preventDefault(); select(item) }}
             >
