@@ -1,6 +1,6 @@
 {
   "name": "latamtcg",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -11,7 +11,8 @@
     "prisma:migrate": "prisma migrate dev --name mtg_paper_lang_filters",
     "scryfall:refresh": "tsx scripts/run-scryfall-refresh.ts",
     "mtg:cleanup": "tsx scripts/cleanup-mtg.ts",
-    "searchindex:rebuild": "tsx scripts/rebuild-search-index.ts"
+    "searchindex:rebuild": "tsx scripts/reindex-printings.ts",
+    "searchindex:audit": "tsx scripts/audit-search-index.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",

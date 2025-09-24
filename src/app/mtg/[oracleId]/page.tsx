@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import CardImage from '@/components/CardImage'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { fetchPrintsForOracle, tryWithOracleLock } from '@/lib/scryfallPrints'
@@ -100,7 +100,7 @@ export default async function OraclePage({ params }: { params: { oracleId: strin
                 <tr key={row.scryfallId} className="odd:bg-white even:bg-zinc-50/50 dark:odd:bg-zinc-950 dark:even:bg-zinc-900">
                   <td className="p-2">
                     {row.imageNormalUrl ? (
-                      <Image src={row.imageNormalUrl} alt={row.name} width={64} height={64} className="rounded" />
+                      <CardImage mode="thumb" src={row.imageNormalUrl} alt={row.name} width={64} />
                     ) : (
                       <div className="w-16 h-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
                     )}

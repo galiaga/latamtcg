@@ -1,8 +1,11 @@
 "use client"
 
 import { useEffect, useId, useRef, useState } from 'react'
-import Image from 'next/image'
+import CardImage from '@/components/CardImage'
 import { useRouter } from 'next/navigation'
+import { printingHref, cardHref } from '@/lib/routes'
+import { findPrintingIdBySetCollector } from '@/lib/printings'
+import { fmtCollector } from '@/lib/format'
 
 type ApiItem = {
   kind: 'printing' | 'group'
@@ -91,13 +94,26 @@ export default function SearchBox({ placeholder = 'Search printings…', default
     }
   }
 
-  function select(item: ApiItem) {
+  async function select(item: ApiItem) {
     setOpen(false)
     if (item.kind === 'group') {
-      router.push(`/mtg/${item.groupId}`)
+      router.push(cardHref(encodeURIComponent(item.title.replace(/\s+/g, '-').toLowerCase())))
     } else {
-      // Printing-level page not yet implemented; navigate to group for now
-      router.push(`/mtg/${item.groupId}`)
+      let id = item.id
+      if (!id) {
+        if (process.env.NODE_ENV !== 'production') console.warn('[search] missing printingId for', item)
+        if (process.env.NODE_ENV !== 'production' && item.setCode && item.collectorNumber) {
+          const resolved = await findPrintingIdBySetCollector(item.setCode, item.collectorNumber)
+          if (resolved) {
+            if (process.env.NODE_ENV !== 'production') console.debug('[search] resolved id via fallback', resolved)
+            id = resolved
+          }
+        }
+        if (!id) return
+      }
+      const href = printingHref(id)
+      if (process.env.NODE_ENV !== 'production') console.debug('navigate →', href)
+      router.push(href)
     }
   }
 
@@ -126,6 +142,9 @@ export default function SearchBox({ placeholder = 'Search printings…', default
           className="absolute z-20 mt-1 w-full max-w-xl rounded-md"
           style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 6px 20px rgba(0,0,0,0.08)' }}
         >
+          <li className="px-3 py-1 text-[11px]" style={{ color: 'var(--mutedText)', borderBottom: '1px solid var(--divider)' }}>
+            in Magic: The Gathering
+          </li>
           {items.length === 0 && !loading && (
             <li className="px-3 py-2 text-sm text-zinc-500">No results</li>
           )}
@@ -140,7 +159,7 @@ export default function SearchBox({ placeholder = 'Search printings…', default
               onMouseDown={(e) => { e.preventDefault(); select(item) }}
             >
               {item.kind === 'printing' && item.imageNormalUrl ? (
-                <Image src={item.imageNormalUrl} alt={item.title} width={36} height={36} className="rounded" />
+                <CardImage mode="thumb" src={item.imageNormalUrl} alt={item.title} width={36} />
               ) : (
                 <div className="w-9 h-9 rounded" style={{ background: 'var(--surface-2)' }} />
               )}
@@ -150,13 +169,25 @@ export default function SearchBox({ placeholder = 'Search printings…', default
                   {item.kind === 'printing' && item.variantLabel ? <span style={{ color: 'var(--mutedText)' }}> ({item.variantLabel})</span> : null}
                 </div>
                 {item.kind === 'printing' && item.subtitle ? (
-                  <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>{item.subtitle}</div>
+                  <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
+                    {(() => {
+                      const c = fmtCollector(item.collectorNumber as any)
+                      if (process.env.NODE_ENV !== 'production' && item.collectorNumber != null && typeof item.collectorNumber !== 'string') {
+                        console.debug('[search] coercing collectorNumber', item.collectorNumber)
+                      }
+                      const left = item.setName || item.setCode || ''
+                      return [left, c ? `#${c}` : null].filter(Boolean).join(' · ')
+                    })()}
+                  </div>
                 ) : item.kind === 'group' ? (
                   <div className="text-xs" style={{ color: 'var(--primary)' }}>See all printings</div>
                 ) : null}
-                <div className="mt-0.5 flex gap-1">
+                <div className="mt-0.5 flex gap-1 items-center">
                   {item.kind === 'printing' && item.finishLabel ? (
                     <span className="inline-block px-1.5 py-0.5 text-[10px] rounded badge" style={{ border: 'none' }}>{item.finishLabel}</span>
+                  ) : null}
+                  {process.env.NODE_ENV !== 'production' && item.kind === 'printing' && !item.id ? (
+                    <span className="badge" style={{ fontSize: 10, background: 'var(--surface-2)' }}>unindexed</span>
                   ) : null}
                 </div>
               </div>

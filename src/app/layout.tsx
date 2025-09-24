@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ThemeToggle from "@/components/ThemeToggle";
 import Script from "next/script";
+import pkg from '../../package.json'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -40,7 +41,10 @@ export default function RootLayout({
             } catch (e) {}
           `}
         </Script>
-        <div className="p-3 flex items-center justify-end">
+        <div className="p-3 flex items-center justify-between">
+          <span className="text-xs" style={{ color: 'var(--mutedText)' }} aria-label={`App version ${pkg.version}`}>
+            v{pkg.version}
+          </span>
           <ThemeToggle />
         </div>
         {children}

@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/mtg/printing/:set/:slug',
+        destination: '/mtg/printing/:slug',
+        permanent: true,
+      },
+    ]
+  },
 };
 
 export default nextConfig;

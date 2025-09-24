@@ -9,18 +9,26 @@ function applyTheme(theme: 'light' | 'dark') {
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') return 'dark'
-    const saved = window.localStorage.getItem('theme') as 'light' | 'dark' | null
-    if (saved === 'light' || saved === 'dark') return saved
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-    return prefersDark ? 'dark' : 'light'
-  })
+  const [mounted, setMounted] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+
+  useEffect(() => {
+    // On mount, read persisted/system preference to avoid SSR/client mismatch
+    try {
+      const saved = window.localStorage.getItem('theme') as 'light' | 'dark' | null
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      const initial = saved === 'light' || saved === 'dark' ? saved : (prefersDark ? 'dark' : 'light')
+      setTheme(initial)
+    } catch {}
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     applyTheme(theme)
     try { window.localStorage.setItem('theme', theme) } catch {}
   }, [theme])
+
+  if (!mounted) return null
 
   return (
     <button
