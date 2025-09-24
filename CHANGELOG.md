@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.1.2 — 2025-09-24
+- chore(release): bump version and update changelog
+
 ## v0.1.1 — 2025-09-24
 - Search: canonical printing routing `/mtg/printing/[printingId]`, robust data fetch, and breadcrumb.
 - SearchBox: printing links with guards and dev fallback; grouped card links; tokenized UI.
