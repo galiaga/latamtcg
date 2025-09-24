@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import type { MtgCard } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { Readable } from 'stream'
 import { parser } from 'stream-json'
 import { streamArray } from 'stream-json/streamers/StreamArray'
@@ -59,17 +60,16 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
 
   const batchSize = DEFAULT_BATCH_SIZE
   let batch: any[] = []
+  const excludedSetTypes = new Set(
+    (process.env.SCRYFALL_EXCLUDE_SET_TYPES ?? 'token,memorabilia,alchemy,minigame')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  )
 
   const processBatch = async (cards: any[]) => {
     if (cards.length === 0) return
-    const operations = cards.map((card) => {
-      const mapped = mapCard(card, bulkUpdatedAt)
-      return prisma.mtgCard.upsert({
-        where: { scryfallId: mapped.scryfallId },
-        create: mapped,
-        update: mapped,
-      })
-    })
+    const operations = cards.map((card) => upsertCard(card, bulkUpdatedAt))
     await prisma.$transaction(operations, { timeout: 120_000 })
     updatedCount += cards.length
     console.log(`[scryfall] Upserted batch of ${cards.length}, total ${updatedCount}`)
@@ -77,7 +77,13 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
 
   await new Promise<void>((resolve, reject) => {
     pipeline.on('data', async (data: { key: number; value: any }) => {
-      batch.push(data.value)
+      const card = data.value
+      const isPaper = !card?.digital && Array.isArray(card?.games) && card.games.includes('paper')
+      const isEnglish = card?.lang === 'en'
+      const setType: string | undefined = card?.set_type
+      const allowed = isPaper && isEnglish && (!setType || !excludedSetTypes.has(setType))
+      if (!allowed) return
+      batch.push(card)
       if (batch.length >= batchSize) {
         // Pause the stream while we process
         pipeline.pause()
@@ -116,27 +122,69 @@ function pickImageNormalUrl(card: any): string | undefined {
   return undefined
 }
 
-function mapCard(card: any, bulkUpdatedAt: string): Omit<MtgCard, 'id' | 'updatedAt' | 'createdAt'> {
-  const priceUsd = card?.prices?.usd ?? null
-  const priceUsdFoil = card?.prices?.usd_foil ?? null
-  const priceEur = card?.prices?.eur ?? null
-  const priceTix = card?.prices?.tix ?? null
+function upsertCard(card: any, bulkUpdatedAt: string) {
+  const priceUsd = card?.prices?.usd
+  const priceUsdFoil = card?.prices?.usd_foil
+  const priceUsdEtched = card?.prices?.usd_etched
+  const priceEur = card?.prices?.eur
+  const priceTix = card?.prices?.tix
+  const imageUrl = pickImageNormalUrl(card) ?? null
 
-  return {
-    scryfallId: String(card.id),
-    name: String(card.name ?? ''),
-    setCode: String(card.set ?? ''),
-    collectorNumber: String(card.collector_number ?? ''),
-    rarity: card?.rarity ? String(card.rarity) : null,
-    finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
-    imageNormalUrl: pickImageNormalUrl(card) ?? null,
-    legalitiesJson: card?.legalities ?? null,
-    priceUsd: priceUsd !== null ? String(priceUsd) : null,
-    priceUsdFoil: priceUsdFoil !== null ? String(priceUsdFoil) : null,
-    priceEur: priceEur !== null ? String(priceEur) : null,
-    priceTix: priceTix !== null ? String(priceTix) : null,
-    scryfallUpdatedAt: new Date(bulkUpdatedAt),
-  }
+  return prisma.mtgCard.upsert({
+    where: { scryfallId: String(card.id) },
+    create: {
+      scryfallId: String(card.id),
+      oracleId: String(card?.oracle_id ?? ''),
+      name: String(card.name ?? ''),
+      setCode: String(card.set ?? ''),
+      setName: card?.set_name ? String(card.set_name) : null,
+      collectorNumber: String(card.collector_number ?? ''),
+      rarity: card?.rarity ? String(card.rarity) : null,
+      finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
+      frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: any) => String(f)) : [],
+      promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
+      borderColor: card?.border_color ? String(card.border_color) : null,
+      fullArt: Boolean(card?.full_art ?? false),
+      imageNormalUrl: imageUrl,
+      legalitiesJson: card?.legalities ?? undefined,
+      priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
+      priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,
+      priceUsdEtched: priceUsdEtched ? new Prisma.Decimal(String(priceUsdEtched)) : null,
+      // keep EUR/TIX mapping around (not used on UI)
+      priceEur: priceEur ? String(priceEur) : null,
+      priceTix: priceTix ? String(priceTix) : null,
+      lang: String(card?.lang ?? 'en'),
+      isPaper: true,
+      setType: card?.set_type ? String(card.set_type) : null,
+      releasedAt: card?.released_at ? new Date(card.released_at) : null,
+      scryfallUpdatedAt: card?.released_at ? new Date(card.released_at) : new Date(bulkUpdatedAt),
+    },
+    update: {
+      oracleId: String(card?.oracle_id ?? ''),
+      name: String(card.name ?? ''),
+      setCode: String(card.set ?? ''),
+      setName: card?.set_name ? String(card.set_name) : null,
+      collectorNumber: String(card.collector_number ?? ''),
+      rarity: card?.rarity ? String(card.rarity) : null,
+      finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
+      frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: any) => String(f)) : [],
+      promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
+      borderColor: card?.border_color ? String(card.border_color) : null,
+      fullArt: Boolean(card?.full_art ?? false),
+      imageNormalUrl: imageUrl,
+      legalitiesJson: card?.legalities ?? undefined,
+      priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
+      priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,
+      priceUsdEtched: priceUsdEtched ? new Prisma.Decimal(String(priceUsdEtched)) : null,
+      priceEur: priceEur ? String(priceEur) : null,
+      priceTix: priceTix ? String(priceTix) : null,
+      lang: String(card?.lang ?? 'en'),
+      isPaper: true,
+      setType: card?.set_type ? String(card.set_type) : null,
+      releasedAt: card?.released_at ? new Date(card.released_at) : null,
+      scryfallUpdatedAt: card?.released_at ? new Date(card.released_at) : new Date(bulkUpdatedAt),
+    },
+  })
 }
 
 async function getKv(key: string): Promise<string | null> {

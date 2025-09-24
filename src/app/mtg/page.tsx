@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { Suspense } from 'react'
+import SearchBox from '@/components/SearchBox'
 
 const PAGE_SIZE = 50
 
@@ -12,84 +13,117 @@ function formatUsd(value: any | null): string {
   return `$${num.toFixed(2)}`
 }
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 type PageProps = {
-  searchParams?: Record<string, string | string[] | undefined>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function MtgPage({ searchParams }: PageProps) {
-  const pageParam = (searchParams?.page as string) || '1'
+export default async function MtgPage(props: PageProps) {
+  const searchParams = await props.searchParams
+  const pageParam = (typeof searchParams?.page === 'string'
+    ? searchParams.page
+    : Array.isArray(searchParams?.page)
+    ? searchParams.page[0]
+    : '1') || '1'
   const page = Math.max(1, parseInt(pageParam, 10) || 1)
   const skip = (page - 1) * PAGE_SIZE
+  const search = (typeof searchParams?.q === 'string'
+    ? searchParams.q
+    : Array.isArray(searchParams?.q)
+    ? searchParams.q[0]
+    : '') || ''
 
-  const [rows, total] = await Promise.all([
-    prisma.mtgCard.findMany({
-      where: { imageNormalUrl: { not: null } },
-      orderBy: { name: 'asc' },
-      skip,
-      take: PAGE_SIZE,
-      select: {
-        scryfallId: true,
-        name: true,
-        setCode: true,
-        imageNormalUrl: true,
-        priceUsd: true,
-        priceUsdFoil: true,
-      },
-    }),
-    prisma.mtgCard.count({ where: { imageNormalUrl: { not: null } } }),
-  ])
+  // Distinct by oracleId: get one representative row for each oracle group
+  const baseWhere = {
+    AND: [
+      { isPaper: true },
+      { lang: 'en' },
+      { imageNormalUrl: { not: null } },
+      search ? { name: { contains: search, mode: 'insensitive' as const } } : {},
+    ],
+  }
+
+  const groups = await prisma.mtgCard.groupBy({
+    by: ['oracleId'],
+    where: baseWhere as any,
+    _count: { oracleId: true },
+    orderBy: { oracleId: 'asc' },
+    skip,
+    take: PAGE_SIZE,
+  })
+
+  const oracleIds = groups.map((g) => g.oracleId)
+  const [reps, priceAgg] = oracleIds.length
+    ? await Promise.all([
+        prisma.mtgCard.findMany({
+          where: { oracleId: { in: oracleIds } },
+          orderBy: [{ releasedAt: 'desc' }, { setCode: 'asc' }, { collectorNumber: 'asc' }],
+          distinct: ['oracleId'],
+          select: { oracleId: true, name: true, imageNormalUrl: true },
+        }),
+        prisma.mtgCard.groupBy({
+          by: ['oracleId'],
+          where: { oracleId: { in: oracleIds } },
+          _min: { priceUsd: true, priceUsdFoil: true, priceUsdEtched: true },
+          _max: { priceUsd: true, priceUsdFoil: true, priceUsdEtched: true },
+        }),
+      ])
+    : [[], []]
+
+  const repByOracle = new Map(reps.map((r) => [r.oracleId, r]))
+  const aggByOracle = new Map(priceAgg.map((a) => [a.oracleId, a]))
+  const rows = oracleIds.map((oid) => ({
+    oracleId: oid,
+    name: repByOracle.get(oid)?.name ?? 'Unknown',
+    imageNormalUrl: repByOracle.get(oid)?.imageNormalUrl ?? null,
+    count: groups.find((g) => g.oracleId === oid)?._count.oracleId ?? 0,
+    agg: aggByOracle.get(oid),
+  }))
+
+  const totalPromise = prisma.mtgCard.groupBy({
+    by: ['oracleId'],
+    where: baseWhere as any,
+    _count: { oracleId: true },
+  })
+  const total = await totalPromise
+  const totalCount = total.length
 
   const hasPrev = page > 1
-  const hasNext = skip + rows.length < total
-
-  const search = (searchParams?.q as string) || ''
-  const filteredRows = search
-    ? rows.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()))
-    : rows
+  const hasNext = skip + rows.length < totalCount
+  const filteredRows = rows
 
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">MTG Catalog</h1>
-        <form className="ml-auto" action="/mtg" method="get">
-          <input
-            type="hidden"
-            name="page"
-            value={String(page)}
-          />
-          <input
-            className="px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700"
-            placeholder="Search name..."
-            name="q"
-            defaultValue={search}
-          />
-        </form>
+        <h1 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>MTG Catalog</h1>
+        <div className="ml-auto">
+          <SearchBox />
+        </div>
       </div>
 
       {filteredRows.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800">
-          <table className="min-w-full text-sm">
-            <thead className="bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300">
+        <div className="overflow-x-auto rounded-md border" style={{ borderColor: 'var(--border)' }}>
+          <table className="min-w-full text-sm table">
+            <thead>
               <tr>
-                <th className="p-2 text-left">Image</th>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Set</th>
-                <th className="p-2 text-right">Normal USD</th>
-                <th className="p-2 text-right">Foil USD</th>
+                <th className="p-2 text-left" style={{ color: 'var(--mutedText)' }}>Image</th>
+                <th className="p-2 text-left" style={{ color: 'var(--mutedText)' }}>Name</th>
+                <th className="p-2 text-right" style={{ color: 'var(--mutedText)' }}>Printings</th>
+                <th className="p-2 text-right" style={{ color: 'var(--mutedText)' }}>Min USD</th>
+                <th className="p-2 text-right" style={{ color: 'var(--mutedText)' }}>Max USD</th>
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((card) => (
-                <tr key={card.scryfallId} className="odd:bg-white even:bg-zinc-50/50 dark:odd:bg-zinc-950 dark:even:bg-zinc-900">
+              {filteredRows.map((row) => (
+                <tr key={row.oracleId}>
                   <td className="p-2">
-                    {card.imageNormalUrl ? (
+                    {row.imageNormalUrl ? (
                       <Image
-                        src={card.imageNormalUrl}
-                        alt={card.name}
+                        src={row.imageNormalUrl}
+                        alt={row.name}
                         width={64}
                         height={64}
                         className="rounded"
@@ -98,10 +132,14 @@ export default async function MtgPage({ searchParams }: PageProps) {
                       <div className="w-16 h-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
                     )}
                   </td>
-                  <td className="p-2">{card.name}</td>
-                  <td className="p-2">{card.setCode.toUpperCase()}</td>
-                  <td className="p-2 text-right tabular-nums">{formatUsd(card.priceUsd)}</td>
-                  <td className="p-2 text-right tabular-nums">{formatUsd(card.priceUsdFoil)}</td>
+                  <td className="p-2">
+                    <Link href={`/mtg/${row.oracleId}`} className="underline-offset-2 hover:underline">
+                      {row.name}
+                    </Link>
+                  </td>
+                  <td className="p-2 text-right">{row.count}</td>
+                  <td className="p-2 text-right tabular-nums">{formatUsd(minPrice(row.agg))}</td>
+                  <td className="p-2 text-right tabular-nums">{formatUsd(maxPrice(row.agg))}</td>
                 </tr>
               ))}
             </tbody>
@@ -114,7 +152,7 @@ export default async function MtgPage({ searchParams }: PageProps) {
           Prev
         </PaginationButton>
         <div className="text-sm text-zinc-600 dark:text-zinc-300">
-          Page {page} · {total.toLocaleString()} cards
+          Page {page} · {totalCount.toLocaleString()} cards
         </div>
         <PaginationButton disabled={!hasNext} href={`/mtg?page=${page + 1}&q=${encodeURIComponent(search)}`}>
           Next
@@ -127,13 +165,13 @@ export default async function MtgPage({ searchParams }: PageProps) {
 function PaginationButton({ disabled, href, children }: { disabled?: boolean; href: string; children: React.ReactNode }) {
   if (disabled) {
     return (
-      <span className="px-3 py-2 rounded-md bg-zinc-100 dark:bg-zinc-900 text-zinc-400 cursor-not-allowed">
+      <span className="btn" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
         {children}
       </span>
     )
   }
   return (
-    <Link href={href} className="px-3 py-2 rounded-md bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700">
+    <Link href={href} className="btn">
       {children}
     </Link>
   )
@@ -180,6 +218,26 @@ function DevTriggerButton() {
       </button>
     </form>
   )
+}
+
+function minPrice(agg: any | undefined): number | null {
+  if (!agg) return null
+  const values = [agg._min?.priceUsd, agg._min?.priceUsdFoil, agg._min?.priceUsdEtched]
+    .filter((v) => v !== null && v !== undefined)
+    .map((v: any) => Number(v))
+    .filter((n) => !Number.isNaN(n))
+  if (values.length === 0) return null
+  return Math.min(...values)
+}
+
+function maxPrice(agg: any | undefined): number | null {
+  if (!agg) return null
+  const values = [agg._max?.priceUsd, agg._max?.priceUsdFoil, agg._max?.priceUsdEtched]
+    .filter((v) => v !== null && v !== undefined)
+    .map((v: any) => Number(v))
+    .filter((n) => !Number.isNaN(n))
+  if (values.length === 0) return null
+  return Math.max(...values)
 }
 
 

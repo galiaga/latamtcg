@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ThemeToggle from "@/components/ThemeToggle";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,6 +29,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`
+            try {
+              var saved = localStorage.getItem('theme');
+              var theme = saved === 'light' || saved === 'dark' ? saved : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+              var d = document.documentElement;
+              d.setAttribute('data-theme', theme);
+              d.style.colorScheme = theme;
+            } catch (e) {}
+          `}
+        </Script>
+        <div className="p-3 flex items-center justify-end">
+          <ThemeToggle />
+        </div>
         {children}
       </body>
     </html>

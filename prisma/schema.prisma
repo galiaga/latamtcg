@@ -12,20 +12,37 @@ datasource db {
 model MtgCard {
   id                String   @id @default(cuid())
   scryfallId        String   @unique
+  oracleId          String   @default("")
   name              String
   setCode           String
+  setName           String?
   collectorNumber   String
   rarity            String?
   finishes          String[]
+  frameEffects      String[]
+  promoTypes        String[]
+  borderColor       String?
+  fullArt           Boolean? @default(false)
   imageNormalUrl    String?
   legalitiesJson    Json?
   priceUsd          Decimal? @db.Decimal(10, 2)
   priceUsdFoil      Decimal? @db.Decimal(10, 2)
+  priceUsdEtched    Decimal? @db.Decimal(10, 2)
   priceEur          Decimal? @db.Decimal(10, 2)
   priceTix          Decimal? @db.Decimal(10, 2)
+  // filtering & debugging
+  lang              String   @default("en")
+  isPaper           Boolean  @default(false)
+  setType           String?
+  releasedAt        DateTime?
   scryfallUpdatedAt DateTime?
   updatedAt         DateTime @updatedAt
   createdAt         DateTime @default(now())
+
+  @@index([oracleId])
+  @@index([isPaper, lang])
+  @@index([setCode])
+  @@index([name])
 }
 
 model KvMeta {
@@ -33,6 +50,47 @@ model KvMeta {
   value     String
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
+}
+
+
+/// Denormalized search suggestions across games. For MTG, one row per physical printing.
+model SearchIndex {
+  /// Use underlying printing id where available (MTG uses scryfallId)
+  id               String   @id
+  /// Oracle or group id to link to grouped view (MTG uses oracleId)
+  groupId          String
+  /// Game identifier, e.g., "mtg", "pokemon"
+  game             String
+  /// Display title (normalized name; may include variant in UI rendering)
+  title            String
+  /// Subtitle such as set code/name and collector number
+  subtitle         String
+  /// Free-form keywords blob for fuzzy/prefix search (normalized)
+  keywordsText     String
+  /// Human label for finish preference (Nonfoil/Foil/Etched)
+  finishLabel      String?
+  /// Variant label such as Borderless/Showcase/Extended Art/Retro/JP Alt Art/etc.
+  variantLabel     String?
+  /// Language code
+  lang             String
+  /// Physical availability
+  isPaper          Boolean  @default(true)
+  /// Release date for tie-breakers
+  releasedAt       DateTime?
+  /// Composite score for ranking tweaks
+  sortScore        Float?
+  /// For MTG suggestions
+  setCode          String
+  setName          String?
+  collectorNumber  String
+  imageNormalUrl   String?
+  name             String
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([game, lang, isPaper])
+  @@index([releasedAt])
 }
 
 
