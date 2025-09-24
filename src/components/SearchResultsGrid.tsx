@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import CardImage from '@/components/CardImage'
 import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
+import { useSearchParams } from 'next/navigation'
 
 type Item = {
   kind: 'printing' | 'group'
@@ -16,18 +17,20 @@ type Item = {
 }
 
 export default function SearchResultsGrid({ initialQuery }: { initialQuery?: string }) {
+  const searchParams = useSearchParams()
   const [q, setQ] = useState(initialQuery ?? '')
-  const [items, setItems] = useState<Item[]>([])
+  const [primary, setPrimary] = useState<Item[]>([])
+  const [meta, setMeta] = useState({ page: 1, pageSize: 24, totalResults: 0, nextPageToken: null as string | null })
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const url = new URL(window.location.href)
-    const fromUrl = url.searchParams.get('q') || ''
-    setQ(fromUrl)
-  }, [])
+    // React to URL changes (router.push on same page)
+    const qParam = searchParams?.get('q') || ''
+    setQ(qParam)
+  }, [searchParams])
 
   useEffect(() => {
-    if (!q.trim()) { setItems([]); return }
+    if (!q.trim()) { setPrimary([]); setLoading(false); return }
     setLoading(true)
     const controller = new AbortController()
     const t = setTimeout(async () => {
@@ -39,9 +42,8 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
         url.searchParams.set('limit', '24')
         const res = await fetch(url, { signal: controller.signal })
         const json = await res.json()
-        const arr = Array.isArray(json?.items) ? json.items : []
-        const onlyPrintings = arr.filter((i: any) => i?.kind === 'printing')
-        setItems(onlyPrintings)
+        setPrimary(Array.isArray(json?.primary) ? json.primary : [])
+        setMeta({ page: Number(json?.page || 1), pageSize: Number(json?.pageSize || 24), totalResults: Number(json?.totalResults || 0), nextPageToken: json?.nextPageToken || null })
       } catch {}
       setLoading(false)
     }, 200)
@@ -52,11 +54,11 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
 
   return (
     <div className="mt-6">
-      {loading && items.length === 0 ? (
+      {loading && primary.length === 0 ? (
         <div className="text-sm" style={{ color: 'var(--mutedText)' }}>Loading…</div>
       ) : null}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {items.map((item) => {
+          {primary.map((item) => {
           const href = item.id ? printingHref(item.id) : '#'
           return (
             <Link key={`${item.id}-${item.title}`} href={href} className="card card-2xl p-2 hover-glow-purple transition-soft">
@@ -75,7 +77,7 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
               </div>
             </Link>
           )
-        })}
+          })}
       </div>
     </div>
   )

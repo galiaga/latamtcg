@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useId, useRef, useState } from 'react'
-import CardImage from '@/components/CardImage'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { printingHref, cardHref } from '@/lib/routes'
 import { findPrintingIdBySetCollector } from '@/lib/printings'
 import { fmtCollector } from '@/lib/format'
@@ -38,28 +37,74 @@ export default function SearchBox({ placeholder = 'Search printings…', default
   const [highlight, setHighlight] = useState(0)
   const listboxId = useId()
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const boxRef = useRef<HTMLDivElement | null>(null)
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const [submitting, setSubmitting] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
+  const [aborter, setAborter] = useState<AbortController | null>(null)
+
+  function normalizeSubmitQuery(text: string): string {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}+/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  function handleSearchSubmit(src: 'enter' | 'button' | 'chip', value?: string) {
+    const q = normalizeSubmitQuery((value ?? query) || '')
+    if (!q) return
+    const target = `/mtg/search?q=${encodeURIComponent(q)}`
+    if (process.env.NODE_ENV !== 'production') console.debug('[search] submit', { src, q, route: target })
+    setOpen(false)
+    setIsFocused(false)
+    inputRef.current?.blur()
+    aborter?.abort()
+    setSubmitting(true)
+    const before = typeof window !== 'undefined' ? window.location.href : ''
+    router.push(target)
+    setTimeout(() => {
+      const after = typeof window !== 'undefined' ? window.location.href : ''
+      if (process.env.NODE_ENV !== 'production') console.debug('[search] after push', { before, after })
+      if (before === after && typeof window !== 'undefined') {
+        // Fallback hard navigation if client-side navigation was blocked
+        window.location.href = target
+      }
+      setSubmitting(false)
+    }, 300)
+  }
 
   useEffect(() => {
-    if (!query.trim()) {
-      setItems([])
-      setOpen(false)
+    const qTrim = query.trim()
+    const shouldFetch = isFocused && open && qTrim.length >= 2 && !submitting
+    if (!shouldFetch) {
+      setLoading(false)
       return
     }
     setLoading(true)
     const controller = new AbortController()
+    setAborter(controller)
     const t = setTimeout(async () => {
       try {
         const url = new URL('/api/search', window.location.origin)
-        url.searchParams.set('q', query)
-        url.searchParams.set('game', defaultGame)
-        url.searchParams.set('lang', defaultLang)
-        url.searchParams.set('limit', String(limit))
+        url.searchParams.set('q', qTrim)
+        url.searchParams.set('page', '1')
+        url.searchParams.set('limit', '10')
         const res = await fetch(url.toString(), { signal: controller.signal, headers: { 'accept': 'application/json' } })
         if (res.ok) {
           const json = await res.json()
-          const arr = Array.isArray(json?.items) ? (json.items as ApiItem[]) : []
-          setItems(arr)
-          setOpen(arr.length > 0)
+          const primary: any[] = Array.isArray(json?.primary) ? json.primary : []
+          const other: any[] = Array.isArray(json?.otherNameMatches) ? json.otherNameMatches : []
+          const merged = [...primary, ...other].slice(0, 10)
+          const mapped: ApiItem[] = merged.map((i: any) => ({
+            kind: 'printing', id: i.id, groupId: i.groupId, game: 'mtg', title: i.title,
+            subtitle: i.subtitle, imageNormalUrl: i.imageNormalUrl, setCode: i.setCode, setName: i.setName,
+            collectorNumber: i.collectorNumber, finishLabel: i.finishLabel ?? null, variantLabel: i.variantLabel ?? null,
+          }))
+          setItems(mapped)
+          setOpen(isFocused && mapped.length > 0)
           setHighlight(0)
         } else {
           setItems([])
@@ -70,14 +115,46 @@ export default function SearchBox({ placeholder = 'Search printings…', default
       } finally {
         setLoading(false)
       }
-    }, 120)
-    return () => {
-      clearTimeout(t)
-      controller.abort()
+    }, 200)
+    return () => { clearTimeout(t); controller.abort() }
+  }, [query, open, isFocused, submitting])
+
+  // Close dropdown on route change (pathname or search params change)
+  useEffect(() => {
+    setOpen(false)
+    setIsFocused(false)
+    aborter?.abort()
+  }, [pathname, searchParams])
+
+  // Close on outside click or scroll
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!boxRef.current) return
+      if (!boxRef.current.contains(e.target as Node)) setOpen(false)
     }
-  }, [query, defaultGame, defaultLang, limit])
+    function onScroll() { setOpen(false) }
+    document.addEventListener('mousedown', onDocClick)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      window.removeEventListener('scroll', onScroll)
+    }
+  }, [])
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      // If a suggestion is highlighted, consume Enter and submit that title.
+      if (open && items.length > 0 && items[highlight]) {
+        e.preventDefault()
+        handleSearchSubmit('enter', items[highlight].title)
+        return
+      }
+      // Otherwise, allow the form's onSubmit to handle (no preventDefault here)
+    }
+    if (e.key === 'Escape') {
+      setOpen(false)
+      return
+    }
     if (!open || items.length === 0) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -85,12 +162,6 @@ export default function SearchBox({ placeholder = 'Search printings…', default
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setHighlight((h) => Math.max(h - 1, 0))
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      const item = items[highlight]
-      if (item) select(item)
-    } else if (e.key === 'Escape') {
-      setOpen(false)
     }
   }
 
@@ -118,8 +189,8 @@ export default function SearchBox({ placeholder = 'Search printings…', default
   }
 
   return (
-    <div className="relative w-full max-w-xl">
-      <div className="flex items-center gap-2">
+    <div ref={boxRef} className="relative w-full max-w-xl">
+      <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (process.env.NODE_ENV !== 'production') console.debug('[search] onSubmit'); handleSearchSubmit('button') }}>
         <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>MTG</span>
         <input
           ref={inputRef}
@@ -130,11 +201,15 @@ export default function SearchBox({ placeholder = 'Search printings…', default
           aria-expanded={open}
           aria-autocomplete="list"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { if (process.env.NODE_ENV !== 'production') console.debug('[search] input', e.target.value); setQuery(e.target.value); setOpen(true) }}
           onKeyDown={onKeyDown}
-          onFocus={() => { if (items.length) setOpen(true) }}
+          onFocus={() => { setIsFocused(true); if (query.trim().length >= 2 && items.length) setOpen(true) }}
+          onBlur={() => { setIsFocused(false) }}
         />
-      </div>
+        <button type="submit" className="btn btn-gradient transition-soft" aria-label="Search" disabled={!query.trim() || submitting}>
+          {submitting ? 'Searching…' : 'Search'}
+        </button>
+      </form>
       {open && (
         <ul
           id={listboxId}
@@ -158,39 +233,21 @@ export default function SearchBox({ placeholder = 'Search printings…', default
               onMouseEnter={() => setHighlight(idx)}
               onMouseDown={(e) => { e.preventDefault(); select(item) }}
             >
-              {item.kind === 'printing' && item.imageNormalUrl ? (
-                <CardImage mode="thumb" src={item.imageNormalUrl} alt={item.title} width={36} />
-              ) : (
-                <div className="w-9 h-9 rounded" style={{ background: 'var(--surface-2)' }} />
-              )}
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium truncate">
                   {item.title}
-                  {item.kind === 'printing' && item.variantLabel ? <span style={{ color: 'var(--mutedText)' }}> ({item.variantLabel})</span> : null}
                 </div>
-                {item.kind === 'printing' && item.subtitle ? (
-                  <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
-                    {(() => {
-                      const c = fmtCollector(item.collectorNumber as any)
-                      if (process.env.NODE_ENV !== 'production' && item.collectorNumber != null && typeof item.collectorNumber !== 'string') {
-                        console.debug('[search] coercing collectorNumber', item.collectorNumber)
-                      }
-                      const left = item.setName || item.setCode || ''
-                      return [left, c ? `#${c}` : null].filter(Boolean).join(' · ')
-                    })()}
-                  </div>
-                ) : item.kind === 'group' ? (
-                  <div className="text-xs" style={{ color: 'var(--primary)' }}>See all printings</div>
-                ) : null}
-                <div className="mt-0.5 flex gap-1 items-center">
-                  {item.kind === 'printing' && item.finishLabel ? (
-                    <span className="inline-block px-1.5 py-0.5 text-[10px] rounded badge" style={{ border: 'none' }}>{item.finishLabel}</span>
-                  ) : null}
-                  {process.env.NODE_ENV !== 'production' && item.kind === 'printing' && !item.id ? (
-                    <span className="badge" style={{ fontSize: 10, background: 'var(--surface-2)' }}>unindexed</span>
-                  ) : null}
+                <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
+                  {(() => {
+                    const c = fmtCollector(item.collectorNumber as any)
+                    const left = item.setName || item.setCode || ''
+                    return [left, c ? `#${c}` : null].filter(Boolean).join(' · ')
+                  })()}
                 </div>
               </div>
+              {item.setCode ? (
+                <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>{(item.setCode || '').toUpperCase()}</span>
+              ) : null}
             </li>
           ))}
           {loading && (
