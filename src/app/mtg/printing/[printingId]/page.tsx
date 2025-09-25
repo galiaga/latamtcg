@@ -6,11 +6,11 @@ import { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
-function formatUsd(value: any | null): string {
+function formatUsdWholeCeil(value: any | null): string {
   if (value === null || value === undefined) return '—'
   const num = Number(value)
   if (Number.isNaN(num)) return '—'
-  return `$${num.toFixed(2)}`
+  return `$${Math.ceil(num)}`
 }
 
 export async function generateMetadata(props: { params: Promise<{ printingId: string }> }) {
@@ -135,7 +135,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             {data.treatment ? <span className="badge">{data.treatment}</span> : null}
           </div>
           <div className="mt-4 text-xl" style={{ color: 'var(--primary)' }}>
-            {formatUsd(data.priceUsd) || '—'}
+            {formatUsdWholeCeil(data.priceUsd)}
           </div>
           <div className="mt-4 flex gap-2">
             <button className="btn-gradient btn transition-soft">Add to Wishlist</button>

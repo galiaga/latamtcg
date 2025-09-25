@@ -32,6 +32,7 @@ function variantFromTags(frameEffects: string[], promoTypes: string[], setCode: 
   if (fe.has('borderless')) return 'Borderless'
   if (fe.has('extendedart')) return 'Extended Art'
   if (fe.has('showcase')) return 'Showcase'
+  if (fe.has('shatteredglass')) return 'Shattered Glass'
   if (pt.has('retro') || pt.has('retro-frame')) return 'Retro'
   if (fullArt) return 'Borderless'
   if ((setCode || '').toLowerCase() === 'plst') return 'The List'

@@ -9053,3 +9053,85 @@ Server has closed the connection.
 [scryfall] Upserted batch of 1000, total 10000
 [scryfall] Upserted batch of 1000, total 11000
 [scryfall] Upserted batch of 1000, total 12000
+[scryfall] Upserted batch of 1000, total 13000
+[scryfall] Upserted batch of 1000, total 14000
+[scryfall] Upserted batch of 1000, total 15000
+[scryfall] Upserted batch of 1000, total 16000
+[scryfall] Upserted batch of 1000, total 17000
+[scryfall] Upserted batch of 1000, total 18000
+[scryfall] Upserted batch of 1000, total 19000
+[scryfall] Upserted batch of 1000, total 20000
+[scryfall] Upserted batch of 1000, total 21000
+[scryfall] Upserted batch of 1000, total 22000
+[scryfall] Upserted batch of 1000, total 23000
+[scryfall] Upserted batch of 1000, total 24000
+[scryfall] Upserted batch of 1000, total 25000
+[scryfall] Upserted batch of 1000, total 26000
+[scryfall] Upserted batch of 1000, total 27000
+[scryfall] Upserted batch of 1000, total 28000
+[scryfall] Upserted batch of 1000, total 29000
+[scryfall] Upserted batch of 1000, total 30000
+[scryfall] Upserted batch of 1000, total 31000
+[scryfall] Upserted batch of 1000, total 32000
+[scryfall] Upserted batch of 1000, total 33000
+[scryfall] Upserted batch of 1000, total 34000
+[scryfall] Upserted batch of 1000, total 35000
+[scryfall] Upserted batch of 1000, total 36000
+[scryfall] Upserted batch of 1000, total 37000
+[scryfall] Upserted batch of 1000, total 38000
+[scryfall] Upserted batch of 1000, total 39000
+[scryfall] Upserted batch of 1000, total 40000
+[scryfall] Upserted batch of 1000, total 41000
+[scryfall] Upserted batch of 1000, total 42000
+[scryfall] Upserted batch of 1000, total 43000
+[scryfall] Upserted batch of 1000, total 44000
+[scryfall] Upserted batch of 1000, total 45000
+[scryfall] Upserted batch of 1000, total 46000
+node:events:485
+      throw er; // Unhandled 'error' event
+      ^
+
+TypeError: terminated
+    at Fetch.onAborted (node:internal/deps/undici/undici:11132:53)
+    at Fetch.emit (node:events:507:28)
+    at Fetch.terminate (node:internal/deps/undici/undici:10290:14)
+    at Object.onError (node:internal/deps/undici/undici:11253:38)
+    at Request.onError (node:internal/deps/undici/undici:2094:31)
+    at Object.errorRequest (node:internal/deps/undici/undici:1591:17)
+    at TLSSocket.<anonymous> (node:internal/deps/undici/undici:6319:16)
+    at TLSSocket.emit (node:events:519:35)
+    at node:net:351:12
+    at TCP.done (node:_tls_wrap:650:7)
+Emitted 'error' event on Readable instance at:
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  [cause]: SocketError: other side closed
+      at TLSSocket.<anonymous> (node:internal/deps/undici/undici:6294:28)
+      at TLSSocket.emit (node:events:519:35)
+      at endReadableNT (node:internal/streams/readable:1696:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'UND_ERR_SOCKET',
+    socket: {
+      localAddress: '192.168.1.82',
+      localPort: 60533,
+      remoteAddress: undefined,
+      remotePort: undefined,
+      remoteFamily: undefined,
+      timeout: undefined,
+      bytesWritten: 265,
+      bytesRead: 35102523
+    }
+  }
+}
+
+Node.js v23.11.0
+gaston@Gastons-MacBook-Air latamtcg % 
+> latamtcg@0.2.0 scryfall:refresh
+> tsx scripts/run-scryfall-refresh.ts
+
+[scryfall] Starting refresh job
+[scryfall] Downloading bulk default_cards from https://data.scryfall.io/default-cards/default-cards-20250925090919.json
+[scryfall] Upserted batch of 500, total 500
+[scryfall] Upserted batch of 500, total 1000
+[scryfall] Upserted batch of 500, total 1500

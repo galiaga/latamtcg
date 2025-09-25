@@ -55,6 +55,11 @@ export default function CardImage(props: Props) {
       loading={priority ? undefined : 'lazy'}
       sizes={`${width}px`}
       priority={priority}
+      onError={(e) => {
+        const el = e.currentTarget as HTMLImageElement
+        // graceful fallback to a neutral placeholder
+        el.src = '/window.svg'
+      }}
     />
   )
 }

@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.3.0 — 2025-09-25
+### Features
+- Marketplace-style filter UX with horizontal chip bar and facet popovers (Sets, Rarity, Printings)
+- Multi-select facets with live counts and URL-sync; instant results update
+- Sets facet shows full set names; options hidden when count is zero
+- Numbered pagination (compact with ellipsis), accessible and branded
+- Search API: multi-select `set` support (`?set=AAA&set=BBB`), richer grouped results
+- Search index: support “Shattered Glass” variant
+
+### Fixes
+- Facet overlays no longer push layout; only one facet open at a time; reliable outside-click/Escape to close
+- Image fallback added for broken thumbnails
+- Search SQL: ensure `rarity` available in lateral selection; remove results without backing card rows
+
+### Performance
+- Next/Image sizing and intrinsic ratios to reduce CLS; lazy-loaded thumbs
+- Prefetch next page link for snappier pagination
+
+### Refactors / Chore / Docs
+- Removed “All Filters” and grouping checkbox; simplified UI
+- Consolidated pagination controls and reduced vertical spacing
+- Rounded, token-aligned chips and popover components
+- Release plumbing and safeguards for meaningful tags
+
+Changes to pricing display:
+- Prices are now whole-dollar (rounded up) across grid and printing detail pages, with fallback order Etched → Foil → Normal.
+
 ## v0.2.0 — 2025-09-25
 ### Features
 - ui: product-style card page layout with sticky image column and 63:88 aspect; compact header with left title and inline search (0041fa4)
