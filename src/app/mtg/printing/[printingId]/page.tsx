@@ -1,6 +1,5 @@
 import CardImage from '@/components/CardImage'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
 import { getPrintingById } from '@/lib/printings'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'

@@ -1,9 +1,5 @@
 import { prisma } from '@/lib/prisma'
 
-type BuildOptions = {
-  languages: 'en' | 'all'
-}
-
 function normalizeForKeywords(input: string): string {
   if (!input) return ''
   return input
