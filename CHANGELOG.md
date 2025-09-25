@@ -1,25 +1,16 @@
 # Changelog
 
 ## v0.2.0 — 2025-09-25
-- Search
-  - Paginated results (25/page); numbered pagination with mobile-compact controls.
-  - Grouping updated to TCGplayer-like model: separate items per `(oracleId, setCode, collectorNumber, variant, finishGroup)`.
-  - Collapsed standard Nonfoil/Foil into “Standard”; special foils and frame variants remain distinct.
-  - Exact matching when quoted or `exact=1`.
-  - Title normalization: “(Full Art)” rendered as “(Borderless)”.
-  - Pricing filter: exclude printings without price; surface `priceUsd` or fallback to `priceUsdFoil`.
-  - Structured request logging with latency and slow warnings.
-- Autocomplete
-  - Uses search endpoint with pageSize=10; shows variant/finish suffixes.
-- Printing page
-  - “See other printings” uses same grouping (EN-only), capped visually to 30, excludes items without price.
-  - Price display falls back to foil when nonfoil absent; hides page if no price available.
-- Indexing
-  - Enhanced taxonomy for `finishLabel` (Foil Etched, Gilded, Halo, Textured, Rainbow, Step-and-Compleat) and `variantLabel` (Borderless, Extended Art, Showcase, Retro, Full Art).
-  - Rebuild scripts updated; counts audited.
-- Fixes
-  - Resolved Postgres 42703 errors by aliasing quoted columns in raw SQL CTEs.
-  - Ensured counts match grid by aligning grouping and filters.
+### Features
+- ui: product-style card page layout with sticky image column and 63:88 aspect; compact header with left title and inline search (0041fa4)
+- search: grouped results, pagination (25/page), price display; render (Borderless) instead of (Full Art) across UI (0041fa4)
+
+### Performance
+- image: Next/Image size hints and aspect wrappers to prevent CLS (0041fa4)
+
+### Refactors / Chore / Docs
+- card-page: reuse SearchResultsGrid to unify card listing UI (0041fa4)
+- cleanup: remove dead code and unused imports; normalize formatting (no behavior change) (7d717ae)
 
 ## v0.1.2 — 2025-09-24
 - chore(release): bump version and update changelog
