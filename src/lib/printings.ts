@@ -6,11 +6,15 @@ const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 
 function pickFinishLabel(finishes: string[] | null | undefined, promoTypes: string[] | null | undefined): string | null {
   const pt = new Set((promoTypes || []).map((p) => String(p)))
+  // Special foils
+  if (pt.has('gilded')) return 'Gilded Foil'
+  if (pt.has('halo-foil')) return 'Halo Foil'
+  if (pt.has('textured')) return 'Textured Foil'
+  if (pt.has('step-and-compleat')) return 'Step-and-Compleat'
   if (pt.has('rainbow-foil')) return 'Rainbow Foil'
   const set = new Set((finishes || []).map((f) => String(f)))
-  if (set.has('nonfoil')) return 'Nonfoil'
-  if (set.has('foil')) return 'Foil'
-  if (set.has('etched')) return 'Etched'
+  if (set.has('etched')) return 'Foil Etched'
+  if (set.has('nonfoil') || set.has('foil')) return 'Standard'
   return null
 }
 
@@ -21,7 +25,7 @@ function pickVariant(frameEffects: string[] | null | undefined, promoTypes: stri
   if (fe.has('extendedart')) return 'Extended Art'
   if (fe.has('showcase')) return 'Showcase'
   if (pt.has('retro') || pt.has('retro-frame')) return 'Retro'
-  if (fullArt) return 'Full Art'
+  if (fullArt) return 'Borderless'
   return null
 }
 
@@ -55,15 +59,18 @@ export async function getPrintingById(printingId: string) {
 
     const finish = pickFinishLabel(row?.finishes, row?.promoTypes)
     const treatment = pickVariant(row?.frameEffects, row?.promoTypes, row?.fullArt)
+    // Pricing rule: fall back to foil when nonfoil missing; if both missing, don't show
+    const coalescedPrice = (row?.priceUsd as any) ?? (row?.priceUsdFoil as any) ?? null
+    if (coalescedPrice === null) notFound()
 
     const data = {
       id: row!.scryfallId,
-      name: row!.name ?? '(Unknown name)',
+      name: (row!.name ?? '(Unknown name)').replace(/\(Full Art\)/gi, '(Borderless)'),
       setCode: String(row!.setCode ?? ''),
       setName: row!.setName ?? '',
       collectorNumber: fmtCollector(row!.collectorNumber) ?? '',
       imageUrl: row!.imageNormalUrl ?? null,
-      priceUsd: row!.priceUsd ?? null,
+      priceUsd: coalescedPrice,
       finish: finish,
       treatment: treatment,
       language: (row!.lang || 'en').toUpperCase(),

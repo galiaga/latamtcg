@@ -23,16 +23,18 @@ type Props = ThumbProps | LargeProps
 
 export default function CardImage(props: Props) {
   if (props.mode === 'large') {
-    // Responsive large image using fill inside a 3:4 wrapper
+    // Responsive large image using fill inside a 63/88 wrapper for official MTG ratio
     const { src, alt, priority, className } = props
     return (
-      <div className={`relative aspect-[3/4] w-full max-w-[680px] ${className ?? ''}`}>
+      <div
+        className={`relative aspect-[63/88] w-full rounded-2xl border border-black/5 dark:border-white/10 shadow-xl bg-white dark:bg-neutral-900 overflow-hidden ${className ?? ''}`}
+      >
         <Image
           src={src}
           alt={alt}
           fill
-          sizes="(max-width: 768px) 90vw, 680px"
-          className="object-contain rounded"
+          sizes="(max-width: 640px) 86vw, (min-width: 1280px) 30vw, (min-width: 1024px) 28vw, 90vw"
+          className="h-full w-full object-contain transition-transform duration-300 will-change-transform hover:scale-[1.02]"
           priority={priority}
         />
       </div>

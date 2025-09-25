@@ -17,11 +17,16 @@ function normalizeForKeywords(input: string): string {
 
 function pickFinishLabel(finishes: string[], promoTypes: string[]): string | null {
   const types = new Set((promoTypes || []).map((t) => String(t)))
+  // Special foils first
+  if (types.has('gilded')) return 'Gilded Foil'
+  if (types.has('halo-foil')) return 'Halo Foil'
+  if (types.has('textured')) return 'Textured Foil'
+  if (types.has('step-and-compleat')) return 'Step-and-Compleat'
   if (types.has('rainbow-foil')) return 'Rainbow Foil'
   const set = new Set(finishes || [])
-  if (set.has('nonfoil')) return 'Nonfoil'
-  if (set.has('foil')) return 'Foil'
-  if (set.has('etched')) return 'Etched'
+  if (set.has('etched')) return 'Foil Etched'
+  // Standard (nonfoil/foil) collapse later in UI; mark as Standard for grouping
+  if (set.has('nonfoil') || set.has('foil')) return 'Standard'
   return null
 }
 
@@ -32,7 +37,7 @@ function variantFromTags(frameEffects: string[], promoTypes: string[], setCode: 
   if (fe.has('extendedart')) return 'Extended Art'
   if (fe.has('showcase')) return 'Showcase'
   if (pt.has('retro') || pt.has('retro-frame')) return 'Retro'
-  if (fullArt) return 'Full Art'
+  if (fullArt) return 'Borderless'
   if ((setCode || '').toLowerCase() === 'plst') return 'The List'
   // Common short codes that should surface as variant markers
   const code = (setCode || '').toUpperCase()
@@ -123,11 +128,12 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
     if (cards.length === 0) break
 
     const rows = cards.map((c) => {
+      const title = String(c.name || '').replace(/\(Full Art\)/gi, '(Borderless)')
       const finishLabel = pickFinishLabel(c.finishes || [], c.promoTypes || [])
       const variantLabel = variantFromTags(c.frameEffects || [], c.promoTypes || [], c.setCode, c.fullArt)
       const subtitle = buildSubtitle(c.setCode, c.setName ?? null, c.collectorNumber)
       const keywordsText = buildKeywords({
-        name: c.name,
+        name: title,
         setCode: c.setCode,
         setName: c.setName,
         collectorNumber: c.collectorNumber,
@@ -142,7 +148,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         id: c.scryfallId,
         groupId: c.oracleId,
         game: 'mtg',
-        title: c.name,
+        title: title,
         subtitle,
         keywordsText,
         finishLabel: finishLabel ?? null,
@@ -155,7 +161,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         setName: c.setName ?? null,
         collectorNumber: c.collectorNumber,
         imageNormalUrl: c.imageNormalUrl ?? null,
-        name: c.name,
+        name: title,
       }
     })
 

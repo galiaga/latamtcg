@@ -189,7 +189,7 @@ export default function SearchBox({ placeholder = 'Search printings…', default
   }
 
   return (
-    <div ref={boxRef} className="relative w-full max-w-xl">
+    <div ref={boxRef} className="relative w-full">
       <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (process.env.NODE_ENV !== 'production') console.debug('[search] onSubmit'); handleSearchSubmit('button') }}>
         <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>MTG</span>
         <input
@@ -214,7 +214,7 @@ export default function SearchBox({ placeholder = 'Search printings…', default
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute z-20 mt-1 w-full max-w-xl rounded-md card-2xl"
+          className="absolute z-20 mt-1 w-full rounded-md card-2xl"
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
           <li className="px-3 py-1 text-[11px]" style={{ color: 'var(--mutedText)', borderBottom: '1px solid var(--divider)' }}>
@@ -235,7 +235,12 @@ export default function SearchBox({ placeholder = 'Search printings…', default
             >
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium truncate">
-                  {item.title}
+                  {(() => {
+                    const parts: string[] = []
+                    if (item.variantLabel) parts.push(item.variantLabel)
+                    if (item.finishLabel && item.finishLabel !== 'Standard') parts.push(item.finishLabel)
+                    return parts.length ? `${item.title} (${parts.join(', ')})` : item.title
+                  })()}
                 </div>
                 <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
                   {(() => {

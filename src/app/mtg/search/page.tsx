@@ -8,7 +8,7 @@ export const metadata = {
 export default function MtgSearchPage() {
   return (
     <div className="py-6">
-      <section className="max-w-6xl mx-auto px-4">
+      <section className="px-4">
         <SearchResultsGrid />
       </section>
     </div>

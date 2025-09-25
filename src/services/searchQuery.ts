@@ -269,7 +269,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
     if (fe.has('extendedart')) return 'Extended Art'
     if (fe.has('showcase')) return 'Showcase'
     if (pt.has('retro') || pt.has('retro-frame')) return 'Retro'
-    if (fullArt) return 'Full Art'
+  if (fullArt) return 'Borderless'
     if ((setCode || '').toLowerCase() === 'plst') return 'The List'
     const code = (setCode || '').toUpperCase()
     if (code === 'J18') return 'J18'
@@ -285,7 +285,8 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
 
   type Scored = { score: number; releasedAtMs: number; item: SearchItem }
   const scored: Scored[] = candidates.map((c) => {
-    const titleNorm = norm(c.name)
+    const displayName = String(c.name || '').replace(/\(Full Art\)/gi, '(Borderless)')
+    const titleNorm = norm(displayName)
     const exact = titleNorm === qNorm ? 1 : 0
     const prefix = titleNorm.startsWith(first) ? 1 : 0
     const includes = titleNorm.includes(first) ? 1 : 0
@@ -310,7 +311,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
       id: c.scryfallId,
       groupId: c.oracleId,
       game: 'mtg',
-      title: c.name,
+      title: displayName,
       subtitle: subtitle(c.setCode, c.setName ?? null, c.collectorNumber),
       finishLabel,
       variantLabel,

@@ -5,6 +5,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import Script from "next/script";
 import pkg from '../../package.json'
 import SearchBox from "@/components/SearchBox";
+import Link from "next/link";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,20 +47,19 @@ export default function RootLayout({
           `}
         </Script>
         {/* Global search section */}
-        <header className="pt-8 pb-6">
-          <div className="max-w-4xl mx-auto text-center px-4">
-            <h1 className="text-2xl font-bold" style={{ letterSpacing: '-0.01em' }}>LatamTCG</h1>
-            <p className="mt-2" style={{ color: 'var(--mutedText)' }}>Find any printing, variant, or language.</p>
-            <div className="mt-6 flex items-center justify-center">
-              <div className="w-full" style={{ maxWidth: 600 }}>
-                <SearchBox />
+        <header className="py-4">
+          <div className="px-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
+                <Link href="/">LatamTCG</Link>
+              </h1>
+              <div className="flex-1">
+                <div className="w-full">
+                  <SearchBox />
+                </div>
               </div>
             </div>
-            <div className="mt-4 flex gap-2 justify-center flex-wrap">
-              {['Black Lotus','Lightning Bolt','Teferi\'s Protection','Sol Ring'].map((q) => (
-                <a key={q} className="badge transition-soft hover-glow-purple" href={`/mtg/search?q=${encodeURIComponent(q)}`}>{q}</a>
-              ))}
-            </div>
+            
           </div>
         </header>
         <div style={{ borderTop: '1px solid var(--divider)' }} />
@@ -67,7 +67,7 @@ export default function RootLayout({
           {children}
         </main>
         <footer className="mt-10 px-4 py-6">
-          <div className="max-w-6xl mx-auto flex items-center justify-between text-xs" style={{ color: 'var(--mutedText)' }}>
+          <div className="flex items-center justify-between text-xs" style={{ color: 'var(--mutedText)' }}>
             <span aria-label={`App version ${pkg.version}`}>v{pkg.version}</span>
             <ThemeToggle />
           </div>
