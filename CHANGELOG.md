@@ -1,3 +1,11 @@
+## v0.4.0 — 2025-09-25
+
+### Features
+- feat: marketplace filters with chip-based facets, popovers, numbered pagination, rounded pricing; search API multi-set; printing page price (1743aa9)
+
+
+
+
 # Changelog
 
 ## v0.3.0 — 2025-09-25
