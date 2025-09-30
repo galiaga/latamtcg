@@ -2,6 +2,9 @@ import { prisma } from '@/lib/prisma'
 import type { MtgCard } from '@prisma/client'
 import { Prisma } from '@prisma/client'
 import { Readable } from 'stream'
+import fs from 'fs'
+import path from 'path'
+import zlib from 'zlib'
 import { parser } from 'stream-json'
 import { streamArray } from 'stream-json/streamers/StreamArray'
 
@@ -45,6 +48,10 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
     return { updated: 0, skipped: true, durationMs: Date.now() - started }
   }
 
+  // Support optional file-based transform/ingest when a file path is provided via CLI flag
+  const fromFileArg = process.argv.find((a) => a === '--from-file')
+  const fromFilePath = fromFileArg ? process.argv[process.argv.indexOf(fromFileArg) + 1] : ''
+
   // Resume checkpoint if exists for this bulk
   let resumeIndex = -1
   try {
@@ -68,19 +75,158 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
   const maxAttempts = Number(process.env.SCRYFALL_MAX_ATTEMPTS ?? 20)
   const baseDelayMs = 1_000
 
+  // Transformer mode (from file): produce NDJSON parts and checkpoints; no DB writes
+  if (fromFilePath) {
+    const abs = path.resolve(fromFilePath)
+    const isGz = abs.endsWith('.gz')
+    const dataDir = path.resolve('data')
+    const ndjsonDir = path.join(dataDir, 'ndjson')
+    if (!fs.existsSync(ndjsonDir)) fs.mkdirSync(ndjsonDir, { recursive: true })
+    const metaPath = path.join(dataDir, 'scryfall-download.meta.json')
+    if (!fs.existsSync(metaPath)) {
+      throw new Error('Missing data/scryfall-download.meta.json. Run scryfall:download first.')
+    }
+    const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')) as { updatedAt: string; etag: string | null }
+
+    const partSize = Number(process.env.NDJSON_PART_SIZE ?? 100_000)
+    let lastPart = -1
+    try {
+      const raw = await getKv('scryfall:default:ndjson')
+      if (raw) {
+        const parsed = JSON.parse(raw) as { updatedAt?: string; etag?: string | null; lastPart?: number }
+        if (parsed?.updatedAt === meta.updatedAt && parsed?.etag === meta.etag && typeof parsed?.lastPart === 'number') {
+          lastPart = parsed.lastPart
+        }
+      }
+    } catch {}
+
+    console.log('[scryfall] Transforming to NDJSON parts from', abs)
+    const fileStream = fs.createReadStream(abs)
+    const inputStream = isGz ? fileStream.pipe(zlib.createGunzip()) : fileStream
+    const pipeline = inputStream.pipe(parser()).pipe(streamArray())
+
+    // Compute resume threshold by allowed-card count, not raw JSON index
+    let allowedCount = (lastPart + 1) * partSize
+    let currentPartIndex = Math.max(0, lastPart + 1)
+    let currentPartPath = path.join(ndjsonDir, `part-${String(currentPartIndex).padStart(5, '0')}.ndjson`)
+    let partStream: fs.WriteStream | null = null
+    let writtenInPart = 0
+
+    const openNextPart = () => {
+      if (partStream) partStream.end()
+      currentPartPath = path.join(ndjsonDir, `part-${String(currentPartIndex).padStart(5, '0')}.ndjson`)
+      partStream = fs.createWriteStream(currentPartPath, { flags: 'a' })
+      writtenInPart = 0
+      console.log('[scryfall] Writing', path.basename(currentPartPath))
+    }
+
+    if (currentPartIndex >= 0) openNextPart()
+
+    const mapToRow = (card: any) => {
+      const priceUsd = card?.prices?.usd
+      const priceUsdFoil = card?.prices?.usd_foil
+      const priceUsdEtched = card?.prices?.usd_etched
+      const priceEur = card?.prices?.eur
+      const priceTix = card?.prices?.tix
+      return {
+        scryfallId: String(card.id),
+        oracleId: String(card?.oracle_id ?? ''),
+        name: String(card?.name ?? ''),
+        setCode: String(card?.set ?? ''),
+        // set name normalized into Set table
+        collectorNumber: String(card?.collector_number ?? ''),
+        rarity: card?.rarity ? String(card.rarity) : null,
+        finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
+        frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: any) => String(f)) : [],
+        promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
+        borderColor: card?.border_color ? String(card.border_color) : null,
+        fullArt: Boolean(card?.full_art ?? false),
+        legalitiesJson: card?.legalities ?? undefined,
+        priceUsd: priceUsd ? String(priceUsd) : '',
+        priceUsdFoil: priceUsdFoil ? String(priceUsdFoil) : '',
+        priceUsdEtched: priceUsdEtched ? String(priceUsdEtched) : '',
+        priceEur: priceEur ? String(priceEur) : '',
+        priceTix: priceTix ? String(priceTix) : '',
+        lang: String(card?.lang ?? 'en'),
+        isPaper: true,
+        setType: card?.set_type ? String(card.set_type) : null,
+        releasedAt: card?.released_at ? new Date(card.released_at).toISOString() : '',
+        scryfallUpdatedAt: card?.released_at ? new Date(card.released_at).toISOString() : new Date(meta.updatedAt).toISOString(),
+      }
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      pipeline.on('data', (data: { key: number; value: any }) => {
+        const card = data.value
+        const isPaper = !card?.digital && Array.isArray(card?.games) && card.games.includes('paper')
+        const isEnglish = card?.lang === 'en'
+        const setType: string | undefined = card?.set_type
+        const allowed = isPaper && isEnglish && (!setType || !excludedSetTypes.has(setType))
+        if (!allowed) return
+        if (allowedCount > 0) {
+          allowedCount--
+          return
+        }
+        const row = mapToRow(card)
+        const line = JSON.stringify(row)
+        if (!partStream) openNextPart()
+        partStream!.write(line + '\n')
+        writtenInPart++
+        updatedCount++
+        if (updatedCount % 10_000 === 0) {
+          console.log(`[scryfall] Transformed ${updatedCount} rows`)
+        }
+        if (writtenInPart >= partSize) {
+          // finish part
+          partStream!.end()
+          partStream = null
+          // persist checkpoint for completed part
+          prisma.kvMeta.upsert({
+            where: { key: 'scryfall:default:ndjson' },
+            update: { value: JSON.stringify({ updatedAt: meta.updatedAt, etag: meta.etag, lastPart: currentPartIndex }) },
+            create: { key: 'scryfall:default:ndjson', value: JSON.stringify({ updatedAt: meta.updatedAt, etag: meta.etag, lastPart: currentPartIndex }) },
+          }).catch(() => {})
+          currentPartIndex++
+          openNextPart()
+        }
+      })
+      pipeline.on('end', async () => {
+        try {
+          if (partStream) partStream.end()
+          await upsertKv('scryfall:default:ndjson', JSON.stringify({ updatedAt: meta.updatedAt, etag: meta.etag, lastPart: currentPartIndex }))
+          resolve()
+        } catch (e) {
+          reject(e)
+        }
+      })
+      pipeline.on('error', reject)
+    })
+
+    const durationMs = Date.now() - started
+    console.log('[scryfall] Transform completed', { written: updatedCount, durationMs })
+    return { updated: updatedCount, skipped: false, durationMs }
+  }
+
   // We'll loop/retry the streaming block on failure, resuming from the last persisted index
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log('[scryfall] Downloading bulk default_cards from', defaultCards.download_uri)
-      const bulkResp = await fetch(defaultCards.download_uri, {
-        cache: 'no-store',
-      })
-      if (!bulkResp.ok || !bulkResp.body) {
-        throw new Error(`Failed to download bulk: ${bulkResp.status} ${bulkResp.statusText}`)
+      let pipeline: any
+      if (fromFilePath) {
+        const abs = path.resolve(fromFilePath)
+        console.log('[scryfall] Reading from file', abs)
+        const fileStream = fs.createReadStream(abs)
+        const isGz = abs.endsWith('.gz')
+        const inputStream = isGz ? fileStream.pipe(zlib.createGunzip()) : fileStream
+        pipeline = inputStream.pipe(parser()).pipe(streamArray())
+      } else {
+        console.log('[scryfall] Downloading bulk default_cards from', defaultCards.download_uri)
+        const bulkResp = await fetch(defaultCards.download_uri, { cache: 'no-store' })
+        if (!bulkResp.ok || !bulkResp.body) {
+          throw new Error(`Failed to download bulk: ${bulkResp.status} ${bulkResp.statusText}`)
+        }
+        const nodeStream = Readable.fromWeb(bulkResp.body as any)
+        pipeline = nodeStream.pipe(parser()).pipe(streamArray())
       }
-
-      const nodeStream = Readable.fromWeb(bulkResp.body as any)
-      const pipeline = nodeStream.pipe(parser()).pipe(streamArray())
 
       let batch: any[] = []
       let lastSeenKey = -1
@@ -165,14 +311,7 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
   return { updated: updatedCount, skipped: false, durationMs }
 }
 
-function pickImageNormalUrl(card: any): string | undefined {
-  const imageNormal = card?.image_uris?.normal
-  if (typeof imageNormal === 'string') return imageNormal
-  const firstFace = Array.isArray(card?.card_faces) ? card.card_faces[0] : undefined
-  const faceImage = firstFace?.image_uris?.normal
-  if (typeof faceImage === 'string') return faceImage
-  return undefined
-}
+// removed: image URL is computed on the fly from scryfallId
 
 function upsertCard(card: any, bulkUpdatedAt: string) {
   const priceUsd = card?.prices?.usd
@@ -180,8 +319,6 @@ function upsertCard(card: any, bulkUpdatedAt: string) {
   const priceUsdEtched = card?.prices?.usd_etched
   const priceEur = card?.prices?.eur
   const priceTix = card?.prices?.tix
-  const imageUrl = pickImageNormalUrl(card) ?? null
-
   return prisma.mtgCard.upsert({
     where: { scryfallId: String(card.id) },
     create: {
@@ -189,7 +326,7 @@ function upsertCard(card: any, bulkUpdatedAt: string) {
       oracleId: String(card?.oracle_id ?? ''),
       name: String(card.name ?? ''),
       setCode: String(card.set ?? ''),
-      setName: card?.set_name ? String(card.set_name) : null,
+      // set name normalized into Set table
       collectorNumber: String(card.collector_number ?? ''),
       rarity: card?.rarity ? String(card.rarity) : null,
       finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
@@ -197,7 +334,6 @@ function upsertCard(card: any, bulkUpdatedAt: string) {
       promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
       borderColor: card?.border_color ? String(card.border_color) : null,
       fullArt: Boolean(card?.full_art ?? false),
-      imageNormalUrl: imageUrl,
       legalitiesJson: card?.legalities ?? undefined,
       priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
       priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,
@@ -215,7 +351,7 @@ function upsertCard(card: any, bulkUpdatedAt: string) {
       oracleId: String(card?.oracle_id ?? ''),
       name: String(card.name ?? ''),
       setCode: String(card.set ?? ''),
-      setName: card?.set_name ? String(card.set_name) : null,
+      // set name normalized into Set table
       collectorNumber: String(card.collector_number ?? ''),
       rarity: card?.rarity ? String(card.rarity) : null,
       finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
@@ -223,7 +359,6 @@ function upsertCard(card: any, bulkUpdatedAt: string) {
       promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
       borderColor: card?.border_color ? String(card.border_color) : null,
       fullArt: Boolean(card?.full_art ?? false),
-      imageNormalUrl: imageUrl,
       legalitiesJson: card?.legalities ?? undefined,
       priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
       priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,

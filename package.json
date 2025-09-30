@@ -1,25 +1,34 @@
 {
   "name": "latamtcg",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build --turbopack",
     "start": "next start",
+    "perf:prod": "next build && node scripts/perf-prod.js",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name mtg_paper_lang_filters",
-    "scryfall:refresh": "tsx scripts/run-scryfall-refresh.ts",
+    "scryfall:download": "NODE_OPTIONS=--max-old-space-size=4096 tsx scripts/scryfall-download.ts",
+    "scryfall:transform": "NODE_OPTIONS=--max-old-space-size=4096 tsx src/services/scryfallIngest.ts --from-file data/scryfall-default-cards.json.gz",
+    "scryfall:copy": "NODE_OPTIONS=--max-old-space-size=4096 tsx scripts/scryfall-copy.ts",
+    "scryfall:refresh": "npm run scryfall:download && npm run scryfall:transform && npm run scryfall:copy",
     "mtg:cleanup": "tsx scripts/cleanup-mtg.ts",
     "searchindex:rebuild": "tsx scripts/reindex-printings.ts",
-    "searchindex:audit": "tsx scripts/audit-search-index.ts"
+    "searchindex:audit": "tsx scripts/audit-search-index.ts",
+    "db:sanitize-paper-only": "tsx scripts/db-sanitize-paper-only.ts",
+    "db:analyze": "tsx scripts/db-analyze.ts",
+    "db:verify:set-normalization": "tsx scripts/db-verify-set-normalization.ts",
+    "db:migrate": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "stream-json": "^1.7.5"
+    "stream-json": "^1.7.5",
+    "pg": "^8.12.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -33,6 +42,7 @@
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.5",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.3"
   }
 }
