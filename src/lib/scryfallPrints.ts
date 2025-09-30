@@ -22,14 +22,7 @@ function shouldKeep(card: any, excluded: Set<string>): boolean {
   return isPaper && isEnglish && (!type || !excluded.has(type))
 }
 
-function pickImageNormalUrl(card: any): string | null {
-  const imageNormal = card?.image_uris?.normal
-  if (typeof imageNormal === 'string') return imageNormal
-  const firstFace = Array.isArray(card?.card_faces) ? card.card_faces[0] : undefined
-  const faceImage = firstFace?.image_uris?.normal
-  if (typeof faceImage === 'string') return faceImage
-  return null
-}
+// removed: image URL computed from scryfallId at read time
 
 function mapToDb(card: any, bulkUpdatedAt: string | null) {
   const priceUsd = card?.prices?.usd
@@ -42,7 +35,6 @@ function mapToDb(card: any, bulkUpdatedAt: string | null) {
     oracleId: String(card?.oracle_id ?? ''),
     name: String(card.name ?? ''),
     setCode: String(card.set ?? ''),
-    setName: card?.set_name ? String(card.set_name) : null,
     collectorNumber: String(card.collector_number ?? ''),
     rarity: card?.rarity ? String(card.rarity) : null,
     finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
@@ -50,7 +42,7 @@ function mapToDb(card: any, bulkUpdatedAt: string | null) {
     promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
     borderColor: card?.border_color ? String(card.border_color) : null,
     fullArt: Boolean(card?.full_art ?? false),
-    imageNormalUrl: pickImageNormalUrl(card),
+    // image omitted: computed on the fly from scryfallId
     legalitiesJson: card?.legalities ?? undefined,
     priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
     priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,

@@ -11,14 +11,14 @@ export async function GET(req: NextRequest) {
     const q = String(searchParams.get('q') || '').trim().toLowerCase()
     const limit = Math.min(500, Math.max(1, parseInt(String(searchParams.get('limit') || '200'), 10) || 200))
 
-    const where: any = { isPaper: true, lang: 'en' }
     const rows: Array<{ setCode: string; setName: string | null; count: bigint }> = await prisma.$queryRaw(Prisma.sql`
-      SELECT "setCode" AS "setCode", MIN("setName") AS "setName", COUNT(*)::bigint AS count
-      FROM "public"."MtgCard"
-      WHERE "isPaper" = true AND "lang" = 'en'
-        ${q ? Prisma.sql`AND (lower("setCode") LIKE ${'%' + q + '%'} OR lower(COALESCE("setName", '')) LIKE ${'%' + q + '%'})` : Prisma.sql``}
-      GROUP BY "setCode"
-      ORDER BY MIN(COALESCE("setName", '')) ASC, "setCode" ASC
+      SELECT c."setCode" AS "setCode", MIN(s.set_name) AS "setName", COUNT(*)::bigint AS count
+      FROM "public"."MtgCard" c
+      LEFT JOIN "public"."Set" s ON s.set_code = c."setCode"
+      WHERE c."isPaper" = true AND c."lang" = 'en'
+        ${q ? Prisma.sql`AND (lower(c."setCode") LIKE ${'%' + q + '%'} OR lower(COALESCE(s.set_name, '')) LIKE ${'%' + q + '%'})` : Prisma.sql``}
+      GROUP BY c."setCode"
+      ORDER BY MIN(COALESCE(s.set_name, '')) ASC, c."setCode" ASC
       LIMIT ${limit}
     `)
 

@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+import { getScryfallNormalUrl } from '@/lib/images'
 import { fmtCollector } from '@/lib/format'
 import { notFound } from 'next/navigation'
 
@@ -34,52 +36,83 @@ export async function getPrintingById(printingId: string) {
   if (process.env.NODE_ENV !== 'production') console.debug('[getPrintingById] start', printingId)
 
   try {
-    const row = await prisma.mtgCard.findUnique({
-      where: { scryfallId: printingId },
-      select: {
-        scryfallId: true,
-        oracleId: true,
-        name: true,
-        setCode: true,
-        setName: true,
-        collectorNumber: true,
-        finishes: true,
-        frameEffects: true,
-        promoTypes: true,
-        fullArt: true,
-        imageNormalUrl: true,
-        priceUsd: true,
-        priceUsdFoil: true,
-        priceUsdEtched: true,
-        lang: true,
-        releasedAt: true,
-      },
-    })
+    const rows = await prisma.$queryRaw<Array<{
+      scryfallId: string
+      oracleId: string
+      name: string | null
+      setCode: string | null
+      collectorNumber: string | null
+      finishes: string[] | null
+      frameEffects: string[] | null
+      promoTypes: string[] | null
+      fullArt: boolean | null
+      priceUsd: any
+      priceUsdFoil: any
+      priceUsdEtched: any
+      lang: string | null
+      releasedAt: Date | null
+      setName: string | null
+    }>>(
+      Prisma.sql`
+        SELECT
+          c."scryfallId",
+          c."oracleId",
+          c.name,
+          c."setCode",
+          c."collectorNumber",
+          c.finishes,
+          c."frameEffects",
+          c."promoTypes",
+          c."fullArt",
+          c."priceUsd",
+          c."priceUsdFoil",
+          c."priceUsdEtched",
+          c.lang,
+          c."releasedAt",
+          s.set_name AS "setName"
+        FROM "public"."MtgCard" c
+        LEFT JOIN "public"."Set" s ON s.set_code = c."setCode"
+        WHERE c."scryfallId" = ${printingId}
+        LIMIT 1
+      `
+    )
+    const row = rows[0]
     if (!row) notFound()
+    // Prefer normalized Set relation; fallback to SearchIndex stored name
+    let setName: string | null = row?.setName ?? null
+    if (!setName) {
+      try {
+        const si = await prisma.searchIndex.findUnique({ where: { id: printingId }, select: { setName: true } })
+        setName = si?.setName ?? null
+      } catch {}
+    }
 
-    const finish = pickFinishLabel(row?.finishes, row?.promoTypes)
-    const treatment = pickVariant(row?.frameEffects, row?.promoTypes, row?.fullArt)
-    // Pricing rule: fall back to foil when nonfoil missing; if both missing, don't show
+    const finish = pickFinishLabel(row?.finishes || [], row?.promoTypes || [])
+    const treatment = pickVariant(row?.frameEffects || [], row?.promoTypes || [], row?.fullArt)
+    // Pricing rule: fall back to foil when nonfoil missing; if both missing, allow null (no 404)
     const coalescedPrice = (row?.priceUsd as any) ?? (row?.priceUsdFoil as any) ?? null
-    if (coalescedPrice === null) notFound()
 
     const data = {
-      id: row!.scryfallId,
-      name: (row!.name ?? '(Unknown name)').replace(/\(Full Art\)/gi, '(Borderless)'),
-      setCode: String(row!.setCode ?? ''),
-      setName: row!.setName ?? '',
-      collectorNumber: fmtCollector(row!.collectorNumber) ?? '',
-      imageUrl: row!.imageNormalUrl ?? null,
+      id: row.scryfallId,
+      name: (row.name ?? '(Unknown name)').replace(/\(Full Art\)/gi, '(Borderless)'),
+      setCode: String(row.setCode ?? ''),
+      setName: (setName && String(setName).trim()) || null,
+      collectorNumber: fmtCollector(row.collectorNumber) ?? '',
+      imageUrl: row.scryfallId ? getScryfallNormalUrl(row.scryfallId) : null,
       priceUsd: coalescedPrice,
       finish: finish,
       treatment: treatment,
-      language: (row!.lang || 'en').toUpperCase(),
-      oracleId: row!.oracleId,
+      language: (row.lang || 'en').toUpperCase(),
+      oracleId: row.oracleId,
     }
     if (process.env.NODE_ENV !== 'production') console.debug('[getPrintingById] ok', printingId)
     return data
-  } catch (e) {
-    console.error('[getPrintingById] failed', printingId, e)
+  } catch (e: any) {
+    // Avoid noisy logs for expected 404s triggered via notFound()
+    const message = String(e?.message || '')
+    if (!message.includes('NEXT_NOT_FOUND')) {
+      console.error('[getPrintingById] failed', printingId, e)
+    }
     throw e
   }
 }
@@ -106,13 +139,11 @@ export async function findPrintingIdBySetCollector(setCode: string, collectorNum
         oracleId: String(card?.oracle_id ?? ''),
         name: String(card?.name ?? ''),
         setCode: String(card?.set ?? set),
-        setName: card?.set_name ? String(card.set_name) : null,
         collectorNumber: String(card?.collector_number ?? cn),
         finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
         frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: any) => String(f)) : [],
         promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
         fullArt: Boolean(card?.full_art ?? false),
-        imageNormalUrl: imageNormal ?? null,
         lang: String(card?.lang ?? 'en'),
         isPaper: !card?.digital,
         releasedAt: card?.released_at ? new Date(card.released_at) : null,
@@ -121,13 +152,11 @@ export async function findPrintingIdBySetCollector(setCode: string, collectorNum
         oracleId: String(card?.oracle_id ?? ''),
         name: String(card?.name ?? ''),
         setCode: String(card?.set ?? set),
-        setName: card?.set_name ? String(card.set_name) : null,
         collectorNumber: String(card?.collector_number ?? cn),
         finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
         frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: any) => String(f)) : [],
         promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
         fullArt: Boolean(card?.full_art ?? false),
-        imageNormalUrl: imageNormal ?? null,
         lang: String(card?.lang ?? 'en'),
         isPaper: !card?.digital,
         releasedAt: card?.released_at ? new Date(card.released_at) : null,

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { getScryfallNormalUrl } from '@/lib/images'
 import { Prisma } from '@prisma/client'
 import { SearchDoc } from '@/search/types'
 
@@ -13,14 +14,13 @@ async function main() {
       oracleId: true,
       name: true,
       setCode: true,
-      setName: true,
+      // set relation omitted for compatibility with current Prisma schema state
       collectorNumber: true,
       finishes: true,
       frameEffects: true,
       promoTypes: true,
       fullArt: true,
       lang: true,
-      imageNormalUrl: true,
       priceUsd: true,
     },
     take: 200000,
@@ -42,12 +42,12 @@ async function main() {
       game: 'mtg',
       name: r.name,
       setCode: r.setCode,
-      setName: r.setName,
+      setName: null,
       collectorNumber: r.collectorNumber,
       finishLabel: finish,
       variantLabel: variant,
       lang: r.lang,
-      imageThumbUrl: r.imageNormalUrl,
+      imageThumbUrl: r.scryfallId ? getScryfallNormalUrl(r.scryfallId) : null,
       priceUsd: r.priceUsd ? Number(r.priceUsd) : null,
     })
     indexed++
