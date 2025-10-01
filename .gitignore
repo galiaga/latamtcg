@@ -41,3 +41,4 @@ yarn-error.log*
 next-env.d.ts
 
 scryfall-refresh.log
+data/scryfall-default-cards.json
