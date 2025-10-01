@@ -117,7 +117,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
              si."subtitle",
              si."imageNormalUrl",
              si."setCode",
-             si."setName",
+             COALESCE(si."setName", s.set_name) AS "setName",
              si."collectorNumber",
              si."variantLabel" AS variant_label,
              si."finishLabel" AS finish_label,
@@ -141,6 +141,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
              mc."rarity" AS rarity
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
       WHERE si.game = 'mtg' AND si."isPaper" = true AND (${andTextWhere})
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
         ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
@@ -302,10 +303,11 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     idRows = await prisma.$queryRaw(Prisma.sql`
     WITH base AS (
       SELECT si.id, si."groupId", si."variantLabel" AS variant_label, si."finishLabel" AS finish_label,
-             si."setCode", si."setName", si."collectorNumber",
+             si."setCode", COALESCE(si."setName", s.set_name) AS "setName", si."collectorNumber",
              mc."finishes" AS finishes, mc."rarity" AS rarity
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
       WHERE si.game = 'mtg' AND si."isPaper" = true AND (${andTextWhere})
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
         ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
