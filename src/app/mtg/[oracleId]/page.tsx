@@ -6,7 +6,7 @@ import { getScryfallNormalUrl } from '@/lib/images'
 
 export const dynamic = 'force-dynamic'
 
-function formatUsd(value: any | null): string {
+function formatUsd(value: unknown | null): string {
   if (value === null || value === undefined) return '—'
   const num = Number(value)
   if (Number.isNaN(num)) return '—'
@@ -21,8 +21,8 @@ function Tag({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default async function OraclePage({ params }: { params: { oracleId: string } }) {
-  const { oracleId } = params
+export default async function OraclePage(props: { params: Promise<{ oracleId: string }> }) {
+  const { oracleId } = await props.params
 
   const existingCount = await prisma.mtgCard.count({ where: { oracleId, isPaper: true, lang: 'en' } })
   const force = process.env.FORCE_SYNC_PRINTS_ON_VIEW === '1'
@@ -108,6 +108,7 @@ export default async function OraclePage({ params }: { params: { oracleId: strin
                   </td>
                   <td className="p-2 align-top">
                     <div className="font-medium">{row.setCode.toUpperCase()}</div>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- narrow set relation quickly */}
                     <div className="text-xs text-zinc-500">{(row as any).set?.set_name ?? ''}</div>
                   </td>
                   <td className="p-2 align-top">{row.collectorNumber}</td>

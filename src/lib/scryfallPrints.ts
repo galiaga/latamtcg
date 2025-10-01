@@ -84,10 +84,11 @@ export async function fetchPrintsForOracle(oracleId: string): Promise<TopUpResul
       const existingSet = new Set(existing.map((e) => e.scryfallId))
       const mapped = chunk.map((c) => mapToDb(c, json?.updated_at ?? null))
 
-      const ops = mapped.map((m) =>
-        prisma.mtgCard.upsert({ where: { scryfallId: m.scryfallId }, create: m, update: m })
-      )
-      await prisma.$transaction(ops, { timeout: 120_000 })
+      await prisma.$transaction(async (tx) => {
+        for (const m of mapped) {
+          await tx.mtgCard.upsert({ where: { scryfallId: m.scryfallId }, create: m, update: m })
+        }
+      }, { timeout: 120_000 })
 
       const createdCount = mapped.filter((m) => !existingSet.has(m.scryfallId)).length
       inserted += createdCount
