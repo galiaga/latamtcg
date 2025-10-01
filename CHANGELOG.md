@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.2 — 2025-10-01
+### Fixes
+- Search: Results now display the full set name (e.g., “Limited Edition Alpha”) instead of the short code (e.g., “LEA”). Collector number is still shown when available (e.g., “#292”).
+
+### Refactors / Chore / Docs
+- Grouped search coalesces `setName` from the normalized `Set` table to guarantee a user-friendly name without affecting sorting, filtering, or pagination.
+
 ## v0.6.1 — 2025-10-01
 ### Fixes
 - Search: Price sorting is now applied globally across the full result set before pagination (High → Low uses max price; Low → High uses min price). Resolves cases where higher-priced items appeared below cheaper ones.
