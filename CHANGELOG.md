@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.6.1 — 2025-10-01
+### Fixes
+- Search: Price sorting is now applied globally across the full result set before pagination (High → Low uses max price; Low → High uses min price). Resolves cases where higher-priced items appeared below cheaper ones.
+- Search: Representative printing selection now matches the global price metric so the displayed price aligns with the ordering.
+
+### Refactors / Chore / Docs
+- Update changelog for global price sort behavior.
+
 ## v0.6.0 — 2025-09-30
 ### Features
 - Search: Sort by Price (Low → High, High → Low); compact selector in results toolbar; persists `?sort=` in URL and preserves filters/pagination.
