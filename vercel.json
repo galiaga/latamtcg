@@ -1,0 +1,8 @@
+{
+  "crons": [
+    { "path": "/api/jobs/scryfall-refresh", "schedule": "0 4 * * *" },
+    { "path": "/api/jobs/searchindex-refresh", "schedule": "15 4 * * *" }
+  ]
+}
+
+
