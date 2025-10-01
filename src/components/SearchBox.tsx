@@ -92,7 +92,8 @@ export default function SearchBox({ placeholder = 'Search printings…', default
         url.searchParams.set('q', qTrim)
         url.searchParams.set('page', '1')
         url.searchParams.set('limit', '10')
-        const res = await fetch(url.toString(), { signal: controller.signal, headers: { 'accept': 'application/json' } })
+        const cacheKey = JSON.stringify({ q: qTrim, page: 1, limit: 10 })
+        const res = await fetch(url.toString(), { signal: controller.signal, headers: { 'accept': 'application/json', 'x-cache-key': cacheKey } })
         if (res.ok) {
           const json = await res.json()
           const primary: any[] = Array.isArray(json?.primary) ? json.primary : []
@@ -115,7 +116,7 @@ export default function SearchBox({ placeholder = 'Search printings…', default
       } finally {
         setLoading(false)
       }
-    }, 200)
+    }, 300)
     return () => { clearTimeout(t); controller.abort() }
   }, [query, open, isFocused, submitting])
 

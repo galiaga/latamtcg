@@ -2,6 +2,7 @@ import CardImage from '@/components/CardImage'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { fetchPrintsForOracle, tryWithOracleLock } from '@/lib/scryfallPrints'
+import { getScryfallNormalUrl } from '@/lib/images'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,14 +42,13 @@ export default async function OraclePage({ params }: { params: { oracleId: strin
       scryfallId: true,
       name: true,
       setCode: true,
-      setName: true,
+      set: { select: { set_name: true } },
       collectorNumber: true,
       rarity: true,
       frameEffects: true,
       promoTypes: true,
       fullArt: true,
       finishes: true,
-      imageNormalUrl: true,
       priceUsd: true,
       priceUsdFoil: true,
       priceUsdEtched: true,
@@ -96,18 +96,19 @@ export default async function OraclePage({ params }: { params: { oracleId: strin
                 ...(row.fullArt ? ['fullart'] : []),
               ]
               const finishes = new Set(row.finishes || [])
+              const imageUrl = row.scryfallId ? getScryfallNormalUrl(row.scryfallId) : ''
               return (
                 <tr key={row.scryfallId} className="odd:bg-white even:bg-zinc-50/50 dark:odd:bg-zinc-950 dark:even:bg-zinc-900">
                   <td className="p-2">
-                    {row.imageNormalUrl ? (
-                      <CardImage mode="thumb" src={row.imageNormalUrl} alt={row.name} width={64} />
+                    {imageUrl ? (
+                      <CardImage mode="thumb" src={imageUrl} alt={row.name} width={64} />
                     ) : (
                       <div className="w-16 h-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
                     )}
                   </td>
                   <td className="p-2 align-top">
                     <div className="font-medium">{row.setCode.toUpperCase()}</div>
-                    <div className="text-xs text-zinc-500">{row.setName ?? ''}</div>
+                    <div className="text-xs text-zinc-500">{(row as any).set?.set_name ?? ''}</div>
                   </td>
                   <td className="p-2 align-top">{row.collectorNumber}</td>
                   <td className="p-2 align-top">{row.rarity ?? '—'}</td>

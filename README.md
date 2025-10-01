@@ -1,3 +1,35 @@
+## Performance Budget
+
+- Target (production):
+  - TTFB < 200 ms (with cache warm)
+  - FCP < 1.5 s on Fast 3G/desktop throttling
+  - JavaScript < 150 KB (gzipped) on initial route
+
+### Measure locally with Lighthouse
+
+Run Chrome Lighthouse against the deployed site or local build:
+
+```bash
+# build and start
+npm run build && npm run start
+
+# then open Chrome DevTools > Lighthouse and run Performance audit
+```
+
+### Compare dev vs prod timings
+
+Dev includes compilation and HMR overhead that do not exist in prod. Use the helper script to measure production-mode page render:
+
+```bash
+npm run perf:prod
+# → prints {"event":"perf.prod","url":"http://localhost:3000/mtg/search?q=past+in+flames&rarity=rare","serverRenderMs":123,"requestMs":145,"serverBootMs":800}
+```
+
+Expected ballpark on a warm cache (local):
+- Dev: serverRenderMs 400–1200ms (depending on cold compiles), requestMs 500–1500ms
+- Prod: serverRenderMs 80–200ms, requestMs 120–250ms
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -186,3 +218,43 @@ The `SearchIndex` is game-agnostic. To add Pokémon, Yu-Gi-Oh!, One Piece, or ac
 - Scryfall data updates roughly daily; prices are reference values, not live market.
 - Ingest streams and processes in batches to keep memory stable; default batch size is 500.
 - Dual-faced or nonstandard cards without `image_uris` use the first face's `image_uris.normal` when present.
+
+### Scryfall ingest (resumable, multi-phase)
+
+The ingest now runs in three idempotent phases with checkpoints in `KvMeta`:
+
+1. Download (resumable via ETag and HTTP range):
+
+```bash
+npm run scryfall:download
+```
+- Saves `data/scryfall-default-cards.json.gz` and `data/scryfall-download.meta.json` with `{ updatedAt, etag, uri }`.
+- Stores ETag in `data/scryfall-default.etag` and resumes on retry.
+
+2. Transform to NDJSON parts (paper/en only):
+
+```bash
+npm run scryfall:transform
+```
+- Streams the `.json.gz` from disk and writes `data/ndjson/part-00000.ndjson`, `part-00001.ndjson`, ... (100k rows each by default).
+- Checkpoint key: `scryfall:default:ndjson` with `{ updatedAt, etag, lastPart }` so it can resume after the last completed part.
+
+3. Bulk load via staging + set-based merge:
+
+```bash
+npm run scryfall:copy
+```
+- Loads each NDJSON part into an unlogged staging table and performs a single set-based UPSERT into `MtgCard`.
+- Checkpoint key: `scryfall:default:copy` with `{ updatedAt, etag, lastPart }` to resume mid-copy.
+
+Full refresh:
+
+```bash
+npm run scryfall:refresh
+```
+
+Notes:
+- All phases are idempotent for the current `{updatedAt, etag}`.
+- Progress logs every ~10k rows.
+- You can tune memory: scripts run with `node --max-old-space-size=4096`.
+- After ingest completes, rebuild the search index: `npm run searchindex:rebuild`.

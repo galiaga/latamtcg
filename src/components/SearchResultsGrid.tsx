@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import CardImage from '@/components/CardImage'
 import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
@@ -22,14 +23,34 @@ type Item = {
   priceUsdEtched?: number | string | null
 }
 
-export default function SearchResultsGrid({ initialQuery }: { initialQuery?: string }) {
+type InitialData = {
+  page?: number
+  pageSize?: number
+  totalResults?: number
+  nextPageToken?: string | null
+  primary?: any[]
+  facets?: { sets: Array<{ code: string; name: string; count: number }>; rarity: Array<{ key: string; count: number }>; printing: Array<{ key: string; count: number }> }
+}
+
+export default function SearchResultsGrid({ initialQuery, initialData, initialKey }: { initialQuery?: string; initialData?: InitialData | null; initialKey?: string }) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
   const [q, setQ] = useState(initialQuery ?? '')
-  const [primary, setPrimary] = useState<Item[]>([])
-  const [meta, setMeta] = useState({ page: 1, pageSize: 25, totalResults: 0, nextPageToken: null as string | null })
+  const [primary, setPrimary] = useState<Item[]>(Array.isArray(initialData?.primary) ? (initialData?.primary as any) : [])
+  const [meta, setMeta] = useState({ page: Number(initialData?.page || 1), pageSize: Number(initialData?.pageSize || 25), totalResults: Number(initialData?.totalResults || 0), nextPageToken: (initialData?.nextPageToken ?? null) as string | null })
+  const [facets, setFacets] = useState<{ sets: Array<{ code: string; name: string; count: number }>; rarity: Array<{ key: string; count: number }>; printing: Array<{ key: string; count: number }> }>({
+    sets: Array.isArray(initialData?.facets?.sets) ? (initialData!.facets!.sets as any) : [],
+    rarity: Array.isArray(initialData?.facets?.rarity) ? (initialData!.facets!.rarity as any) : [],
+    printing: Array.isArray(initialData?.facets?.printing) ? (initialData!.facets!.printing as any) : [],
+  })
   const [loading, setLoading] = useState(false)
+  const hasAnyFilter = useMemo(() => {
+    const sets = searchParams?.getAll('set') || []
+    const rarity = searchParams?.getAll('rarity') || []
+    const printing = searchParams?.getAll('printing') || []
+    return sets.length > 0 || rarity.length > 0 || printing.length > 0
+  }, [searchParams])
   const visibleSets = useMemo(() => {
     const map = new Map<string, string>()
     for (const i of primary) {
@@ -46,6 +67,8 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
   const rarityRef = useRef<HTMLDivElement | null>(null)
   const printingRef = useRef<HTMLDivElement | null>(null)
 
+  const DeferredChips = useMemo(() => dynamic(() => import('./_islands/DeferredChips'), { ssr: false, loading: () => null }), [])
+
   useEffect(() => {
     function onDocKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpenFacet(null) }
     function onDocClick(e: MouseEvent) {
@@ -61,8 +84,13 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
   }, [])
 
   const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(meta.totalResults / Math.max(1, meta.pageSize)))
-  }, [meta.totalResults, meta.pageSize])
+    const per = Math.max(1, meta.pageSize)
+    if (meta.totalResults && meta.totalResults > 0) {
+      return Math.max(1, Math.ceil(meta.totalResults / per))
+    }
+    // Unknown total: optimistic lookahead of 3 pages beyond current if next page exists
+    return meta.page + (meta.nextPageToken ? 3 : 0)
+  }, [meta.totalResults, meta.pageSize, meta.page, meta.nextPageToken])
 
   const pageItems = useMemo(() => {
     const current = meta.page
@@ -101,7 +129,26 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
 
   useEffect(() => {
     const pageParam = parseInt(String(searchParams?.get('page') || '1'), 10) || 1
-    if (!q.trim()) { setPrimary([]); setLoading(false); setMeta((m) => ({ ...m, page: 1, totalResults: 0 })); return }
+    if (!q.trim() && !hasAnyFilter) { setPrimary([]); setLoading(false); setMeta((m) => ({ ...m, page: 1, totalResults: 0 })); return }
+    // Build cache key and suppress fetch entirely if SSR provided matching data
+    const printing = searchParams?.getAll('printing') || []
+    const rarity = searchParams?.getAll('rarity') || []
+    const sets = (searchParams?.getAll('set') || []).map((s) => String(s).toUpperCase())
+    const sort = String(searchParams?.get('sort') || 'relevance')
+    const cacheKey = JSON.stringify({ q, page: pageParam, printing: printing.slice().sort(), rarity: rarity.slice().sort(), sets: sets.slice().sort(), sort })
+    if (initialKey && initialData && cacheKey === initialKey) {
+      if (process.env.NODE_ENV !== 'production') console.debug('[search] mount fetch suppressed (SSR data reused)', { cacheKey })
+      // Hydrate state from SSR payload immediately and skip client fetch
+      setPrimary(Array.isArray(initialData.primary) ? (initialData.primary as any) : [])
+      setMeta({ page: Number(initialData.page || pageParam || 1), pageSize: Number(initialData.pageSize || 25), totalResults: Number(initialData.totalResults || 0), nextPageToken: initialData.nextPageToken || null })
+      setFacets({
+        sets: Array.isArray(initialData.facets?.sets) ? (initialData.facets!.sets as any) : [],
+        rarity: Array.isArray(initialData.facets?.rarity) ? (initialData.facets!.rarity as any) : [],
+        printing: Array.isArray(initialData.facets?.printing) ? (initialData.facets!.printing as any) : [],
+      })
+      setLoading(false)
+      return
+    }
     setLoading(true)
     const controller = new AbortController()
     const t = setTimeout(async () => {
@@ -111,23 +158,39 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
         url.searchParams.set('page', String(pageParam))
         url.searchParams.set('limit', '25')
         // propagate filters
-        const printing = searchParams?.getAll('printing') || []
         printing.forEach((p) => url.searchParams.append('printing', p))
-        const rarity = searchParams?.getAll('rarity') || []
         rarity.forEach((r) => url.searchParams.append('rarity', r))
-        const set = searchParams?.get('set')
-        if (set) url.searchParams.set('set', set)
+        sets.forEach((s) => url.searchParams.append('set', s))
+        if (sort) url.searchParams.set('sort', sort)
     // no grouping toggle; show raw results
-        const res = await fetch(url, { signal: controller.signal })
+        if (initialKey && initialData && cacheKey === initialKey) {
+          if (process.env.NODE_ENV !== 'production') console.debug('[search] client fetch suppressed (SSR cache hit)', { cacheKey })
+          setPrimary(Array.isArray(initialData.primary) ? (initialData.primary as any) : [])
+          setMeta({ page: Number(initialData.page || pageParam || 1), pageSize: Number(initialData.pageSize || 25), totalResults: Number(initialData.totalResults || 0), nextPageToken: initialData.nextPageToken || null })
+          setFacets({
+            sets: Array.isArray(initialData.facets?.sets) ? (initialData.facets!.sets as any) : [],
+            rarity: Array.isArray(initialData.facets?.rarity) ? (initialData.facets!.rarity as any) : [],
+            printing: Array.isArray(initialData.facets?.printing) ? (initialData.facets!.printing as any) : [],
+          })
+          setLoading(false)
+          return
+        }
+
+        const res = await fetch(url, { signal: controller.signal, headers: { 'accept': 'application/json', 'x-cache-key': cacheKey } })
         const json = await res.json()
         const arr = Array.isArray(json?.primary) ? json.primary : []
         setPrimary(arr)
         setMeta({ page: Number(json?.page || pageParam || 1), pageSize: Number(json?.pageSize || 25), totalResults: Number(json?.totalResults || 0), nextPageToken: json?.nextPageToken || null })
+        setFacets({
+          sets: Array.isArray(json?.facets?.sets) ? json.facets.sets : [],
+          rarity: Array.isArray(json?.facets?.rarity) ? json.facets.rarity : [],
+          printing: Array.isArray(json?.facets?.printing) ? json.facets.printing : [],
+        })
       } catch {}
       setLoading(false)
-    }, 200)
+    }, 300)
     return () => { clearTimeout(t); controller.abort() }
-  }, [q, searchParams])
+  }, [q, searchParams, hasAnyFilter])
 
   function setPage(nextPage: number) {
     const params = new URLSearchParams(searchParams?.toString() || '')
@@ -162,6 +225,15 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
     router.push(`${pathname}?${params.toString()}`)
   }
 
+  function setSort(next: 'relevance' | 'price_asc' | 'price_desc' | 'name' | 'release_desc') {
+    const params = new URLSearchParams(searchParams?.toString() || '')
+    params.set('q', q)
+    params.set('page', '1')
+    params.set('sort', next)
+    console.log(JSON.stringify({ event: 'search.sort_changed', sort: next }))
+    router.push(`${pathname}?${params.toString()}`)
+  }
+
   function clearFilters() {
     const params = new URLSearchParams(searchParams?.toString() || '')
     params.set('q', q)
@@ -172,9 +244,9 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
     router.push(`${pathname}?${params.toString()}`)
   }
 
-  // No remote sets list; build menu from visible results
+  // Build menu from server-provided facets over the full result set
 
-  if (!q.trim()) return null
+  if (!q.trim() && !hasAnyFilter) return null
 
   return (
     <div className="mt-2">
@@ -186,7 +258,7 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
           const setsSel = (searchParams?.getAll('set') || []).map((s) => s.toUpperCase())
           const setsLabel = (() => {
             if (setsSel.length === 0) return 'Sets'
-            const first = visibleSets.find((s) => setsSel[0] === s.code.toUpperCase())?.name || setsSel[0]
+            const first = (facets.sets || []).find((s) => setsSel[0] === s.code.toUpperCase())?.name || setsSel[0]
             const rest = setsSel.length - 1
             return rest > 0 ? `${first} +${rest}` : first
           })()
@@ -211,7 +283,7 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
                       <button type="button" className="btn btn-ghost text-sm" onClick={() => updateFilter('set', [])}>Clear</button>
                     </div>
                     <div className="max-h-56 overflow-auto no-scrollbar flex flex-col gap-1">
-                      {visibleSets.map((s) => {
+                      {(facets.sets || []).map((s) => {
                         const selected = (searchParams?.getAll('set') || []).map((x) => x.toUpperCase()).includes(s.code.toUpperCase())
                         const toggle = () => {
                           const cur = new Set((searchParams?.getAll('set') || []).map((x) => x.toUpperCase()))
@@ -219,7 +291,7 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
                           if (selected) cur.delete(key); else cur.add(key)
                           updateFilter('set', Array.from(cur))
                         }
-                        const count = primary.filter((i) => (String(i.setCode || '').toUpperCase()) === s.code.toUpperCase()).length
+                        const count = s.count
                         if (count === 0) return null
                         return (
                           <label key={s.code} data-name={s.name.toLowerCase()} className="flex items-center justify-between gap-2 text-sm">
@@ -261,7 +333,7 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
                           if (selected) cur.delete(opt.key); else cur.add(opt.key)
                           updateFilter('rarity', Array.from(cur))
                         }
-                        const count = primary.filter((i) => ((i as any).rarity || '').toLowerCase() === opt.key).length
+                        const count = (facets.rarity || []).find((r) => r.key === opt.key)?.count || 0
                         if (count === 0) return null
                         return (
                           <label key={opt.key} className="flex items-center justify-between gap-2 text-sm">
@@ -299,12 +371,7 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
                           if (selected) cur.delete(opt.key); else cur.add(opt.key)
                           updateFilter('printing', Array.from(cur))
                         }
-                        const count = primary.filter((i) => {
-                          const f = String(i.finishLabel || '').toLowerCase()
-                          if (opt.key === 'etched') return f.includes('etched')
-                          if (opt.key === 'foil') return f.includes('foil') && !f.includes('etched')
-                          return f === '' || f === 'standard' || f === 'nonfoil' || f === 'normal'
-                        }).length
+                        const count = (facets.printing || []).find((r) => r.key === opt.key)?.count || 0
                         if (count === 0) return null
                         return (
                           <label key={opt.key} className="flex items-center justify-between gap-2 text-sm">
@@ -318,6 +385,26 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
                 )}
               </div>
               <button type="button" className="btn btn-ghost" onClick={clearFilters}>Clear Filters</button>
+              {/* Sort control moved to the right */}
+              {(() => {
+                const current = String(searchParams?.get('sort') || 'relevance')
+                return (
+                  <div className="ml-auto flex items-center gap-2">
+                    <label htmlFor="sort-select" className="text-sm" style={{ color: 'var(--mutedText)' }}>Sort by:</label>
+                    <select
+                      id="sort-select"
+                      className="chip"
+                      value={current}
+                      onChange={(e) => setSort(e.target.value as any)}
+                      aria-label="Sort results"
+                    >
+                      <option value="relevance">Relevance</option>
+                      <option value="price_asc">Price: Low → High</option>
+                      <option value="price_desc">Price: High → Low</option>
+                    </select>
+                  </div>
+                )
+              })()}
             </>
           )
         })()}
@@ -387,11 +474,7 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
                   <span className="text-xs" title="Prices shown are market proxies. Final checkout shows CLP with VAT + import + shipping options." aria-label="Pricing info" style={{ color: 'var(--mutedText)' }}>ⓘ</span>
                 </div>
                 {chips.length > 0 && (
-                  <div className="mt-2 flex gap-1 flex-wrap">
-                    {chips.map((c, idx) => (
-                      <span key={`${c.key}-${idx}`} className="badge" style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text)' }}>{c.label}</span>
-                    ))}
-                  </div>
+                  <DeferredChips chips={chips} />
                 )}
               </div>
             </Link>
@@ -426,7 +509,7 @@ export default function SearchResultsGrid({ initialQuery }: { initialQuery?: str
         <button
           className="btn btn-sm btn-gradient"
           aria-label="Next page"
-          disabled={loading || meta.page * meta.pageSize >= meta.totalResults}
+          disabled={loading || !meta.nextPageToken}
           onClick={() => setPage(meta.page + 1)}
         >
           ›

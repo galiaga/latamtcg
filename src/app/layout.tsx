@@ -46,6 +46,10 @@ export default function RootLayout({
             } catch (e) {}
           `}
         </Script>
+        {/* Defer analytics and non-critical scripts */}
+        <Script id="analytics" strategy="lazyOnload">
+          {`/* placeholder for analytics init */`}
+        </Script>
         {/* Global search section */}
         <header className="py-4">
           <div className="px-4">

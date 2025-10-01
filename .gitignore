@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+scryfall-refresh.log
+data/scryfall-default-cards.json
+data/scryfall-default-cards.json

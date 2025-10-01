@@ -40,12 +40,13 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
              c.name,
              c."oracleId",
              c."setCode",
-             c."setName",
+             COALESCE(s.set_name, '') AS "setName",
              c."collectorNumber",
              c."releasedAt",
              si."variantLabel" AS variant_label,
              si."finishLabel" AS finish_label
       FROM "public"."MtgCard" c
+      LEFT JOIN "public"."Set" s ON s.set_code = c."setCode"
       LEFT JOIN "public"."SearchIndex" si ON si.id = c."scryfallId"
       WHERE c."oracleId" = ${data.oracleId} AND c."isPaper" = true AND c.lang = 'en'
         AND (c."priceUsd" IS NOT NULL OR c."priceUsdFoil" IS NOT NULL)
@@ -89,17 +90,12 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
         <ol className="flex items-center gap-1 flex-wrap">
           <li><a className="underline-offset-2 hover:underline" href="/">Home</a></li>
           <li>›</li>
-          <li><a className="underline-offset-2 hover:underline" href="/mtg/search">MTG</a></li>
+          <li><a className="underline-offset-2 hover:underline" href="/mtg/search">Magic: The Gathering</a></li>
+          
           <li>›</li>
-          <li><a className="underline-offset-2 hover:underline" href={`/mtg/search?q=${encodeURIComponent((data.setCode || '').toUpperCase())}`}>{(data.setCode || '').toUpperCase()}</a></li>
+          <li><a className="underline-offset-2 hover:underline" href={`/mtg/search?set=${encodeURIComponent((data.setCode || '').toUpperCase())}`}>{data.setName ?? (data.setCode || '').toUpperCase()}</a></li>
           <li>›</li>
-          <li><a className="underline-offset-2 hover:underline" href={`/mtg/card/${encodeURIComponent(data.name.toLowerCase().replace(/\s+/g, '-'))}`}>{data.name}</a></li>
-          {data.treatment || data.finish ? (
-            <>
-              <li>›</li>
-              <li>{[data.treatment, data.finish].filter(Boolean).join(' ')}</li>
-            </>
-          ) : null}
+          <li aria-current="page">{data.name}</li>
         </ol>
       </nav>
 
