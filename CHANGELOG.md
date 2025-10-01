@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.7.0 — 2025-10-01
+### Features
+- Basic User Management (v0):
+  - Database: add `User`, `Profile`, `Cart`, `CartItem`, `Order`, `OrderItem`, `Address` models with relations (user-linked carts/orders; anonymous cart via token; orders store email when guest).
+  - Auth: Supabase SSR helpers and middleware; `/api/auth/me` to report login state.
+  - Cart merge: `/api/cart/merge` merges anonymous cookie cart into the user cart on login.
+  - Guest checkout: `/api/checkout/guest` creates an order for guests (stores email, snapshots prices, clears cart cookie).
+  - Orders page: `/orders` shows past orders for logged-in users.
+
+### Fixes
+- Auth hardening: if Supabase env vars are missing, session checks fail closed (treated as logged out) instead of throwing.
+- Checkout: respond `409 { error: 'pricing_unavailable' }` if any item lacks a resolvable price; use `Prisma.Decimal` consistently.
+- API auth propagation: routes now derive identity via server-side session instead of custom headers.
+
+### Performance / Build / Runtime
+- Next.js prerender safety: wrap client components using `next/navigation` hooks in Suspense; add `SafeClient` helper; fix `/404` and `/mtg` CSR bailout issues.
+- Build stability: add local type shims for `stream-json`; mark Scryfall ingest as server-only and use dynamic import in API; fallback to Webpack build to avoid Turbopack client manifest issues.
+- Path alias cleanup and minor typing fixes across search services.
+
+### Refactors / Chore / Docs
+- Prisma schema and migration added for user/cart/order models.
+- Documented which user flows are stubbed vs complete in comments.
+
 ## v0.6.2 — 2025-10-01
 ### Fixes
 - Search: Results now display the full set name (e.g., “Limited Edition Alpha”) instead of the short code (e.g., “LEA”). Collector number is still shown when available (e.g., “#292”).

@@ -57,7 +57,7 @@ export default function SearchBox({ placeholder = 'Search printings…', default
     const q = normalizeSubmitQuery((value ?? query) || '')
     if (!q) return
     const target = `/mtg/search?q=${encodeURIComponent(q)}`
-    if (process.env.NODE_ENV !== 'production') console.debug('[search] submit', { src, q, route: target })
+    if (process.env.NODE_ENV === 'development') console.debug('[search] submit', { src, q, route: target })
     setOpen(false)
     setIsFocused(false)
     inputRef.current?.blur()
@@ -67,7 +67,7 @@ export default function SearchBox({ placeholder = 'Search printings…', default
     router.push(target)
     setTimeout(() => {
       const after = typeof window !== 'undefined' ? window.location.href : ''
-      if (process.env.NODE_ENV !== 'production') console.debug('[search] after push', { before, after })
+      if (process.env.NODE_ENV === 'development') console.debug('[search] after push', { before, after })
       if (before === after && typeof window !== 'undefined') {
         // Fallback hard navigation if client-side navigation was blocked
         window.location.href = target
@@ -173,25 +173,25 @@ export default function SearchBox({ placeholder = 'Search printings…', default
     } else {
       let id = item.id
       if (!id) {
-        if (process.env.NODE_ENV !== 'production') console.warn('[search] missing printingId for', item)
-        if (process.env.NODE_ENV !== 'production' && item.setCode && item.collectorNumber) {
+        if (process.env.NODE_ENV === 'development') console.warn('[search] missing printingId for', item)
+        if (process.env.NODE_ENV === 'development' && item.setCode && item.collectorNumber) {
           const resolved = await findPrintingIdBySetCollector(item.setCode, item.collectorNumber)
           if (resolved) {
-            if (process.env.NODE_ENV !== 'production') console.debug('[search] resolved id via fallback', resolved)
+            if (process.env.NODE_ENV === 'development') console.debug('[search] resolved id via fallback', resolved)
             id = resolved
           }
         }
         if (!id) return
       }
       const href = printingHref(id)
-      if (process.env.NODE_ENV !== 'production') console.debug('navigate →', href)
+      if (process.env.NODE_ENV === 'development') console.debug('navigate →', href)
       router.push(href)
     }
   }
 
   return (
     <div ref={boxRef} className="relative w-full">
-      <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (process.env.NODE_ENV !== 'production') console.debug('[search] onSubmit'); handleSearchSubmit('button') }}>
+      <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (process.env.NODE_ENV === 'development') console.debug('[search] onSubmit'); handleSearchSubmit('button') }}>
         <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>MTG</span>
         <input
           ref={inputRef}
@@ -202,7 +202,7 @@ export default function SearchBox({ placeholder = 'Search printings…', default
           aria-expanded={open}
           aria-autocomplete="list"
           value={query}
-          onChange={(e) => { if (process.env.NODE_ENV !== 'production') console.debug('[search] input', e.target.value); setQuery(e.target.value); setOpen(true) }}
+          onChange={(e) => { if (process.env.NODE_ENV === 'development') console.debug('[search] input', e.target.value); setQuery(e.target.value); setOpen(true) }}
           onKeyDown={onKeyDown}
           onFocus={() => { setIsFocused(true); if (query.trim().length >= 2 && items.length) setOpen(true) }}
           onBlur={() => { setIsFocused(false) }}

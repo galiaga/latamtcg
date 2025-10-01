@@ -1,3 +1,4 @@
+"use server"
 import { prisma } from '@/lib/prisma'
 import type { MtgCard } from '@prisma/client'
 import { Prisma } from '@prisma/client'
@@ -5,8 +6,10 @@ import { Readable } from 'stream'
 import fs from 'fs'
 import path from 'path'
 import zlib from 'zlib'
-import { parser } from 'stream-json'
-import { streamArray } from 'stream-json/streamers/StreamArray'
+import streamJson from 'stream-json'
+import streamArrayMod from 'stream-json/streamers/StreamArray'
+const { parser } = streamJson
+const { withParser: streamArray } = streamArrayMod
 
 type IngestSummary = {
   updated: number
@@ -233,8 +236,11 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
 
       const processBatch = async (cards: any[]) => {
         if (cards.length === 0) return
-        const operations = cards.map((card) => upsertCard(card, bulkUpdatedAt))
-        await prisma.$transaction(operations, { timeout: 120_000 })
+        await prisma.$transaction(async (tx) => {
+          for (const card of cards) {
+            await upsertCardWithTx(tx, card, bulkUpdatedAt)
+          }
+        }, { timeout: 120_000 })
         updatedCount += cards.length
         console.log(`[scryfall] Upserted batch of ${cards.length}, total ${updatedCount}`)
         // Persist checkpoint after successful DB write
@@ -313,13 +319,13 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
 
 // removed: image URL is computed on the fly from scryfallId
 
-function upsertCard(card: any, bulkUpdatedAt: string) {
+function upsertCardWithTx(tx: Prisma.TransactionClient, card: any, bulkUpdatedAt: string) {
   const priceUsd = card?.prices?.usd
   const priceUsdFoil = card?.prices?.usd_foil
   const priceUsdEtched = card?.prices?.usd_etched
   const priceEur = card?.prices?.eur
   const priceTix = card?.prices?.tix
-  return prisma.mtgCard.upsert({
+  return tx.mtgCard.upsert({
     where: { scryfallId: String(card.id) },
     create: {
       scryfallId: String(card.id),
