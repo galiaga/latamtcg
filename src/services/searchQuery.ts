@@ -220,7 +220,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
           OR: [
             { name: { contains: first, mode: 'insensitive' } },
             { setCode: { contains: first, mode: 'insensitive' } },
-            { setName: { contains: first, mode: 'insensitive' } },
+            // set name now from relation or search index; omit direct column filter
             { collectorNumber: { contains: first, mode: 'insensitive' } },
           ],
         },
@@ -231,7 +231,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
       oracleId: true,
       name: true,
       setCode: true,
-      setName: true,
+      // relation select could be used if needed
       collectorNumber: true,
       finishes: true,
       frameEffects: true,
@@ -240,7 +240,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
       lang: true,
       isPaper: true,
       releasedAt: true,
-      imageNormalUrl: true,
+      // no stored image url
     },
     take: 200,
   })
@@ -318,7 +318,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
       lang: c.lang,
       isPaper: Boolean(c.isPaper),
       releasedAt: c.releasedAt ? new Date(c.releasedAt).toISOString() : null,
-      imageNormalUrl: c.imageNormalUrl ?? null,
+      imageNormalUrl: c.scryfallId,
       setCode: c.setCode,
       setName: c.setName ?? null,
       collectorNumber: c.collectorNumber,

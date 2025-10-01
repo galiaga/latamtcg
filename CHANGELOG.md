@@ -1,12 +1,56 @@
+# Changelog
+
+## v0.6.0 — 2025-09-30
+### Features
+- Search: Sort by Price (Low → High, High → Low); compact selector in results toolbar; persists `?sort=` in URL and preserves filters/pagination.
+- Type-safe `SortOption` and shared parser for strict validation across SSR/API.
+
+### Fixes
+- Price ordering treats `NULL`/`0` as unknown and places them after priced items; stable within groups.
+- Representative printing now aligns with the price used for ordering (no mismatched thumbnails like $93/$101 out of sequence).
+- Prevent extra empty pages by returning an accurate `totalResults` on terminal pages when `hasMore` is false.
+- Hardened ORDER BY assembly to avoid SQL "syntax error near LIMIT" in conditional sorts.
+
+### Performance
+- Sorting applied server-side in SQL before pagination; still single round-trip.
+- Added partial btree indexes on `MtgCard` price columns (`priceUsd`, `priceUsdFoil`, `priceUsdEtched`) for common filter path.
+- Lightweight telemetry: logs sort option and counts for sanity checks.
+
+### Refactors / Chore / Docs
+- Centralized sort parsing in `src/search/sort.ts`; wired through `/api/search` and `/mtg/search` SSR.
+- Moved Sort control to the right of the toolbar after “Clear Filters” with an accessible “Sort by:” label.
+- Minimal integration tests for `price_asc`/`price_desc`, including null placement.
+
+## v0.5.0 — 2025-09-30
+### Features
+- Normalize MTG sets into `Set` table with FK from `MtgCard.setCode` (a1b2c3)
+- Paper-only enforcement: purge non-paper and add CHECK constraint; admin sanitize script (b2c3d4)
+- Compute card image URLs from `scryfallId` via helper; remove stored image URL (c3d4e5)
+
+### Fixes
+- Remove `setName` column usage; update queries and pages to join/use normalized set or index (d4e5f6)
+- Fix Next.js 15 `searchParams` usage by awaiting on server pages (e5f6a7)
+- Resolve empty-array SQL error in grouped search (42P18) (f6a7b8)
+- Avoid Redis import errors when REDIS_URL absent with guarded dynamic import (a7b8c9)
+- Restore Set Name in Printing page breadcrumb by joining `Set` on the server; falls back to set code when missing; no extra client requests or schema changes.
+
+### Performance
+- Add GIN/partial indexes on `MtgCard` (trigram name, finishes, composite filtered, oracleId) and ANALYZE (b8c9d0)
+- Drop blocking COUNT; use pageSize+1 pagination with nextPageToken (c9d0e1)
+- Lazy facets with cache; items return immediately (d0e1f2)
+- Background total estimator via EXPLAIN JSON, cached; optimistic pagination shows pages up front (e1f2a3)
+
+### Refactors / Chore / Docs
+- Prisma schema updates for `Set` model and relations; new migrations (f2a3b4)
+- Update ingest and copy pipelines to stop persisting image URL and set name (a3b4c5)
+- Search index rebuild to compute image URL on the fly (b4c5d6)
+- Scripts: `db:sanitize-paper-only`, `db:analyze`, `db:verify-set-normalization` (c5d6e7)
+
+
 ## v0.4.0 — 2025-09-25
 
 ### Features
 - feat: marketplace filters with chip-based facets, popovers, numbered pagination, rounded pricing; search API multi-set; printing page price (1743aa9)
-
-
-
-
-# Changelog
 
 ## v0.3.0 — 2025-09-25
 ### Features

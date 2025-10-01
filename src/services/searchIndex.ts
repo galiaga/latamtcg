@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { getScryfallNormalUrl } from '@/lib/images'
 
 function normalizeForKeywords(input: string): string {
   if (!input) return ''
@@ -109,7 +110,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         oracleId: true,
         name: true,
         setCode: true,
-        setName: true,
+        // we no longer require set relation here; use join later if needed
         collectorNumber: true,
         finishes: true,
         frameEffects: true,
@@ -118,7 +119,6 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         lang: true,
         isPaper: true,
         releasedAt: true,
-        imageNormalUrl: true,
       },
     })
 
@@ -128,11 +128,11 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
       const title = String(c.name || '').replace(/\(Full Art\)/gi, '(Borderless)')
       const finishLabel = pickFinishLabel(c.finishes || [], c.promoTypes || [])
       const variantLabel = variantFromTags(c.frameEffects || [], c.promoTypes || [], c.setCode, c.fullArt)
-      const subtitle = buildSubtitle(c.setCode, c.setName ?? null, c.collectorNumber)
+      const subtitle = buildSubtitle(c.setCode, null, c.collectorNumber)
       const keywordsText = buildKeywords({
         name: title,
         setCode: c.setCode,
-        setName: c.setName,
+        setName: null,
         collectorNumber: c.collectorNumber,
         frameEffects: c.frameEffects,
         promoTypes: c.promoTypes,
@@ -155,9 +155,9 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         releasedAt: c.releasedAt ?? null,
         sortScore,
         setCode: c.setCode,
-        setName: c.setName ?? null,
+        setName: null,
         collectorNumber: c.collectorNumber,
-        imageNormalUrl: c.imageNormalUrl ?? null,
+        imageNormalUrl: c.scryfallId ? getScryfallNormalUrl(c.scryfallId) : null,
         name: title,
       }
     })
