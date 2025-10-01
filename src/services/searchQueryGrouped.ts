@@ -25,8 +25,11 @@ export type GroupedResult = {
   page: number
   pageSize: number
   totalResults: number // 0 when unknown (lazy total)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- results are shaped in SQL layer
   primary: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- results are shaped in SQL layer
   otherNameMatches: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- results are shaped in SQL layer
   broad: any[]
   nextPageToken: string | null
   facets: {
@@ -100,15 +103,16 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   const totalKey = JSON.stringify({ kind: 'total_est', q: params.q || '', printing, sets: setList, rarity, groupId })
   const ttlSeconds = 300
   try {
-    const cached = await cacheGetJSON<GroupedResult>(cacheKey)
+    const cached = await cacheGetJSON<GroupedResult>(itemsKey)
     if (cached) {
-      try { console.log(JSON.stringify({ event: 'search.cache_hit', keyLen: cacheKey.length, savedMs: 'unknown' })) } catch {}
+      try { console.log(JSON.stringify({ event: 'search.cache_hit', keyLen: itemsKey.length, savedMs: 'unknown' })) } catch {}
       return cached
     }
   } catch {}
   const tAfterCount = Date.now()
 
   const first = tokens[0]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw query rows
   const itemsRaw: any[] = await prisma.$queryRaw(Prisma.sql`
     WITH base AS (
       SELECT si.id,
@@ -271,6 +275,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
       LIMIT 1
     ) b ON TRUE
   `)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- numeric coercion helper
   function asNum(v: any): number | null {
     if (v === null || v === undefined) return null
     const n = Number(v)
@@ -278,12 +283,17 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   }
   const hasMore = itemsRaw.length > pageSize
   const items = (hasMore ? itemsRaw.slice(0, pageSize) : itemsRaw).map((r) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructing response object from raw row
     const obj: any = {
       ...r,
       title: String(r?.title || '').replace(/\(Full Art\)/gi, '(Borderless)'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw row field access
       priceUsd: asNum((r as any).priceUsd),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw row field access
       priceUsdFoil: asNum((r as any).priceUsdFoil),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw row field access
       priceUsdEtched: asNum((r as any).priceUsdEtched),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw row field access
       rel: asNum((r as any).rel),
     }
     if (!params.debug) delete obj.score
@@ -455,7 +465,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     if (!params.debug) {
       const tSet0 = Date.now()
       await cacheSetJSON(itemsKey, result, ttlSeconds)
-      try { console.log(JSON.stringify({ event: 'search.cache_set', keyLen: cacheKey.length, ttl: ttlSeconds, latencyMs: Date.now() - tSet0 })) } catch {}
+      try { console.log(JSON.stringify({ event: 'search.cache_set', keyLen: itemsKey.length, ttl: ttlSeconds, latencyMs: Date.now() - tSet0 })) } catch {}
     } else {
       try { console.log(JSON.stringify({ event: 'search.cache_skip_debug' })) } catch {}
     }

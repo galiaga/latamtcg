@@ -231,7 +231,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
       oracleId: true,
       name: true,
       setCode: true,
-      // relation select could be used if needed
+      set: { select: { set_name: true } },
       collectorNumber: true,
       finishes: true,
       frameEffects: true,
@@ -312,7 +312,8 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
       groupId: c.oracleId,
       game: 'mtg',
       title: displayName,
-      subtitle: subtitle(c.setCode, c.setName ?? null, c.collectorNumber),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- relation set used only for name
+      subtitle: subtitle(c.setCode, (c as any).set?.set_name ?? null, c.collectorNumber),
       finishLabel,
       variantLabel,
       lang: c.lang,
@@ -320,7 +321,8 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
       releasedAt: c.releasedAt ? new Date(c.releasedAt).toISOString() : null,
       imageNormalUrl: c.scryfallId,
       setCode: c.setCode,
-      setName: c.setName ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- relation set used only for name
+      setName: (c as any).set?.set_name ?? null,
       collectorNumber: c.collectorNumber,
     }
     return { score, releasedAtMs: c.releasedAt ? c.releasedAt.getTime() : 0, item }
@@ -334,7 +336,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
     const top = limited[0]
     const titleNorm = norm(top.title)
     if (titleNorm.startsWith(first)) {
-      return [{ kind: 'group', groupId: top.groupId, game: 'mtg', title: top.title }, ...limited].slice(0, limit)
+      return [{ kind: 'group', groupId: top.groupId, game: 'mtg', title: top.title } as SearchItem, ...limited].slice(0, limit)
     }
   }
   return limited

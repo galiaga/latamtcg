@@ -1,7 +1,9 @@
 // Lightweight cache wrapper: in-memory in dev, Redis in prod if REDIS_URL is set.
 // Stores JSON-serializable values only.
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- simple cache value container
 let memory = new Map<string, { value: any; expiresAt: number }>()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- lazy optional redis client
 let redisClient: any = null
 let redisReady = false
 
@@ -13,6 +15,7 @@ async function ensureRedis(): Promise<void> {
     // Avoid bundler/module resolution warnings by dynamically importing via eval
     // Only executes when REDIS_URL is set on the server
     // eslint-disable-next-line no-new-func
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic import helper
     const dynamicImport = new Function('s', 'return import(s)') as (s: string) => Promise<any>
     const { createClient } = await dynamicImport('redis')
     redisClient = createClient({ url })

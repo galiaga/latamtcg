@@ -37,11 +37,15 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
   const router = useRouter()
   const pathname = usePathname()
   const [q, setQ] = useState(initialQuery ?? '')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
   const [primary, setPrimary] = useState<Item[]>(Array.isArray(initialData?.primary) ? (initialData?.primary as any) : [])
   const [meta, setMeta] = useState({ page: Number(initialData?.page || 1), pageSize: Number(initialData?.pageSize || 25), totalResults: Number(initialData?.totalResults || 0), nextPageToken: (initialData?.nextPageToken ?? null) as string | null })
   const [facets, setFacets] = useState<{ sets: Array<{ code: string; name: string; count: number }>; rarity: Array<{ key: string; count: number }>; printing: Array<{ key: string; count: number }> }>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
     sets: Array.isArray(initialData?.facets?.sets) ? (initialData!.facets!.sets as any) : [],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
     rarity: Array.isArray(initialData?.facets?.rarity) ? (initialData!.facets!.rarity as any) : [],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
     printing: Array.isArray(initialData?.facets?.printing) ? (initialData!.facets!.printing as any) : [],
   })
   const [loading, setLoading] = useState(false)
@@ -139,11 +143,15 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     if (initialKey && initialData && cacheKey === initialKey) {
       if (process.env.NODE_ENV !== 'production') console.debug('[search] mount fetch suppressed (SSR data reused)', { cacheKey })
       // Hydrate state from SSR payload immediately and skip client fetch
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
       setPrimary(Array.isArray(initialData.primary) ? (initialData.primary as any) : [])
       setMeta({ page: Number(initialData.page || pageParam || 1), pageSize: Number(initialData.pageSize || 25), totalResults: Number(initialData.totalResults || 0), nextPageToken: initialData.nextPageToken || null })
       setFacets({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
         sets: Array.isArray(initialData.facets?.sets) ? (initialData.facets!.sets as any) : [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
         rarity: Array.isArray(initialData.facets?.rarity) ? (initialData.facets!.rarity as any) : [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
         printing: Array.isArray(initialData.facets?.printing) ? (initialData.facets!.printing as any) : [],
       })
       setLoading(false)
@@ -165,11 +173,15 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     // no grouping toggle; show raw results
         if (initialKey && initialData && cacheKey === initialKey) {
           if (process.env.NODE_ENV !== 'production') console.debug('[search] client fetch suppressed (SSR cache hit)', { cacheKey })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
           setPrimary(Array.isArray(initialData.primary) ? (initialData.primary as any) : [])
           setMeta({ page: Number(initialData.page || pageParam || 1), pageSize: Number(initialData.pageSize || 25), totalResults: Number(initialData.totalResults || 0), nextPageToken: initialData.nextPageToken || null })
           setFacets({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
             sets: Array.isArray(initialData.facets?.sets) ? (initialData.facets!.sets as any) : [],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
             rarity: Array.isArray(initialData.facets?.rarity) ? (initialData.facets!.rarity as any) : [],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
             printing: Array.isArray(initialData.facets?.printing) ? (initialData.facets!.printing as any) : [],
           })
           setLoading(false)
@@ -418,7 +430,8 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
           {primary.map((item) => {
           const href = item.id ? printingHref(item.id) : '#'
           const price = (() => {
-            const v = (item.priceUsdEtched ?? item.priceUsdFoil ?? item.priceUsd) as any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime number coercion from server payload
+          const v = (item.priceUsdEtched ?? item.priceUsdFoil ?? item.priceUsd) as any
             if (v === null || v === undefined) return '—'
             const n = Number(v)
             if (Number.isNaN(n)) return '—'

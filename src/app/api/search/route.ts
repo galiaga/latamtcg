@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const sort = parseSortParam(String(searchParams.get('sort') || 'relevance'))
     const debug = String(searchParams.get('debug') || '') === '1'
     const modeRaw = String(searchParams.get('mode') || 'name').toLowerCase()
-    const mode = (modeRaw === 'text' || modeRaw === 'all' || modeRaw === 'name') ? modeRaw as any : 'name'
+    const mode: 'name' | 'text' | 'all' = (modeRaw === 'text' || modeRaw === 'all' || modeRaw === 'name') ? (modeRaw as 'name' | 'text' | 'all') : 'name'
     const explain = String(searchParams.get('explain') || '') === '1'
     // filters
     const printing = (searchParams.getAll('printing') || [])
@@ -38,10 +38,13 @@ export async function GET(req: NextRequest) {
     try {
       console.log(JSON.stringify({
         event: 'search', q, page, pageSize,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- result is a plain object from service
         returned: Array.isArray((result as any)?.primary) ? (result as any).primary.length : 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- result is a plain object from service
         total: (result as any)?.totalResults ?? 0,
         exactOnly,
         filters: { printing, sets, rarity, groupId, sort, mode },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- result is a plain object from service
         facets: (result as any)?.facets || undefined,
         latencyMs: t1 - t0,
         warn: (t1 - t0) > 700 ? 'slow' : undefined,

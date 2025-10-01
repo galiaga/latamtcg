@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import pkg from '../../../../../package.json'
+// Avoid bundling package.json via deep relative import; prefer public/version.json
 import fs from 'fs'
 import path from 'path'
 
@@ -14,5 +14,5 @@ export async function GET() {
       return NextResponse.json(json)
     }
   } catch {}
-  return NextResponse.json({ version: pkg.version || '0.0.0' })
+  return NextResponse.json({ version: '0.0.0' })
 }
