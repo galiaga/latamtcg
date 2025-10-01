@@ -5,6 +5,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import Script from "next/script";
 import pkg from '../../package.json'
 import SearchBox from "@/components/SearchBox";
+import SafeClient from "@/components/SafeClient";
 import Link from "next/link";
 
 const geistSans = Geist({
@@ -59,7 +60,9 @@ export default function RootLayout({
               </h1>
               <div className="flex-1">
                 <div className="w-full">
-                  <SearchBox />
+                  <SafeClient>
+                    <SearchBox />
+                  </SafeClient>
                 </div>
               </div>
             </div>

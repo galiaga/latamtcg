@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
-function formatUsdWholeCeil(value: any | null): string {
+function formatUsdWholeCeil(value: unknown | null): string {
   if (value === null || value === undefined) return '—'
   const num = Number(value)
   if (Number.isNaN(num)) return '—'
@@ -88,12 +88,12 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
     <div className="p-6 space-y-6">
       <nav aria-label="breadcrumb" className="text-sm" style={{ color: 'var(--mutedText)' }}>
         <ol className="flex items-center gap-1 flex-wrap">
-          <li><a className="underline-offset-2 hover:underline" href="/">Home</a></li>
+          <li><Link className="underline-offset-2 hover:underline" href="/">Home</Link></li>
           <li>›</li>
-          <li><a className="underline-offset-2 hover:underline" href="/mtg/search">Magic: The Gathering</a></li>
+          <li><Link className="underline-offset-2 hover:underline" href="/mtg/search">Magic: The Gathering</Link></li>
           
           <li>›</li>
-          <li><a className="underline-offset-2 hover:underline" href={`/mtg/search?set=${encodeURIComponent((data.setCode || '').toUpperCase())}`}>{data.setName ?? (data.setCode || '').toUpperCase()}</a></li>
+          <li><Link className="underline-offset-2 hover:underline" href={`/mtg/search?set=${encodeURIComponent((data.setCode || '').toUpperCase())}`}>{data.setName ?? (data.setCode || '').toUpperCase()}</Link></li>
           <li>›</li>
           <li aria-current="page">{data.name}</li>
         </ol>
