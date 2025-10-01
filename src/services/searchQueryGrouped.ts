@@ -157,6 +157,15 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
              NULLIF("priceUsd", 0) AS price_nonfoil,
              NULLIF("priceUsdFoil", 0) AS price_foil,
              NULLIF("priceUsdEtched", 0) AS price_etched,
+             -- min/max across available finish prices for this printing
+             (CASE WHEN (NULLIF("priceUsd",0) IS NULL AND NULLIF("priceUsdFoil",0) IS NULL AND NULLIF("priceUsdEtched",0) IS NULL)
+                   THEN NULL
+                   ELSE LEAST(COALESCE(NULLIF("priceUsd",0), 1e12), COALESCE(NULLIF("priceUsdFoil",0), 1e12), COALESCE(NULLIF("priceUsdEtched",0), 1e12))
+              END) AS price_any_min,
+             (CASE WHEN (NULLIF("priceUsd",0) IS NULL AND NULLIF("priceUsdFoil",0) IS NULL AND NULLIF("priceUsdEtched",0) IS NULL)
+                   THEN NULL
+                   ELSE GREATEST(COALESCE(NULLIF("priceUsd",0), -1e12), COALESCE(NULLIF("priceUsdFoil",0), -1e12), COALESCE(NULLIF("priceUsdEtched",0), -1e12))
+              END) AS price_any_max,
              -- effective price for this row based on finish group; treat 0/NULL as unknown
              (
                CASE
@@ -215,11 +224,16 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     ), page_groups AS (
       SELECT * FROM scored
       ORDER BY
-        ${sort === 'name' ? Prisma.sql`title ASC` : Prisma.sql`1`},
-        ${sort === 'price_asc' ? Prisma.sql`(CASE WHEN COALESCE(min_price, min_any_price) IS NULL THEN 1 ELSE 0 END) ASC, COALESCE(min_price, min_any_price) ASC NULLS LAST` : Prisma.sql`1`},
-        ${sort === 'price_desc' ? Prisma.sql`(CASE WHEN COALESCE(max_price, max_any_price) IS NULL THEN 1 ELSE 0 END) ASC, COALESCE(max_price, max_any_price) DESC NULLS LAST` : Prisma.sql`1`},
-        ${sort === 'release_desc' ? Prisma.sql`rel DESC` : Prisma.sql`1`},
-        score DESC, rel DESC, title ASC
+        ${sort === 'name'
+          ? Prisma.sql`title ASC, rel DESC, score DESC`
+          : sort === 'price_asc'
+            ? Prisma.sql`COALESCE(min_price, min_any_price) ASC NULLS LAST, rel DESC, title ASC`
+            : sort === 'price_desc'
+              ? Prisma.sql`COALESCE(max_price, max_any_price) DESC NULLS LAST, rel DESC, title ASC`
+              : sort === 'release_desc'
+                ? Prisma.sql`rel DESC, title ASC`
+                : Prisma.sql`score DESC, rel DESC, title ASC`
+        }
       LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
     )
     SELECT g."groupId",
@@ -250,8 +264,8 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
       FROM base2 b
       WHERE b."groupId" = g."groupId" AND b."setCode" = g."setCode" AND b."collectorNumber" = g."collectorNumber" AND b.variant_group = g.variant_group AND b.finish_group = g.finish_group
       ORDER BY
-        ${sort === 'price_asc' ? Prisma.sql`COALESCE(b.price_effective, b.price_nonfoil, b.price_foil, b.price_etched) ASC NULLS LAST` : Prisma.sql`1`},
-        ${sort === 'price_desc' ? Prisma.sql`COALESCE(b.price_effective, b.price_nonfoil, b.price_foil, b.price_etched) DESC NULLS LAST` : Prisma.sql`1`},
+        ${sort === 'price_asc' ? Prisma.sql`b.price_any_min ASC NULLS LAST` : Prisma.sql`1`},
+        ${sort === 'price_desc' ? Prisma.sql`b.price_any_max DESC NULLS LAST` : Prisma.sql`1`},
         b.sort_score DESC NULLS LAST, b.rel DESC, b.title ASC
       LIMIT 1
     ) b ON TRUE
