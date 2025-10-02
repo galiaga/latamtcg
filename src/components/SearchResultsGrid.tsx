@@ -264,7 +264,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
   return (
     <div className="mt-2">
       {/* Chip-based filter bar */}
-      <div ref={barRef} className="mb-2 flex items-center gap-2 flex-wrap overflow-visible relative z-30">
+      <div id="search-filter-bar" ref={barRef} className="mb-2 flex items-center gap-2 flex-wrap overflow-visible relative z-30">
         {(() => {
           const printing = searchParams?.getAll('printing') || []
           const rarities = searchParams?.getAll('rarity') || []
