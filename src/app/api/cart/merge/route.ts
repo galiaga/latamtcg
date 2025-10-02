@@ -1,3 +1,4 @@
+export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { mergeAnonymousCartIntoUser } from '@/lib/cart'
 import { getSessionUser } from '@/lib/supabase'

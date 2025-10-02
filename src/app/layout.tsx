@@ -8,6 +8,7 @@ import SearchBox from "@/components/SearchBox";
 import SafeClient from "@/components/SafeClient";
 import Link from "next/link";
 import HeaderUser from "@/components/HeaderUser";
+import HeaderCart from "@/components/HeaderCart";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -66,6 +67,9 @@ export default function RootLayout({
                   </SafeClient>
                 </div>
               </div>
+              <SafeClient>
+                <HeaderCart />
+              </SafeClient>
               <SafeClient>
                 <HeaderUser />
               </SafeClient>
