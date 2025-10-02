@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import dynamic from 'next/dynamic'
 import CardImage from '@/components/CardImage'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -72,6 +72,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
   const printingRef = useRef<HTMLDivElement | null>(null)
 
   const DeferredChips = useMemo(() => dynamic(() => import('./_islands/DeferredChips'), { ssr: false, loading: () => null }), [])
+  const AddToCartButton = useMemo(() => dynamic(() => import('./AddToCartButton'), { ssr: false, loading: () => null }), [])
 
   useEffect(() => {
     function onDocKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpenFacet(null) }
@@ -457,23 +458,24 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
             return out.length > 3 ? [...out.slice(0, 3), { key: 'more', label: `+${out.length - 3}` }] : out
           })()
           return (
-            <Link key={`${item.id || item.groupId}-${item.title}`} href={href} className="card card-2xl p-2 hover-glow-purple transition-soft" style={{ transform: 'translateZ(0)' }}>
+            <div key={`${item.id || item.groupId}-${item.title}`} className="card card-2xl p-2 hover-glow-purple transition-soft" style={{ transform: 'translateZ(0)' }}>
               <div className="w-full flex items-center justify-center">
-                {item.imageNormalUrl ? (
-                  <CardImage mode="thumb" src={item.imageNormalUrl} alt={`${item.title} · ${item.setName || (item.setCode || '').toUpperCase()} #${item.collectorNumber || ''}`} width={160} />
-                ) : (
-                  <div className="relative aspect-[3/4] w-full skeleton" />
-                )}
+                <Link href={href} className="block">
+                  {item.imageNormalUrl ? (
+                    <CardImage mode="thumb" src={item.imageNormalUrl} alt={`${item.title} · ${item.setName || (item.setCode || '').toUpperCase()} #${item.collectorNumber || ''}`} width={160} />
+                  ) : (
+                    <div className="relative aspect-[3/4] w-full skeleton" />
+                  )}
+                </Link>
               </div>
               <div className="mt-2">
-                <div className="text-sm font-medium truncate">
+                <Link href={href} className="text-sm font-medium truncate block">
                   {(() => {
                     const title = String(item.title || '').replace(/\(Full Art\)/gi, '(Borderless)')
                     const parts: string[] = []
-                    // Keep title clean; chips show details
                     return parts.length ? `${title} (${parts.join(', ')})` : title
                   })()}
-                </div>
+                </Link>
                 <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
                   {(() => {
                     const code = (item.setCode || '').toString().toUpperCase()
@@ -489,8 +491,13 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                 {chips.length > 0 && (
                   <DeferredChips chips={chips} />
                 )}
+                {item.id && (
+                  <div className="mt-2">
+                    <AddToCartButton printingId={item.id} size="sm" />
+                  </div>
+                )}
               </div>
-            </Link>
+            </div>
           )
           })}
       </div>
