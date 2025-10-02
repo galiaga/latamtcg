@@ -9,6 +9,7 @@ import SafeClient from "@/components/SafeClient";
 import Link from "next/link";
 import HeaderUser from "@/components/HeaderUser";
 import HeaderCart from "@/components/HeaderCart";
+import { CartProvider } from "@/components/CartProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,15 +35,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="text-fg">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-bg [background:var(--bg-grad)]`}
       >
         <Script id="theme-init" strategy="beforeInteractive">
           {`
             try {
               var saved = localStorage.getItem('theme');
-              var theme = saved === 'light' || saved === 'dark' ? saved : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+              var theme = saved === 'light' || saved === 'dark' ? saved : 'light';
               var d = document.documentElement;
               d.setAttribute('data-theme', theme);
               d.style.colorScheme = theme;
@@ -68,7 +69,9 @@ export default function RootLayout({
                 </div>
               </div>
               <SafeClient>
-                <HeaderCart />
+                <CartProvider>
+                  <HeaderCart />
+                </CartProvider>
               </SafeClient>
               <SafeClient>
                 <HeaderUser />

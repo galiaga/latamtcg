@@ -80,16 +80,36 @@ export default function HeaderUser() {
         {user.email || 'Account'}
       </button>
       {menuOpen && (
-        <div role="menu" className="absolute right-0 mt-2 w-40 border rounded bg-white dark:bg-black z-50">
-          <Link href="/orders" className="block px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-900" onClick={() => setMenuOpen(false)}>Orders</Link>
+        <div
+          role="menu"
+          className="absolute right-0 mt-2 w-60 rounded-xl border z-50 pointer-events-auto"
+          style={{
+            background: 'var(--card)',
+            color: 'var(--text)',
+            borderColor: 'var(--border)',
+            boxShadow: 'var(--shadow)'
+          }}
+        >
+          <Link
+            href="/orders"
+            className="block px-4 py-2"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              borderBottom: '1px solid var(--divider)'
+            }}
+          >
+            Orders
+          </Link>
           <button
             type="button"
-            className="block w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-900"
+            className="block w-full text-left px-4 py-2"
             onClick={async () => {
               try { await supabase?.auth.signOut() } catch {}
               setMenuOpen(false)
               router.refresh()
             }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in oklab, var(--chip-hover) 40%, transparent)' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
           >
             Sign out
           </button>

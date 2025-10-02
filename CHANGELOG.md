@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.11.0 — 2025-10-02
+### Features
+- Theming overhaul (Light as default with lilac palette):
+  - Light canvas is now soft lilac with subtle vertical gradient; tokens for bg, card, border, ring, shadows, chips updated.
+  - White cards on lilac canvas with lilac borders and shadows; contrast meets WCAG AA.
+  - Profile dropdown reworked to tokenized surfaces (no hardcoded black/white), proper hover and focus ring.
+  - No regressions in Dark mode; user choice persists via localStorage, applied before paint.
+- Printing page “See other printings” carousel:
+  - Horizontal, scroll‑snap carousel with mini‑thumbnails, set/name text, finish chips, and price.
+  - Arrow controls with keyboard support, gradient overflow hints, lazy thumbnails with srcSet.
+  - Drag/scroll with mouse and touch; links protected against accidental clicks during drags.
+
+### Performance
+- Cart: single‑fetch per route + fast responses
+  - Added CartProvider with SWR (dedupe + S‑W‑R); header consumes shared state.
+  - `/api/cart` emits ETag and private cache headers; returns 304 on If‑None‑Match.
+  - Server dedupe with `react.cache()` for `getOrCreateUserCart`.
+  - Logs `cart.ms` latency metric.
+- Search: server cache and metrics
+  - `/api/search` caches responses by query key (Redis if present, memory otherwise) with TTL 5m.
+  - Cache‑hit logging; existing service logs `search.perf` with `db_items_ms` and `db_facets_ms`.
+- Printing page: caching + metrics
+  - `getPrintingById` wrapped in `react.cache()`; page segment sets `revalidate = 300`.
+  - Logs `printing.ms` per render.
+- Health/Perf endpoint
+  - `/api/health/perf` summarizes recent timing samples (p50/p95) for quick checks.
+
+### Fixes
+- Resolved client/server boundary errors by moving interactive carousel logic into a client component.
+- Fixed Decimal serialization to Client Components (normalize to numbers/strings before props).
+- Eliminated duplicate Prisma import/redeclaration in `lib/cart.ts`.
+
+### Refactors / Chore
+- Token cleanup across chips/popovers/cards; unified shadows via `var(--shadow)`.
+- Added SQL notes for indexes/MV under `prisma/migrations/20251002160000_perf_indexes_mv/README.md`.
+
 ## v0.10.0 — 2025-10-02
 ### Features
 - Header cart badge and quick access:
