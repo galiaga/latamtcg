@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
+import { getSessionUser } from '@/lib/supabase'
+import { getOrCreateUserCart } from '@/lib/cart'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as { action?: 'set' | 'inc' | 'remove', printingId?: string, quantity?: number }
@@ -8,13 +10,23 @@ export async function POST(req: NextRequest) {
   const printingId = String(body.printingId || '').trim()
   if (!printingId) return NextResponse.json({ error: 'invalid_printing' }, { status: 400 })
 
-  const store = await cookies()
-  const token = store.get('cart_token')?.value || null
-  if (!token) return NextResponse.json({ error: 'cart_not_found' }, { status: 404 })
-  const cart = await prisma.cart.findFirst({ where: { token, checkedOutAt: null }, select: { id: true } })
-  if (!cart) return NextResponse.json({ error: 'cart_not_found' }, { status: 404 })
+  // If authenticated, operate on the user's cart. Otherwise use guest cart via cookie.
+  const user = await getSessionUser()
+  let cartId: string | null = null
+  if (user) {
+    const uc = await getOrCreateUserCart(user.id)
+    cartId = uc.id
+  } else {
+    const store = await cookies()
+    const token = store.get('cart_token')?.value || null
+    if (token) {
+      const cart = await prisma.cart.findFirst({ where: { token, checkedOutAt: null }, select: { id: true } })
+      cartId = cart?.id || null
+    }
+  }
+  if (!cartId) return NextResponse.json({ error: 'cart_not_found' }, { status: 404 })
 
-  const line = await prisma.cartItem.findFirst({ where: { cartId: cart.id, printingId }, select: { id: true, quantity: true } })
+  const line = await prisma.cartItem.findFirst({ where: { cartId, printingId }, select: { id: true, quantity: true } })
   if (!line) return NextResponse.json({ error: 'line_not_found' }, { status: 404 })
 
   if (action === 'remove') {

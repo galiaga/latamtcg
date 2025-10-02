@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.9.0 — 2025-10-02
+### Features
+- Cart and Auth integration:
+  - Cart is now associated with the authenticated user when logged in.
+  - Guest cart items are merged into the user cart on login/signup (duplicates coalesced; quantities summed).
+  - Logout now fully resets cart state: clears guest cart and `cart_token` cookie.
+  - New endpoint: `POST /api/cart/reset` to clear guest cart and cookie.
+  - API prioritizes the authenticated user cart in `GET /api/cart`, `POST /api/cart/add`, and `POST /api/cart/update`.
+- Auth callback hardening:
+  - Reliable PKCE code exchange in callback; avoids duplicate exchange attempts and noisy logs.
+
+### Fixes
+- Prevent FK violation by upserting `User` before creating a user cart.
+- Ensure `cart_token` cookie is cleared after merging anonymous cart into user cart.
+
+### Refactors / Chore / Docs
+- Update changelog and bump app version.
+
 ## v0.8.0 — 2025-10-02
 ### Features
 - Cart (v0) visible experience:

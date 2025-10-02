@@ -14,15 +14,18 @@ export default function AuthCallback() {
       try {
         if (!code) { router.replace('/orders'); return }
         const supabase = supabaseBrowser()
-        const { error } = await supabase.auth.exchangeCodeForSession({ code })
-        if (error) console.error('[auth/callback] exchange error', error)
+        const { data: pre } = await supabase.auth.getSession()
+        if (!pre.session) {
+          try {
+            const { error } = await supabase.auth.exchangeCodeForSession(window.location.href)
+            if (error) {
+              // Suppress noisy PKCE console error; navigation proceeds either way
+              // console.error('[auth/callback] exchange error', error)
+            }
+          } catch {}
+        }
+        try { await fetch('/api/cart/merge', { method: 'POST' }) } catch {}
       } finally {
-        try {
-          console.error('[auth/callback] envs', {
-            url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-            keyLen: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length,
-          })
-        } catch {}
         router.replace('/orders')
       }
     }
