@@ -5,12 +5,12 @@
 import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
-export function getSupabaseServer() {
+export async function getSupabaseServer() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !key) return null
   try {
-    const cookieStore = cookies() as any
+    const cookieStore = await cookies() as any
     const supabase = createServerClient(
       url,
       key,
@@ -40,7 +40,7 @@ export type SessionUser = {
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const supabase = getSupabaseServer()
+  const supabase = await getSupabaseServer()
   if (!supabase) return null
   try {
     const { data } = await supabase.auth.getUser()
