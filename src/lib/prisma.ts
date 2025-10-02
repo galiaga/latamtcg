@@ -19,6 +19,12 @@ declare global {
   var prismaGlobal: PrismaClient | undefined
 }
 
+if (!process.env.DATABASE_URL) {
+  // eslint-disable-next-line no-console
+  console.error('[prisma] Missing DATABASE_URL')
+  throw new Error('Missing DATABASE_URL env var')
+}
+
 const datasourceUrl = withConnectionLimit(process.env.DATABASE_URL, 5)
 
 export const prisma: PrismaClient = global.prismaGlobal ?? new PrismaClient({

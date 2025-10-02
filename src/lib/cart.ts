@@ -17,11 +17,6 @@ export async function getOrCreateAnonymousCart(): Promise<{ id: string, token: s
 }
 
 export async function getOrCreateUserCart(userId: string) {
-  // Ensure a corresponding User row exists to satisfy FK constraints
-  try {
-    await prisma.user.upsert({ where: { id: userId }, update: {}, create: { id: userId } })
-  } catch {}
-
   const existing = await prisma.cart.findFirst({ where: { userId, checkedOutAt: null }, select: { id: true } })
   if (existing) return existing
   return prisma.cart.create({ data: { userId }, select: { id: true } })
