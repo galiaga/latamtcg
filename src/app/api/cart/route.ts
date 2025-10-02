@@ -6,8 +6,9 @@ import { getSessionUser } from '@/lib/supabase'
 import { getOrCreateUserCart } from '@/lib/cart'
 import { getScryfallNormalUrl } from '@/lib/images'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const t0 = Date.now()
     // Prefer authenticated user's cart; fallback to guest cart cookie
     let cartId: string | null = null
     const user = await getSessionUser()
@@ -56,7 +57,24 @@ export async function GET() {
 
     const subtotal = items.reduce((sum, it) => sum + it.lineTotal, 0)
     const count = items.reduce((sum, it) => sum + it.quantity, 0)
-    return NextResponse.json({ items, subtotal, total: subtotal, count })
+
+    // ETag for quick 304s
+    const etagBase = JSON.stringify({ count, subtotal: Math.round(subtotal), ids: items.map(i => i.printingId).join(','), q: items.map(i => i.quantity).join(',') })
+    let etag = 'W/"' + Buffer.from(etagBase).toString('base64').slice(0, 32) + '"'
+    try {
+      // Cap length to keep header small
+      if (etag.length > 40) etag = etag.slice(0, 40)
+    } catch {}
+    try {
+      const ifNone = (req.headers as any).get?.('if-none-match') || null
+      if (ifNone && ifNone === etag) {
+        return new NextResponse(null, { status: 304, headers: { 'ETag': etag, 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' } })
+      }
+    } catch {}
+
+    const resp = NextResponse.json({ items, subtotal, total: subtotal, count }, { headers: { 'ETag': etag, 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' } })
+    try { console.log(JSON.stringify({ event: 'cart.ms', ms: Date.now() - t0, items: items.length, count })) } catch {}
+    return resp
   } catch (e) {
     try { console.error('[api/cart] failed; returning empty cart', e) } catch {}
     // Graceful fallback during DB connectivity issues

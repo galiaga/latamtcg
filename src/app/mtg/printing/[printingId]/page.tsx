@@ -4,14 +4,43 @@ import Link from 'next/link'
 import { getPrintingById } from '@/lib/printings'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import OtherPrintingsCarousel from '@/components/OtherPrintingsCarousel'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 function formatUsdWholeCeil(value: unknown | null): string {
   if (value === null || value === undefined) return '—'
   const num = Number(value)
   if (Number.isNaN(num)) return '—'
   return `$${Math.ceil(num)}`
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined) return null
+  try {
+    // Prisma Decimal
+    if (typeof value === 'object' && value !== null && typeof (value as any).toNumber === 'function') {
+      const n = (value as any).toNumber()
+      return Number.isFinite(n) ? n : null
+    }
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
+  } catch {
+    return null
+  }
+}
+
+function toStringOrNull(value: unknown): string | null {
+  if (value === null || value === undefined) return null
+  try {
+    if (typeof value === 'object' && value !== null && typeof (value as any).toString === 'function') {
+      return (value as any).toString()
+    }
+    return String(value)
+  } catch {
+    return null
+  }
 }
 
 export async function generateMetadata(props: { params: Promise<{ printingId: string }> }) {
@@ -31,6 +60,7 @@ export async function generateMetadata(props: { params: Promise<{ printingId: st
 
 export default async function PrintingPage(props: { params: Promise<{ printingId: string }> }) {
   const { printingId } = await props.params
+  const t0 = Date.now()
   if (process.env.NODE_ENV !== 'production') console.debug('[printing-page] rendering', printingId)
   const data = await getPrintingById(printingId)
 
@@ -44,6 +74,9 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
              COALESCE(s.set_name, '') AS "setName",
              c."collectorNumber",
              c."releasedAt",
+             c."priceUsd",
+             c."priceUsdFoil",
+             c."priceUsdEtched",
              si."variantLabel" AS variant_label,
              si."finishLabel" AS finish_label
       FROM "public"."MtgCard" c
@@ -71,9 +104,10 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
       GROUP BY "oracleId", "setCode", "collectorNumber", variant_group, finish_group
     ), top AS (
       SELECT g.*, b.id, b."setCode", b."setName", b."collectorNumber"
+            , b."priceUsd", b."priceUsdFoil", b."priceUsdEtched"
       FROM groups g
       JOIN LATERAL (
-        SELECT id, "setCode", "setName", "collectorNumber"
+        SELECT id, "setCode", "setName", "collectorNumber", "priceUsd", "priceUsdFoil", "priceUsdEtched"
         FROM base2 b
         WHERE b."oracleId" = g."oracleId" AND b."setCode" = g."setCode" AND b."collectorNumber" = g."collectorNumber" AND b.variant_group = g.variant_group AND b.finish_group = g.finish_group
         ORDER BY b."releasedAt" DESC
@@ -85,6 +119,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
     SELECT * FROM top
   `)
 
+  try { console.log(JSON.stringify({ event: 'printing.ms', id: printingId, ms: Date.now() - t0 })) } catch {}
   return (
     <div className="p-6 space-y-6">
       <nav aria-label="breadcrumb" className="text-sm" style={{ color: 'var(--mutedText)' }}>
@@ -112,7 +147,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
               className="w-full"
             />
           ) : (
-            <div className="relative aspect-[63/88] w-full rounded-2xl border border-black/5 dark:border-white/10 shadow-xl bg-white dark:bg-neutral-900 overflow-hidden skeleton" />
+            <div className="relative aspect-[63/88] w-full rounded-2xl border overflow-hidden skeleton" style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)' }} />
           )}
           <div className="mt-2 text-xs" style={{ color: 'var(--mutedText)' }}>
             Data & Images © Scryfall
@@ -141,26 +176,20 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
         </div>
       </div>
 
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold">See other printings</h2>
-        <div className="flex overflow-x-auto gap-3 py-2">
-          {siblings.filter((s) => s.id !== data.id).map((s) => (
-            <Link key={`${s.id}-${s.variant_group}-${s.finish_group}`} href={`/mtg/printing/${s.id}`} className="card card-2xl p-3 min-w-[220px] hover-glow-purple transition-soft">
-              <div className="font-medium truncate">
-                {(() => {
-                  const parts: string[] = []
-                  if (s.variant_group) parts.push(s.variant_group)
-                  if (s.finish_group && s.finish_group !== 'Standard') parts.push(s.finish_group)
-                  return parts.length ? `${s.name} (${parts.join(', ')})` : s.name
-                })()}
-              </div>
-              <div className="text-xs" style={{ color: 'var(--mutedText)' }}>
-                {s.setName ?? (s.setCode || '').toUpperCase()} {s.collectorNumber ? `• #${s.collectorNumber}` : ''}
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
+      <OtherPrintingsCarousel
+        items={siblings.map((s) => ({
+          id: String(s.id),
+          name: String(s.name),
+          setCode: s.setCode,
+          setName: s.setName,
+          collectorNumber: toStringOrNull(s.collectorNumber),
+          variant_group: s.variant_group,
+          finish_group: s.finish_group,
+          priceUsd: toNumberOrNull(s.priceUsd) ?? toNumberOrNull(s.priceUsdFoil) ?? toNumberOrNull(s.priceUsdEtched) ?? null,
+        }))}
+        currentId={String(data.id)}
+        oracleId={String(data.oracleId)}
+      />
     </div>
   )
 }

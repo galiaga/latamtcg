@@ -23,7 +23,10 @@ export default function AddToCartButton({ printingId, size = 'md' }: { printingI
       })
       if (res.ok) {
         setOk(true)
-        try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
+        try {
+          window.dispatchEvent(new CustomEvent('cart:refresh'))
+          window.dispatchEvent(new CustomEvent('cart:changed'))
+        } catch {}
       }
     } finally {
       setAdding(false)

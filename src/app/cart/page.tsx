@@ -38,6 +38,7 @@ export default function CartPage() {
       setError(e?.message || 'Failed to load cart')
     }
     setLoading(false)
+    try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
   }
 
   useEffect(() => {
