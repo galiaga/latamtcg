@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { printingHref, cardHref } from '@/lib/routes'
-import { findPrintingIdBySetCollector } from '@/lib/printings'
 import { fmtCollector } from '@/lib/format'
 
 type ApiItem = {
@@ -217,11 +216,19 @@ export default function SearchBox({ placeholder = 'Search printings…', default
       if (!id) {
         if (process.env.NODE_ENV === 'development') console.warn('[search] missing printingId for', item)
         if (process.env.NODE_ENV === 'development' && item.setCode && item.collectorNumber) {
-          const resolved = await findPrintingIdBySetCollector(item.setCode, item.collectorNumber)
-          if (resolved) {
-            if (process.env.NODE_ENV === 'development') console.debug('[search] resolved id via fallback', resolved)
-            id = resolved
-          }
+          try {
+            const url = new URL('/api/printing/resolve', window.location.origin)
+            url.searchParams.set('set', String(item.setCode))
+            url.searchParams.set('cn', String(item.collectorNumber))
+            const res = await fetch(url.toString(), { cache: 'no-store' })
+            if (res.ok) {
+              const json = await res.json()
+              if (json?.id) {
+                if (process.env.NODE_ENV === 'development') console.debug('[search] resolved id via API fallback', json.id)
+                id = String(json.id)
+              }
+            }
+          } catch {}
         }
         if (!id) return
       }

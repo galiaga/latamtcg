@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.10.0 — 2025-10-02
+### Features
+- Header cart badge and quick access:
+  - New `HeaderCart` icon in the global header with a live-updating count.
+  - Badge hides when zero and navigates to `/cart` on click.
+  - Updates in real time for both guests and logged-in users; listens to `cart:refresh`, `cart:changed`, route changes, window focus, and tab visibility.
+- Signed‑in checkout:
+  - New endpoint: `POST /api/checkout/user` to create an order for authenticated users and mark their cart as checked out.
+  - Cart page now shows “Checkout” when signed in (and keeps “Checkout as guest” when logged out).
+  - Reliable redirect to `/order/confirmation?orderId=…` with a fallback hard navigation and a busy state.
+- Search autocomplete UX:
+  - Floating, portal‑based panel positioned below the search bar that never overlaps the filter bar.
+  - Closes on submit, route change, outside click, scroll, and ESC; full keyboard navigation.
+
+### Fixes
+- Cart badge sometimes empty after auth transitions: header now refreshes on route change, focus, and visibility; cart page emits `cart:changed` after mutations.
+- Autocomplete panel overlapping filters or persisting after navigation is resolved with portal + positioning and robust close rules.
+- User checkout now guarantees redirect to confirmation (push + hard redirect fallback) and triggers a cart refresh.
+- Removed `User` upsert from `getOrCreateUserCart` to avoid unnecessary DB writes and P1001 noise during reads.
+- `/api/cart` now fails gracefully during transient DB issues (returns empty cart instead of 500).
+
+### Performance / Runtime
+- Prisma hardening:
+  - `datasource db` now supports `directUrl` (for non‑pooled operations) in `schema.prisma`.
+  - Prisma singleton includes a guard for `DATABASE_URL` and pooled connection tuning.
+  - All Prisma routes run on Node.js runtime (no Edge): `/api/cart`, `/api/cart/merge`, `/api/checkout/guest`, `/api/auth/me`, `/api/printing/resolve`, `/api/db/health`.
+  - Added `/api/db/health` for quick DB reachability checks.
+- Client/server boundary:
+  - Moved printing id resolution out of the client to a server API (`/api/printing/resolve`) so client bundles never import Prisma.
+
+### Refactors / Chore
+- Minor layout tweaks to integrate `HeaderCart` next to the user menu.
+
 ## v0.9.0 — 2025-10-02
 ### Features
 - Cart and Auth integration:

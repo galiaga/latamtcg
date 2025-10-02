@@ -7,7 +7,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // directUrl and shadowDatabaseUrl no son necesarios para deploy
+  directUrl = env("DIRECT_URL")
 }
 
 
