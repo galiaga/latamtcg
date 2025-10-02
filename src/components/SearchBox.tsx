@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { printingHref, cardHref } from '@/lib/routes'
 import { findPrintingIdBySetCollector } from '@/lib/printings'
@@ -38,11 +39,13 @@ export default function SearchBox({ placeholder = 'Search printings…', default
   const listboxId = useId()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const boxRef = useRef<HTMLDivElement | null>(null)
+  const panelRef = useRef<HTMLUListElement | null>(null)
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [submitting, setSubmitting] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
   const [aborter, setAborter] = useState<AbortController | null>(null)
+  const [panelStyle, setPanelStyle] = useState<{ left: number; top: number; width: number; maxHeight: number }>({ left: 0, top: 0, width: 0, maxHeight: 320 })
 
   function normalizeSubmitQuery(text: string): string {
     return text
@@ -131,7 +134,10 @@ export default function SearchBox({ placeholder = 'Search printings…', default
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (!boxRef.current) return
-      if (!boxRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      const inBox = boxRef.current.contains(target)
+      const inPanel = panelRef.current ? panelRef.current.contains(target) : false
+      if (!inBox && !inPanel) setOpen(false)
     }
     function onScroll() { setOpen(false) }
     document.addEventListener('mousedown', onDocClick)
@@ -141,6 +147,42 @@ export default function SearchBox({ placeholder = 'Search printings…', default
       window.removeEventListener('scroll', onScroll)
     }
   }, [])
+
+  // Reposition portal panel to sit under input and avoid filter bar
+  useEffect(() => {
+    if (!open) return
+    function reposition() {
+      if (!inputRef.current) return
+      const r = inputRef.current.getBoundingClientRect()
+      const inputBottom = r.bottom
+      const left = r.left
+      const width = r.width
+      const viewportSpace = window.innerHeight - inputBottom - 8
+      const filterEl = document.getElementById('search-filter-bar')
+      let filterSpace = Number.POSITIVE_INFINITY
+      if (filterEl) {
+        const fr = filterEl.getBoundingClientRect()
+        const filterTop = fr.top
+        filterSpace = Math.max(0, filterTop - inputBottom - 8)
+      }
+      const maxHeight = Math.max(0, Math.min(360, viewportSpace, filterSpace)) || 240
+      setPanelStyle({ left, top: inputBottom + 4, width, maxHeight })
+    }
+    const onResize = () => { window.requestAnimationFrame(reposition) }
+    const onScroll = () => { window.requestAnimationFrame(reposition) }
+    reposition()
+    window.addEventListener('resize', onResize)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => { window.removeEventListener('resize', onResize); window.removeEventListener('scroll', onScroll) }
+  }, [open, items.length])
+
+  // Global ESC close to handle focus in panel
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
@@ -211,55 +253,69 @@ export default function SearchBox({ placeholder = 'Search printings…', default
           {submitting ? 'Searching…' : 'Search'}
         </button>
       </form>
-      {open && (
-        <ul
-          id={listboxId}
-          role="listbox"
-          className="absolute z-20 mt-1 w-full rounded-md card-2xl"
-          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-        >
-          <li className="px-3 py-1 text-[11px]" style={{ color: 'var(--mutedText)', borderBottom: '1px solid var(--divider)' }}>
-            in Magic: The Gathering
-          </li>
-          {items.length === 0 && !loading && (
-            <li className="px-3 py-2 text-sm text-zinc-500">No results</li>
-          )}
-          {items.map((item, idx) => (
-            <li
-              key={`${item.kind}-${item.id ?? item.groupId}-${idx}`}
-              role="option"
-              aria-selected={highlight === idx}
-              className={`px-3 py-2 flex items-center gap-2 cursor-pointer transition-soft`}
-              style={highlight === idx ? { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 2px var(--primarySoft)' } : undefined}
-              onMouseEnter={() => setHighlight(idx)}
-              onMouseDown={(e) => { e.preventDefault(); select(item) }}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">
-                  {(() => {
-                    const parts: string[] = []
-                    if (item.variantLabel) parts.push(item.variantLabel)
-                    if (item.finishLabel && item.finishLabel !== 'Standard') parts.push(item.finishLabel)
-                    return parts.length ? `${item.title} (${parts.join(', ')})` : item.title
-                  })()}
-                </div>
-                <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
-                  {(() => {
-                    const c = fmtCollector(item.collectorNumber as any)
-                    const left = item.setName || item.setCode || ''
-                    return [left, c ? `#${c}` : null].filter(Boolean).join(' · ')
-                  })()}
-                </div>
-              </div>
-              {item.setCode ? (
-                <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>{(item.setCode || '').toUpperCase()}</span>
-              ) : null}
+      {open && typeof document !== 'undefined' && createPortal(
+        (
+          <ul
+            ref={panelRef}
+            id={listboxId}
+            role="listbox"
+            className="rounded-md card-2xl"
+            style={{
+              position: 'fixed',
+              zIndex: 1000,
+              left: panelStyle.left,
+              top: panelStyle.top,
+              width: panelStyle.width,
+              maxHeight: panelStyle.maxHeight,
+              overflowY: 'auto',
+              background: 'var(--card)',
+              border: '1px solid var(--border)'
+            }}
+          >
+            <li className="px-3 py-1 text-[11px]" style={{ color: 'var(--mutedText)', borderBottom: '1px solid var(--divider)' }}>
+              in Magic: The Gathering
             </li>
-          ))}
-          {loading && (
-            <li className="px-3 py-2 text-sm text-zinc-500">Loading…</li>
-          )}
-        </ul>
+            {items.length === 0 && !loading && (
+              <li className="px-3 py-2 text-sm text-zinc-500">No results</li>
+            )}
+            {items.map((item, idx) => (
+              <li
+                key={`${item.kind}-${item.id ?? item.groupId}-${idx}`}
+                role="option"
+                aria-selected={highlight === idx}
+                className={`px-3 py-2 flex items-center gap-2 cursor-pointer transition-soft`}
+                style={highlight === idx ? { background: 'var(--surface-2)', boxShadow: 'inset 0 0 0 2px var(--primarySoft)' } : undefined}
+                onMouseEnter={() => setHighlight(idx)}
+                onMouseDown={(e) => { e.preventDefault(); select(item) }}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate">
+                    {(() => {
+                      const parts: string[] = []
+                      if (item.variantLabel) parts.push(item.variantLabel)
+                      if (item.finishLabel && item.finishLabel !== 'Standard') parts.push(item.finishLabel)
+                      return parts.length ? `${item.title} (${parts.join(', ')})` : item.title
+                    })()}
+                  </div>
+                  <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
+                    {(() => {
+                      const c = fmtCollector(item.collectorNumber as any)
+                      const left = item.setName || item.setCode || ''
+                      return [left, c ? `#${c}` : null].filter(Boolean).join(' · ')
+                    })()}
+                  </div>
+                </div>
+                {item.setCode ? (
+                  <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>{(item.setCode || '').toUpperCase()}</span>
+                ) : null}
+              </li>
+            ))}
+            {loading && (
+              <li className="px-3 py-2 text-sm text-zinc-500">Loading…</li>
+            )}
+          </ul>
+        ),
+        document.body
       )}
     </div>
   )
