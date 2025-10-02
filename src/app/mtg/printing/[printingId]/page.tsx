@@ -1,4 +1,5 @@
 import CardImage from '@/components/CardImage'
+import AddToCartButton from '@/components/AddToCartButton'
 import Link from 'next/link'
 import { getPrintingById } from '@/lib/printings'
 import { prisma } from '@/lib/prisma'
@@ -134,8 +135,8 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             {formatUsdWholeCeil(data.priceUsd)}
           </div>
           <div className="mt-4 flex gap-2">
-            <button className="btn-gradient btn transition-soft">Add to Wishlist</button>
-            <button className="btn transition-soft" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>Track Price</button>
+            {/* Replace wishlist/track with add to cart for MVP */}
+            <AddToCartButton printingId={data.id} size="lg" />
           </div>
         </div>
       </div>
