@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.8.0 — 2025-10-02
+### Features
+- Cart (v0) visible experience:
+  - Add "Add to cart" buttons on search results and printing pages.
+  - API: POST `/api/cart/add`, GET `/api/cart`, POST `/api/cart/update` to create/fetch/update cart lines.
+  - New client `/cart` page: lists items with quantity +/− controls, remove; shows subtotal and total; includes "Checkout as guest" button.
+  - Guest checkout: collects email, calls POST `/api/checkout/guest`, and on success redirects to `/order/confirmation?orderId=…`.
+  - Order confirmation `/order/confirmation`: displays order id, date, total; shows "Create my account" (magic link) banner when logged out.
+
+### Fixes
+- Build/runtime: resolve `next/dynamic` usage issues by removing duplicate imports and avoiding `ssr: false` in Server Components; import client components directly where required.
+
+## v0.7.1 — 2025-10-02
+### Features
+- Authentication UI (v0):
+  - New `/auth` page with **Continue with Google** and **Email magic link** options.
+  - Auto-redirects to `/orders` on successful login or if a session already exists.
+  - Global header updates: shows **Sign in** link when logged out, or a user menu with **Orders** and **Sign out** when logged in.
+  - On `SIGNED_IN`, calls `/api/cart/merge` to consolidate anonymous cart with user cart and refreshes cart badge.
+
+### Fixes
+- Ensure Supabase client properly configured for browser usage with PKCE (single exchange).
+- Verified login/logout flows work with both Google OAuth and Magic Link.
+
+
 ## v0.7.0 — 2025-10-01
 ### Features
 - Basic User Management (v0):
