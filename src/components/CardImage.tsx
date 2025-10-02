@@ -27,7 +27,8 @@ export default function CardImage(props: Props) {
     const { src, alt, priority, className } = props
     return (
       <div
-        className={`relative aspect-[63/88] w-full rounded-2xl border border-black/5 dark:border-white/10 shadow-xl bg-white dark:bg-neutral-900 overflow-hidden ${className ?? ''}`}
+        className={`relative aspect-[63/88] w-full rounded-2xl border overflow-hidden ${className ?? ''}`}
+        style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)' }}
       >
         <Image
           src={src}

@@ -256,7 +256,7 @@ export default function SearchBox({ placeholder = 'Search printings…', default
           onFocus={() => { setIsFocused(true); if (query.trim().length >= 2 && items.length) setOpen(true) }}
           onBlur={() => { setIsFocused(false) }}
         />
-        <button type="submit" className="btn btn-gradient transition-soft" aria-label="Search" disabled={!query.trim() || submitting}>
+        <button type="submit" className="btn btn-gradient transition-soft" aria-label="Search" disabled={!query.trim() || submitting} style={{ opacity: submitting ? 0.95 : undefined }}>
           {submitting ? 'Searching…' : 'Search'}
         </button>
       </form>

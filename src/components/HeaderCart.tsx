@@ -3,24 +3,31 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { useCart } from './CartProvider'
 
 export default function HeaderCart() {
+  const { data, loading } = useCart()
   const [count, setCount] = useState(0)
-  const [loading, setLoading] = useState(true)
   const pathname = usePathname()
 
-  async function fetchCount() {
+  async function fetchCount(signal?: AbortSignal) {
     try {
-      const res = await fetch('/api/cart', { cache: 'no-store' })
+      const res = await fetch('/api/cart', { cache: 'force-cache', headers: { 'accept': 'application/json' }, signal })
       const json = await res.json()
       const n = Number(json?.count || 0)
       if (!Number.isNaN(n)) setCount(n)
     } catch {}
-    setLoading(false)
   }
 
   useEffect(() => {
-    fetchCount()
+    // Initialize from provider if present; fallback to fetch if missing
+    if (data && typeof data.count === 'number') {
+      setCount(Number(data.count))
+    } else {
+      const ctrl = new AbortController()
+      fetchCount(ctrl.signal)
+      return () => ctrl.abort()
+    }
     const onRefresh = () => fetchCount()
     // Listen to both legacy and new events
     window.addEventListener('cart:refresh', onRefresh as any)
@@ -39,8 +46,14 @@ export default function HeaderCart() {
 
   // Also refresh on route changes (e.g., after auth navigations)
   useEffect(() => {
-    fetchCount()
+    if (data && typeof data.count === 'number') {
+      setCount(Number(data.count))
+      return
+    }
+    const ctrl = new AbortController()
+    fetchCount(ctrl.signal)
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => ctrl.abort()
   }, [pathname])
 
   const showBadge = !loading && count > 0
@@ -55,7 +68,7 @@ export default function HeaderCart() {
       {showBadge ? (
         <span
           className="chip-badge"
-          style={{ position: 'absolute', top: -6, right: -6 }}
+          style={{ position: 'absolute', top: -6, right: -6, boxShadow: 'var(--shadow)' }}
           aria-label={`${count} items in cart`}
         >
           {count}

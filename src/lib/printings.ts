@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { cache } from 'react'
 import { Prisma } from '@prisma/client'
 import { getScryfallNormalUrl } from '@/lib/images'
 import { fmtCollector } from '@/lib/format'
@@ -31,7 +32,7 @@ function pickVariant(frameEffects: string[] | null | undefined, promoTypes: stri
   return null
 }
 
-export async function getPrintingById(printingId: string) {
+export const getPrintingById = cache(async function getPrintingByIdCached(printingId: string) {
   if (!UUID_V4.test(printingId)) notFound()
   if (process.env.NODE_ENV !== 'production') console.debug('[getPrintingById] start', printingId)
 
@@ -115,7 +116,7 @@ export async function getPrintingById(printingId: string) {
     }
     throw e
   }
-}
+})
 
 export async function findPrintingIdBySetCollector(setCode: string, collectorNumber: string): Promise<string | null> {
   if (!setCode || !collectorNumber) return null

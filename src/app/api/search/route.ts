@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { groupedSearch } from '@/services/searchQueryGrouped'
+import { cacheGetJSON, cacheSetJSON } from '@/lib/cache'
 import { parseSortParam } from '@/search/sort'
 
 export const runtime = 'nodejs'
@@ -32,7 +33,16 @@ export async function GET(req: NextRequest) {
       return g.length ? g : null
     })()
 
+    const key = JSON.stringify({ q, page, pageSize, exactOnly, printing, sets, rarity, groupId, facetAll, sort, mode })
+    const ttl = 300
     const t0 = Date.now()
+    try {
+      const cached = await cacheGetJSON<any>(key)
+      if (cached) {
+        try { console.log(JSON.stringify({ event: 'search.cache_hit', keyLen: key.length })) } catch {}
+        return NextResponse.json(cached)
+      }
+    } catch {}
     const result = await groupedSearch({ q, page, pageSize, exactOnly, printing, sets, rarity, groupId, facetAll, sort, debug, mode })
     const t1 = Date.now()
     try {
@@ -50,7 +60,8 @@ export async function GET(req: NextRequest) {
         warn: (t1 - t0) > 700 ? 'slow' : undefined,
       }))
     } catch {}
-    return NextResponse.json(result)
+    cacheSetJSON(key, result, ttl).catch(() => {})
+    return NextResponse.json(result, { headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=240' } })
   } catch (err) {
     console.error('[search] failed', err)
     return NextResponse.json({ error: 'failed' }, { status: 500 })
