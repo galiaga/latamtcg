@@ -1,15 +1,24 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
+import { getSessionUser } from '@/lib/supabase'
+import { getOrCreateUserCart } from '@/lib/cart'
 import { getScryfallNormalUrl } from '@/lib/images'
 
 export async function GET() {
-  const store = await cookies()
-  const token = store.get('cart_token')?.value || null
+  // Prefer authenticated user's cart; fallback to guest cart cookie
   let cartId: string | null = null
-  if (token) {
-    const found = await prisma.cart.findFirst({ where: { token, checkedOutAt: null }, select: { id: true } })
-    cartId = found?.id || null
+  const user = await getSessionUser()
+  if (user) {
+    const uc = await getOrCreateUserCart(user.id)
+    cartId = uc.id
+  } else {
+    const store = await cookies()
+    const token = store.get('cart_token')?.value || null
+    if (token) {
+      const found = await prisma.cart.findFirst({ where: { token, checkedOutAt: null }, select: { id: true } })
+      cartId = found?.id || null
+    }
   }
   if (!cartId) return NextResponse.json({ items: [], subtotal: 0, total: 0, count: 0 })
 

@@ -17,6 +17,11 @@ export async function getOrCreateAnonymousCart(): Promise<{ id: string, token: s
 }
 
 export async function getOrCreateUserCart(userId: string) {
+  // Ensure a corresponding User row exists to satisfy FK constraints
+  try {
+    await prisma.user.upsert({ where: { id: userId }, update: {}, create: { id: userId } })
+  } catch {}
+
   const existing = await prisma.cart.findFirst({ where: { userId, checkedOutAt: null }, select: { id: true } })
   if (existing) return existing
   return prisma.cart.create({ data: { userId }, select: { id: true } })
@@ -48,7 +53,12 @@ export async function mergeAnonymousCartIntoUser(userId: string) {
   }
   // Remove anon cart
   await prisma.cart.delete({ where: { id: anon.id } })
-  try { (store as any).delete?.(CART_COOKIE) } catch {}
+  try {
+    (store as any).delete?.(CART_COOKIE)
+  } catch {}
+  try {
+    (store as any).set?.(CART_COOKIE, '', { httpOnly: true, sameSite: 'lax', path: '/', secure: process.env.NODE_ENV === 'production', maxAge: 0 })
+  } catch {}
   return { merged: true }
 }
 

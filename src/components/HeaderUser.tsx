@@ -44,6 +44,15 @@ export default function HeaderUser() {
           router.refresh()
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
+          try {
+            await fetch('/api/auth/callback', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ event: 'SIGNED_OUT' }),
+            })
+          } catch {}
+          try { await fetch('/api/cart/reset', { method: 'POST' }) } catch {}
+          try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
           router.refresh()
         } else if (event === 'USER_UPDATED') {
           setUser(session?.user ? { id: session.user.id, email: session.user.email ?? null } : null)

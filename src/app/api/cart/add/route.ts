@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getOrCreateAnonymousCart } from '@/lib/cart'
+import { getOrCreateAnonymousCart, getOrCreateUserCart } from '@/lib/cart'
+import { getSessionUser } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as { printingId?: string, quantity?: number }
@@ -9,7 +10,11 @@ export async function POST(req: NextRequest) {
   const quantity = Number.isFinite(qtyRaw) && qtyRaw > 0 ? Math.floor(qtyRaw) : 1
   if (!printingId) return NextResponse.json({ error: 'invalid_printing' }, { status: 400 })
 
-  const { id: cartId } = await getOrCreateAnonymousCart()
+  // Prefer authenticated user's cart; fallback to anonymous
+  const user = await getSessionUser()
+  const { id: cartId } = user
+    ? await getOrCreateUserCart(user.id)
+    : await getOrCreateAnonymousCart()
 
   // Find or create line
   const existing = await prisma.cartItem.findFirst({ where: { cartId, printingId }, select: { id: true, quantity: true, unitPrice: true } })
