@@ -1,21 +1,22 @@
 @import "tailwindcss";
 
 [data-theme="light"], :root {
-  /* Surfaces */
-  --bg: #ffffff;
-  --surface: #f7f7f8; /* subtle card/table bg */
-  --surface-2: #f1f1f3; /* hover */
+  /* Light (default) deeper lilac palette */
+  --bg: #F3F0FA;                  /* canvas lilac */
+  --bg-grad: linear-gradient(180deg, #F3F0FA 0%, #F8F6FC 100%);
+  --surface: #FFFFFF;             /* maps to card */
+  --surface-2: #F2EEFF;           /* hover tint on lilac */
 
   /* Text */
-  --text: #111114; /* ~#111 */
-  --mutedText: #5e5e66; /* ~#666 */
+  --text: #171717;                /* main text */
+  --mutedText: #5E5A6B;           /* secondary text (lilac-gray) */
 
   /* Brand / Accents (Lilac/Purple) */
-  --primary: #7c3aed; /* purple-600 */
-  --primaryHover: #6d28d9; /* purple-700 */
-  --primarySoft: #ede9fe; /* purple-50 */
-  --primaryGradientFrom: #a78bfa; /* purple-400 */
-  --primaryGradientTo: #7c3aed;   /* purple-600 */
+  --primary: #9B7BFF;             /* primary lilac */
+  --primaryHover: color-mix(in oklab, #9B7BFF 95%, black); /* opacity-based hover via opacity on components preferred */
+  --primarySoft: #ECE6FF;         /* soft background for selected chips */
+  --primaryGradientFrom: #C9BBFF; 
+  --primaryGradientTo: #9B7BFF;
 
   /* Status */
   --success: #16a34a; /* green-600 */
@@ -23,12 +24,17 @@
   --danger: #dc2626; /* red-600 */
 
   /* Borders & rings */
-  --border: #e4e4e7; /* zinc-200 */
-  --divider: #e9e9ec;
-  --ring: #60a5fa; /* blue-400 */
+  --border: #E2DAF4;              /* lilac border */
+  --divider: #E9E4F8;
+  --ring: #C9BBFF;                /* focus ring */
+
+  /* Chips */
+  --chip-active: #E2DAF4;
+  --chip-hover: #CBB6FF;
 
   /* Misc */
-  --card: #ffffff;
+  --card: #FFFFFF;
+  --shadow: 0 2px 12px rgba(155, 123, 255, 0.08);
 }
 
 @theme inline {
@@ -39,28 +45,31 @@
 }
 
 [data-theme="dark"] {
-  --bg: #0b0b0e;
-  --surface: #121317;
-  --surface-2: #181a20;
+  --bg: #0F0F14;
+  --bg-grad: none;
+  --surface: #16161D;
+  --surface-2: #1C1C25;
 
-  --text: #eaeaf0;
-  --mutedText: #a1a1aa;
+  --text: #F3F3F7;
+  --mutedText: #B7B4C6;
 
-  --primary: #a78bfa; /* purple-400 */
-  --primaryHover: #8b5cf6; /* purple-500 */
-  --primarySoft: #1b1526;
-  --primaryGradientFrom: #8b5cf6;
-  --primaryGradientTo: #7c3aed;
+  --primary: #9B7BFF;
+  --primaryHover: #6E5AFF;
+  --primarySoft: #221C33;
+  --primaryGradientFrom: #6E5AFF;
+  --primaryGradientTo: #9B7BFF;
 
   --success: #22c55e; /* green-500 */
   --warning: #f59e0b; /* amber-500 */
   --danger: #ef4444;  /* red-500 */
 
-  --border: #27272a; /* zinc-800 */
-  --divider: #1f2026;
-  --ring: #60a5fa;
+  --border: #2A2A36;
+  --divider: #20202A;
+  --ring: #6E5AFF;
 
-  --card: #0f1014;
+  --card: #16161D;
+  --chip-active: #2A2240;
+  --chip-hover: #3A2E5A;
 }
 
 /* Typography & base */
@@ -114,9 +123,9 @@ body {
 .badge { display: inline-block; padding: 0.125rem 0.375rem; border-radius: 0.375rem; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); font-size: 0.75rem; }
 /* Chips */
 .chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; border-radius: 9999px; border: 1px solid var(--border); background: var(--surface); font-size: 0.8rem; }
-.chip:hover { background: var(--surface-2); }
-.chip-selected { background: var(--primarySoft); color: var(--primary); border-color: transparent; }
-.chip-primary { border: 1px solid var(--primary); color: var(--primary); background: color-mix(in oklab, var(--primarySoft) 70%, transparent); box-shadow: 0 2px 8px rgba(124,58,237,.15); }
+.chip:hover { background: color-mix(in oklab, var(--chip-hover) 40%, transparent); }
+.chip-selected { background: var(--chip-active); color: #3A3350; border-color: transparent; }
+.chip-primary { border: 1px solid var(--primary); color: var(--primary); background: color-mix(in oklab, var(--primarySoft) 70%, transparent); box-shadow: var(--shadow); }
 .chip-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; height: 1.1rem; padding: 0 0.375rem; border-radius: 9999px; font-size: 0.7rem; background: var(--primary); color: #fff; }
 .popover-wide { width: min(720px, 92vw); }
 
@@ -125,7 +134,7 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Lightweight popover */
-.popover { background: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; box-shadow: 0 8px 24px rgba(16, 16, 20, 0.12); }
+.popover { background: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; box-shadow: 0 6px 20px rgba(74, 31, 196, 0.08); }
 .popover-item { display: block; width: 100%; text-align: left; padding: 0.5rem 0.75rem; }
 .popover-item:hover { background: var(--surface-2); }
 

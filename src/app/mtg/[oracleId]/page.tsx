@@ -98,7 +98,7 @@ export default async function OraclePage(props: { params: Promise<{ oracleId: st
               const finishes = new Set(row.finishes || [])
               const imageUrl = row.scryfallId ? getScryfallNormalUrl(row.scryfallId) : ''
               return (
-                <tr key={row.scryfallId} className="odd:bg-white even:bg-zinc-50/50 dark:odd:bg-zinc-950 dark:even:bg-zinc-900">
+                <tr key={row.scryfallId} className="odd:[background:var(--card)] even:[background:color-mix(in_oklab,var(--card)_92%,transparent)] dark:odd:bg-zinc-950 dark:even:bg-zinc-900">
                   <td className="p-2">
                     {imageUrl ? (
                       <CardImage mode="thumb" src={imageUrl} alt={row.name} width={64} />

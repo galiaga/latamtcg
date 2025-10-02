@@ -1,5 +1,16 @@
-import { cookies } from 'next/headers'
+import { cache } from 'react'
 import { prisma } from '@/lib/prisma'
+
+type MinimalCart = { id: string }
+
+export const getOrCreateUserCart = cache(async (userId: string): Promise<MinimalCart> => {
+  // Existing function was imported in api/cart. Wrap with react.cache to coalesce SSR/RSC duplicates.
+  const found = await prisma.cart.findFirst({ where: { userId, checkedOutAt: null }, select: { id: true } })
+  if (found) return { id: found.id }
+  const created = await prisma.cart.create({ data: { userId }, select: { id: true } })
+  return { id: created.id }
+})
+import { cookies } from 'next/headers'
 
 const CART_COOKIE = 'cart_token'
 
@@ -16,11 +27,7 @@ export async function getOrCreateAnonymousCart(): Promise<{ id: string, token: s
   return cart
 }
 
-export async function getOrCreateUserCart(userId: string) {
-  const existing = await prisma.cart.findFirst({ where: { userId, checkedOutAt: null }, select: { id: true } })
-  if (existing) return existing
-  return prisma.cart.create({ data: { userId }, select: { id: true } })
-}
+// getOrCreateUserCart is provided above (cached)
 
 export async function mergeAnonymousCartIntoUser(userId: string) {
   const store = await cookies()
