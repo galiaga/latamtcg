@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabaseBrowser } from '@/lib/supabase-browser'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -17,9 +19,12 @@ type CartItem = {
 }
 
 export default function CartPage() {
+  const router = useRouter()
   const [items, setItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [authed, setAuthed] = useState<boolean | null>(null)
+  const [redirecting, setRedirecting] = useState(false)
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.lineTotal, 0), [items])
 
   async function refresh() {
@@ -36,6 +41,16 @@ export default function CartPage() {
   }
 
   useEffect(() => {
+    // Detect auth via client (avoid hitting server route that touches DB)
+    (async () => {
+      try {
+        const supabase = supabaseBrowser()
+        const { data } = await supabase.auth.getSession()
+        setAuthed(Boolean(data.session))
+      } catch {
+        setAuthed(false)
+      }
+    })()
     refresh()
     const onRefresh = () => refresh()
     window.addEventListener('cart:refresh', onRefresh as any)
@@ -46,6 +61,7 @@ export default function CartPage() {
     try {
       await fetch('/api/cart/update', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, printingId, quantity }) })
       await refresh()
+      try { window.dispatchEvent(new CustomEvent('cart:changed')) } catch {}
     } catch {}
   }
 
@@ -56,6 +72,38 @@ export default function CartPage() {
     const json = await res.json()
     if (res.ok && json?.orderId) {
       window.location.href = `/order/confirmation?orderId=${encodeURIComponent(json.orderId)}`
+    }
+  }
+
+  async function checkoutUser() {
+    try {
+      setRedirecting(true)
+      const res = await fetch('/api/checkout/user', { method: 'POST', headers: { 'content-type': 'application/json' } })
+      const json = await res.json()
+      if (res.ok && json?.orderId) {
+        const target = `/order/confirmation?orderId=${encodeURIComponent(json.orderId)}`
+        try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
+        // Try client navigation first, then hard redirect fallback
+        try {
+          router.push(target)
+          // Fallback if client navigation is blocked
+          setTimeout(() => {
+            try {
+              if (typeof window !== 'undefined' && window.location.pathname !== '/order/confirmation') {
+                window.location.href = target
+              }
+            } catch {}
+          }, 300)
+        } catch {
+          try { window.location.href = target } catch {}
+        }
+        return
+      }
+      alert(json?.error || 'Unable to checkout')
+    } catch (e: any) {
+      alert(e?.message || 'Unable to checkout')
+    } finally {
+      setRedirecting(false)
     }
   }
 
@@ -103,7 +151,11 @@ export default function CartPage() {
             <span className="tabular-nums">${Math.ceil(subtotal)}</span>
           </div>
           <div className="mt-4">
-            <button className="btn btn-gradient w-full" onClick={checkoutGuest}>Checkout as guest</button>
+            {authed ? (
+              <button className="btn btn-gradient w-full" onClick={checkoutUser} disabled={redirecting} aria-busy={redirecting}>{redirecting ? 'Processing…' : 'Checkout'}</button>
+            ) : (
+              <button className="btn btn-gradient w-full" onClick={checkoutGuest}>Checkout as guest</button>
+            )}
           </div>
         </div>
       )}

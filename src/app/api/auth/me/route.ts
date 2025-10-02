@@ -1,3 +1,4 @@
+export const runtime = 'nodejs'
 import { NextResponse } from 'next/server'
 import { getSessionUser } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
