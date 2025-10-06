@@ -54,42 +54,39 @@ export default function RootLayout({
         <Script id="analytics" strategy="lazyOnload">
           {`/* placeholder for analytics init */`}
         </Script>
-        {/* Global search section */}
-        <header className="py-4">
-          <div className="px-4">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
-                <Link href="/">LatamTCG</Link>
-              </h1>
-              <div className="flex-1">
-                <div className="w-full">
-                  <SafeClient>
-                    <SearchBox />
-                  </SafeClient>
-                </div>
-              </div>
-              <SafeClient>
-                <CartProvider>
+        {/* Global providers and client-only sections */}
+        <SafeClient>
+          <CartProvider>
+            {/* Global search section */}
+            <header className="py-4">
+              <div className="px-4">
+                <div className="flex items-center gap-4">
+                  <h1 className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
+                    <Link href="/">LatamTCG</Link>
+                  </h1>
+                  <div className="flex-1">
+                    <div className="w-full">
+                      <SearchBox />
+                    </div>
+                  </div>
                   <HeaderCart />
-                </CartProvider>
-              </SafeClient>
-              <SafeClient>
-                <HeaderUser />
-              </SafeClient>
-            </div>
-            
-          </div>
-        </header>
-        <div style={{ borderTop: '1px solid var(--divider)' }} />
-        <main className="px-4">
-          {children}
-        </main>
-        <footer className="mt-10 px-4 py-6">
-          <div className="flex items-center justify-between text-xs" style={{ color: 'var(--mutedText)' }}>
-            <span aria-label={`App version ${pkg.version}`}>v{pkg.version}</span>
-            <ThemeToggle />
-          </div>
-        </footer>
+                  <HeaderUser />
+                </div>
+                
+              </div>
+            </header>
+            <div style={{ borderTop: '1px solid var(--divider)' }} />
+            <main className="px-4">
+              {children}
+            </main>
+            <footer className="mt-10 px-4 py-6">
+              <div className="flex items-center justify-between text-xs" style={{ color: 'var(--mutedText)' }}>
+                <span aria-label={`App version ${pkg.version}`}>v{pkg.version}</span>
+                <ThemeToggle />
+              </div>
+            </footer>
+          </CartProvider>
+        </SafeClient>
       </body>
     </html>
   );

@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.12.0 — 2025-10-06
+### Features
+- Cart reactivity & UX
+  - Instant, optimistic badge updates for Add/Remove/Set quantity across Search and Cart pages.
+  - New fast summary endpoint: `GET /api/cart/summary` returns `{ totalCount, totalPrice }` for lightweight badge refreshes.
+  - Header reads exclusively from a shared `CartProvider`; no direct network calls from the header.
+
+### Performance
+- Client
+  - Debounced, coalesced revalidation (~900ms) after mutations; no revalidate on focus/reconnect for Search/Cart.
+  - Click de‑dupe and in‑flight guards in Add to Cart to ensure exactly one POST per click.
+- Server
+  - Optimized `POST /api/cart/add` to perform a single read + create/increment path and return summary in response.
+  - `POST /api/cart/update` now returns `{ totalCount, totalPrice }` for instant reconcile.
+  - Both `/api/cart/summary` and mutation endpoints emit `X-Server-Timing` for DB/total durations.
+
+### Fixes
+- Eliminated duplicate/looping cart refreshes when idle on Search/Cart; cross‑tab sync now triggers a single debounced summary fetch (no optimistic from storage).
+- Fixed header badge lag after removals by sending same‑tab optimistic deltas from the Cart page and reconciling silently.
+
+### Refactors / Chore
+- Centralized optimistic reconcile in `CartProvider.addOptimisticThenReconcile` with equality guard and single debounced revalidate.
+- Added request id plumbing for idempotent add requests (server records keys to pave the path for full dedupe).
+
 ## v0.11.0 — 2025-10-02
 ### Features
 - Theming overhaul (Light as default with lilac palette):
