@@ -61,6 +61,13 @@ export async function mergeAnonymousCartIntoUser(userId: string) {
   try {
     (store as any).set?.(CART_COOKIE, '', { httpOnly: true, sameSite: 'lax', path: '/', secure: process.env.NODE_ENV === 'production', maxAge: 0 })
   } catch {}
+  try {
+    // Notify client to refresh cart state after merge
+    if (typeof (globalThis as any).window !== 'undefined') {
+      try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
+      try { localStorage.setItem('cart:pulse', String(Date.now())) } catch {}
+    }
+  } catch {}
   return { merged: true }
 }
 
