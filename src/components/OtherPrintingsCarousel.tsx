@@ -103,10 +103,10 @@ export default function OtherPrintingsCarousel({
       if (e.button !== 0) return
       pointerState.current.id = e.pointerId
       pointerState.current.startX = e.clientX
-      pointerState.current.startScroll = el.scrollLeft
+      try { pointerState.current.startScroll = el?.scrollLeft ?? 0 } catch { pointerState.current.startScroll = 0 }
       pointerState.current.moved = false
       setDragging(false)
-      try { el.setPointerCapture(e.pointerId) } catch {}
+      try { el?.setPointerCapture?.(e.pointerId) } catch {}
     }
     function onPointerMove(e: PointerEvent) {
       if (pointerState.current.id !== e.pointerId) return
@@ -115,12 +115,12 @@ export default function OtherPrintingsCarousel({
         pointerState.current.moved = true
         setDragging(true)
         e.preventDefault()
-        el.scrollLeft = pointerState.current.startScroll - dx
+        try { if (el) el.scrollLeft = pointerState.current.startScroll - dx } catch {}
       }
     }
     function endDrag(e: PointerEvent) {
       if (pointerState.current.id !== e.pointerId) return
-      try { el.releasePointerCapture(e.pointerId) } catch {}
+      try { el?.releasePointerCapture?.(e.pointerId) } catch {}
       pointerState.current.id = null
       // Delay clearing dragging to allow click-capture to read state
       setTimeout(() => setDragging(false), 0)

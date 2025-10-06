@@ -1,6 +1,6 @@
 {
   "name": "latamtcg",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "scripts": {
     "dev": "NEXT_FORCE_WEBPACK=1 next dev",
@@ -20,7 +20,10 @@
     "db:sanitize-paper-only": "tsx scripts/db-sanitize-paper-only.ts",
     "db:analyze": "tsx scripts/db-analyze.ts",
     "db:verify:set-normalization": "tsx scripts/db-verify-set-normalization.ts",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "prisma migrate deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@prisma/client": "^6.16.1",
@@ -30,18 +33,25 @@
     "pg": "^8.12.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "swr": "^2.3.0",
-    "stream-json": "^1.7.5"
+    "stream-json": "^1.7.5",
+    "swr": "^2.3.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.56.0",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20",
     "@types/pg": "^8.15.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
+    "jsdom": "^25.0.1",
+    "msw": "^2.11.3",
+    "playwright": "^1.56.0",
     "prisma": "^6.16.1",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",

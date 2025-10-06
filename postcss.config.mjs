@@ -1,5 +1,8 @@
-const config = {
-  plugins: ["@tailwindcss/postcss"],
-};
+const isTest = !!(process.env.VITEST || process.env.NODE_ENV === 'test')
 
-export default config;
+// Avoid loading Tailwind/PostCSS during unit tests
+const config = {
+  plugins: isTest ? [] : ["@tailwindcss/postcss"],
+}
+
+export default config
