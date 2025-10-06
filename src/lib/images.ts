@@ -14,4 +14,20 @@ export function getScryfallSmallUrl(id: string): string {
   return `https://cards.scryfall.io/small/front/${a}/${b}/${trimmed}.jpg`
 }
 
+export function getScryfallNormalFaceUrl(id: string, face: 'front' | 'back'): string {
+  const trimmed = String(id || '').trim()
+  if (trimmed.length < 2) return ''
+  const a = trimmed[0]
+  const b = trimmed[1]
+  return `https://cards.scryfall.io/normal/${face}/${a}/${b}/${trimmed}.jpg`
+}
+
+export function getScryfallSmallFaceUrl(id: string, face: 'front' | 'back'): string {
+  const trimmed = String(id || '').trim()
+  if (trimmed.length < 2) return ''
+  const a = trimmed[0]
+  const b = trimmed[1]
+  return `https://cards.scryfall.io/small/${face}/${a}/${b}/${trimmed}.jpg`
+}
+
 

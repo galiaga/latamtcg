@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.13.0 — 2025-10-06
+### Features
+- Double‑faced/transform cards: front/back support in Search and Printing pages.
+  - New in‑grid fade flip with fixed 3:4 image area; no layout shift.
+  - Hover to preview back on desktop; tap to toggle on mobile. Prevents navigation.
+  - Uses official Scryfall images for both faces; only probes back face when present.
+
+### Fixes
+- Prevent Link navigation when flipping within Search results.
+- Eliminate 404 spam by probing back images with HEAD before loading.
+
+### Refactors / Chore
+- Add helpers for Scryfall front/back URLs; consolidate image handling.
+
 ## v0.12.0 — 2025-10-06
 ### Features
 - Cart reactivity & UX
