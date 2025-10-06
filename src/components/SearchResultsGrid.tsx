@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SWRConfig } from 'swr'
 import CardImage from '@/components/CardImage'
+import TwoSidedImage from '@/components/TwoSidedImage'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
@@ -463,7 +464,9 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
             <div key={`${item.id || item.groupId}-${item.title}`} className="card card-2xl p-2 hover-glow-purple transition-soft" style={{ transform: 'translateZ(0)' }}>
               <div className="w-full flex items-center justify-center">
                 <Link href={href} className="block">
-                  {item.imageNormalUrl ? (
+                  {item.id ? (
+                    <TwoSidedImage scryfallId={item.id} alt={`${item.title} · ${item.setName || (item.setCode || '').toUpperCase()} #${item.collectorNumber || ''}`} mode="thumb" thumbWidth={160} />
+                  ) : item.imageNormalUrl ? (
                     <CardImage mode="thumb" src={item.imageNormalUrl} alt={`${item.title} · ${item.setName || (item.setCode || '').toUpperCase()} #${item.collectorNumber || ''}`} width={160} />
                   ) : (
                     <div className="relative aspect-[3/4] w-full skeleton" />
