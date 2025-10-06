@@ -1,4 +1,5 @@
 import CardImage from '@/components/CardImage'
+import TwoSidedImage from '@/components/TwoSidedImage'
 import AddToCartButton from '@/components/AddToCartButton'
 import Link from 'next/link'
 import { getPrintingById } from '@/lib/printings'
@@ -138,14 +139,8 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
       <div className="flex items-start gap-8 flex-col lg:flex-row">
         {/* Left: sticky image column */}
         <div className="self-center lg:self-start lg:sticky lg:top-24 w-[min(86vw,420px)] lg:w-[clamp(320px,28vw,440px)] xl:w-[clamp(360px,30vw,480px)]">
-          {data.imageUrl ? (
-            <CardImage
-              mode="large"
-              src={data.imageUrl}
-              alt={data.name}
-              priority
-              className="w-full"
-            />
+          {data.id ? (
+            <TwoSidedImage scryfallId={data.id} alt={data.name} mode="large" className="w-full" />
           ) : (
             <div className="relative aspect-[63/88] w-full rounded-2xl border overflow-hidden skeleton" style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)' }} />
           )}
