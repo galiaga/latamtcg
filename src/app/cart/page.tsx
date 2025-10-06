@@ -1,10 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { SWRConfig } from 'swr'
 import { useRouter } from 'next/navigation'
+import { useCart } from '@/components/CartProvider'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import Image from 'next/image'
 import Link from 'next/link'
+
 
 type CartItem = {
   printingId: string
@@ -20,15 +23,17 @@ type CartItem = {
 
 export default function CartPage() {
   const router = useRouter()
+  const { mutate: mutateCart, addOptimisticThenReconcile } = useCart() as any
   const [items, setItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [authed, setAuthed] = useState<boolean | null>(null)
   const [redirecting, setRedirecting] = useState(false)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.lineTotal, 0), [items])
 
   async function refresh() {
-    setLoading(true)
+    setLoading(!hasLoadedOnce)
     setError(null)
     try {
       const res = await fetch('/api/cart', { cache: 'no-store' })
@@ -38,7 +43,8 @@ export default function CartPage() {
       setError(e?.message || 'Failed to load cart')
     }
     setLoading(false)
-    try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
+    setHasLoadedOnce(true)
+    // No global pulses/events on reconcile to avoid loops
   }
 
   useEffect(() => {
@@ -53,16 +59,56 @@ export default function CartPage() {
       }
     })()
     refresh()
-    const onRefresh = () => refresh()
-    window.addEventListener('cart:refresh', onRefresh as any)
-    return () => window.removeEventListener('cart:refresh', onRefresh as any)
+    return () => {}
   }, [])
 
   async function update(printingId: string, action: 'inc' | 'set' | 'remove', quantity?: number) {
     try {
-      await fetch('/api/cart/update', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, printingId, quantity }) })
+      // Optimistic local update and badge tick in same tab
+      setItems((prev) => {
+        const arr = [...prev]
+        const idx = arr.findIndex((it) => it.printingId === printingId)
+        if (idx >= 0) {
+          if (action === 'remove') {
+            arr.splice(idx, 1)
+          } else if (action === 'inc') {
+            const delta = Number.isFinite(Number(quantity)) ? Math.floor(Number(quantity)) : 1
+            const nextQty = Math.max(1, arr[idx].quantity + delta)
+            arr[idx] = { ...arr[idx], quantity: nextQty, lineTotal: nextQty * arr[idx].unitPrice }
+          } else if (action === 'set') {
+            const next = Math.max(1, Number(quantity || 1))
+            const delta = next - arr[idx].quantity
+            arr[idx] = { ...arr[idx], quantity: next, lineTotal: next * arr[idx].unitPrice }
+          }
+        }
+        return arr
+      })
+
+      // Optimistically update provider count for header badge
+      try {
+        mutateCart((curr: any) => {
+          const base = curr || { items: [], subtotal: 0, total: 0, count: 0 }
+          const currentItem = items.find((it) => it.printingId === printingId)
+          let delta = 0
+          if (action === 'remove' && currentItem) delta = -currentItem.quantity
+          else if (action === 'inc') delta = Number.isFinite(Number(quantity)) ? Math.floor(Number(quantity as any)) : 1
+          else if (action === 'set' && currentItem) {
+            const next = Math.max(1, Number(quantity || 1))
+            delta = next - currentItem.quantity
+          }
+          const nextCount = Math.max(0, Number(base.count || 0) + delta)
+          return { ...base, count: nextCount }
+        }, { revalidate: false })
+      } catch {}
+
+      const postPromise = fetch('/api/cart/update', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, printingId, quantity }) })
+        .then(async (r) => {
+          if (!r.ok) return {}
+          const j = await r.json().catch(() => ({}))
+          return { totalCount: Number(j?.totalCount), totalPrice: Number(j?.totalPrice) }
+        })
+      await addOptimisticThenReconcile(postPromise)
       await refresh()
-      try { window.dispatchEvent(new CustomEvent('cart:changed')) } catch {}
     } catch {}
   }
 
@@ -109,9 +155,10 @@ export default function CartPage() {
   }
 
   return (
+    <SWRConfig value={{ revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0, dedupingInterval: 4000 }}>
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="text-xl font-semibold">Your Cart</h1>
-      {loading ? <div className="mt-4">Loading…</div> : null}
+      {loading && !hasLoadedOnce ? <div className="mt-4">Loading…</div> : null}
       {error ? <div className="mt-4 text-red-600">{error}</div> : null}
       {!loading && items.length === 0 ? (
         <div className="mt-6">
@@ -161,6 +208,7 @@ export default function CartPage() {
         </div>
       )}
     </div>
+    </SWRConfig>
   )
 }
 

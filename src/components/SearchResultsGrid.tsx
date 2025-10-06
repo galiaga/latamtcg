@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { SWRConfig } from 'swr'
 import CardImage from '@/components/CardImage'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -262,6 +263,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
   if (!q.trim() && !hasAnyFilter) return null
 
   return (
+    <SWRConfig value={{ revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0, dedupingInterval: 4000 }}>
     <div className="mt-2">
       {/* Chip-based filter bar */}
       <div id="search-filter-bar" ref={barRef} className="mb-2 flex items-center gap-2 flex-wrap overflow-visible relative z-30">
@@ -540,6 +542,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
         <Link href={`${pathname}?${(() => { const p = new URLSearchParams(searchParams?.toString() || ''); p.set('page', String(meta.page + 1)); return p.toString() })()}`} prefetch className="hidden">next</Link>
       ) : null}
     </div>
+    </SWRConfig>
   )
 }
 
