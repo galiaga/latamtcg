@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { getScryfallNormalUrl } from '@/lib/images'
+import { formatCardVariant } from '@/lib/cards/formatVariant'
 
 function normalizeForKeywords(input: string): string {
   if (!input) return ''
@@ -13,33 +14,50 @@ function normalizeForKeywords(input: string): string {
 }
 
 function pickFinishLabel(finishes: string[], promoTypes: string[]): string | null {
-  const types = new Set((promoTypes || []).map((t) => String(t)))
-  // Special foils first
-  if (types.has('gilded')) return 'Gilded Foil'
-  if (types.has('halo-foil')) return 'Halo Foil'
-  if (types.has('textured')) return 'Textured Foil'
-  if (types.has('step-and-compleat')) return 'Step-and-Compleat'
-  if (types.has('rainbow-foil')) return 'Rainbow Foil'
-  const set = new Set(finishes || [])
-  if (set.has('etched')) return 'Foil Etched'
-  // Standard (nonfoil/foil) collapse later in UI; mark as Standard for grouping
-  if (set.has('nonfoil') || set.has('foil')) return 'Standard'
-  return null
+  const variant = formatCardVariant({
+    finishes: finishes || [],
+    promoTypes: promoTypes || [],
+    frameEffects: []
+  })
+  
+  // Return the first finish-related tag, or null if none
+  const finishTags = variant.tags.filter(tag => 
+    tag === 'Foil' || tag === 'Etched' || tag.includes('Foil')
+  )
+  
+  if (finishTags.length > 0) {
+    return finishTags[0]
+  }
+  
+  // Fallback to Standard for basic finishes
+  const hasBasicFinish = (finishes || []).some(f => f === 'nonfoil' || f === 'foil')
+  return hasBasicFinish ? 'Standard' : null
 }
 
 function variantFromTags(frameEffects: string[], promoTypes: string[], setCode: string, fullArt?: boolean | null): string | null {
-  const fe = new Set(frameEffects || [])
-  const pt = new Set(promoTypes || [])
-  if (fe.has('borderless')) return 'Borderless'
-  if (fe.has('extendedart')) return 'Extended Art'
-  if (fe.has('showcase')) return 'Showcase'
-  if (fe.has('shatteredglass')) return 'Shattered Glass'
-  if (pt.has('retro') || pt.has('retro-frame')) return 'Retro'
+  const variant = formatCardVariant({
+    finishes: [],
+    promoTypes: promoTypes || [],
+    frameEffects: frameEffects || []
+  })
+  
+  // Return the first frame effect tag, or null if none
+  const frameTags = variant.tags.filter(tag => 
+    !tag.includes('Foil') && tag !== 'Foil' && tag !== 'Etched'
+  )
+  
+  if (frameTags.length > 0) {
+    return frameTags[0]
+  }
+  
+  // Fallback to legacy logic for special cases
   if (fullArt) return 'Borderless'
   if ((setCode || '').toLowerCase() === 'plst') return 'The List'
+  
   // Common short codes that should surface as variant markers
   const code = (setCode || '').toUpperCase()
   if (code === 'J18') return 'J18'
+  
   return null
 }
 
@@ -115,6 +133,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         finishes: true,
         frameEffects: true,
         promoTypes: true,
+        borderColor: true,
         fullArt: true,
         lang: true,
         isPaper: true,
@@ -128,6 +147,15 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
       const title = String(c.name || '').replace(/\(Full Art\)/gi, '(Borderless)')
       const finishLabel = pickFinishLabel(c.finishes || [], c.promoTypes || [])
       const variantLabel = variantFromTags(c.frameEffects || [], c.promoTypes || [], c.setCode, c.fullArt)
+      
+      // Generate the complete variant suffix using formatCardVariant
+      const variant = formatCardVariant({
+        finishes: c.finishes || [],
+        promoTypes: c.promoTypes || [],
+        frameEffects: c.frameEffects || [],
+        borderColor: c.borderColor
+      })
+      
       const subtitle = buildSubtitle(c.setCode, null, c.collectorNumber)
       const keywordsText = buildKeywords({
         name: title,
@@ -150,6 +178,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         keywordsText,
         finishLabel: finishLabel ?? null,
         variantLabel: variantLabel ?? null,
+        variantSuffix: variant.suffix,
         lang: c.lang,
         isPaper: Boolean(c.isPaper),
         releasedAt: c.releasedAt ?? null,
@@ -170,6 +199,19 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
     skip += cards.length
   }
 
+  // Log totals after rebuild
+  const totalRows = await prisma.searchIndex.count()
+  const withSuffix = await prisma.searchIndex.count({
+    where: {
+      AND: [
+        { variantSuffix: { not: null } },
+        { variantSuffix: { not: '' } }
+      ]
+    }
+  })
+  
+  console.log(`[rebuildSearchIndex] Total rows: ${totalRows}, With suffix: ${withSuffix}`)
+  
   return { inserted: totalInserted }
 }
 

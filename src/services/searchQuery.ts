@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { formatCardVariant } from '@/lib/cards/formatVariant'
 
 export type SearchParams = {
   q: string
@@ -17,6 +18,7 @@ export type SearchItem = {
   subtitle?: string
   finishLabel?: string | null
   variantLabel?: string | null
+  variantSuffix?: string | null
   lang?: string
   isPaper?: boolean
   releasedAt?: string | null
@@ -253,8 +255,22 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
   }
 
   function pickFinishLabel(finishes: string[], promoTypes: string[]): string | null {
-    const types = new Set((promoTypes || []).map((t) => String(t)))
-    if (types.has('rainbow-foil')) return 'Rainbow Foil'
+    const variant = formatCardVariant({
+      finishes: finishes || [],
+      promoTypes: promoTypes || [],
+      frameEffects: []
+    })
+    
+    // Return the first finish-related tag, or null if none
+    const finishTags = variant.tags.filter(tag => 
+      tag === 'Foil' || tag === 'Etched' || tag.includes('Foil')
+    )
+    
+    if (finishTags.length > 0) {
+      return finishTags[0]
+    }
+    
+    // Fallback to basic finishes
     const set = new Set(finishes || [])
     if (set.has('nonfoil')) return 'Nonfoil'
     if (set.has('foil')) return 'Foil'
@@ -263,13 +279,23 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
   }
 
   function variantFromTags(frameEffects: string[], promoTypes: string[], setCode: string, fullArt?: boolean | null): string | null {
-    const fe = new Set(frameEffects || [])
-    const pt = new Set(promoTypes || [])
-    if (fe.has('borderless')) return 'Borderless'
-    if (fe.has('extendedart')) return 'Extended Art'
-    if (fe.has('showcase')) return 'Showcase'
-    if (pt.has('retro') || pt.has('retro-frame')) return 'Retro'
-  if (fullArt) return 'Borderless'
+    const variant = formatCardVariant({
+      finishes: [],
+      promoTypes: promoTypes || [],
+      frameEffects: frameEffects || []
+    })
+    
+    // Return the first frame effect tag, or null if none
+    const frameTags = variant.tags.filter(tag => 
+      !tag.includes('Foil') && tag !== 'Foil' && tag !== 'Etched'
+    )
+    
+    if (frameTags.length > 0) {
+      return frameTags[0]
+    }
+    
+    // Fallback to legacy logic for special cases
+    if (fullArt) return 'Borderless'
     if ((setCode || '').toLowerCase() === 'plst') return 'The List'
     const code = (setCode || '').toUpperCase()
     if (code === 'J18') return 'J18'
@@ -292,6 +318,13 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
     const includes = titleNorm.includes(first) ? 1 : 0
     const finishLabel = pickFinishLabel(c.finishes || [], c.promoTypes || [])
     const variantLabel = variantFromTags(c.frameEffects || [], c.promoTypes || [], c.setCode, c.fullArt)
+    
+    // Generate the complete variant suffix using formatCardVariant
+    const variant = formatCardVariant({
+      finishes: c.finishes || [],
+      promoTypes: c.promoTypes || [],
+      frameEffects: c.frameEffects || []
+    })
     const setBoost = modifiers.set.length > 0 && modifiers.set.some((s) => c.setCode.toLowerCase() === s.toLowerCase()) ? 1 : 0
     const variantBoost = (
       (modifiers.borderless && (variantLabel || '').toLowerCase().includes('borderless') ? 0.8 : 0) +
@@ -316,6 +349,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
       subtitle: subtitle(c.setCode, (c as any).set?.set_name ?? null, c.collectorNumber),
       finishLabel,
       variantLabel,
+      variantSuffix: variant.suffix || null,
       lang: c.lang,
       isPaper: Boolean(c.isPaper),
       releasedAt: c.releasedAt ? new Date(c.releasedAt).toISOString() : null,
