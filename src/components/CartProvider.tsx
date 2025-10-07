@@ -16,14 +16,6 @@ type CartContextType = {
 }
 const CartContext = createContext<CartContextType>({ data: null, loading: true, error: null, mutate: (async () => undefined) as any, addOptimisticThenReconcile: async () => {} })
 
-async function fetcher(url: string): Promise<CartData> {
-  const res = await fetch(url, { headers: { accept: 'application/json' }, cache: 'no-store' })
-  if (res.status === 304) {
-    // Should be handled by browser cache; fallback to empty to avoid crashes
-    return { items: [], subtotal: 0, total: 0, count: 0 }
-  }
-  return res.json()
-}
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const isMutatingRef = useRef(false)
@@ -59,7 +51,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }, { revalidate: false })
       const tReconcile = (typeof performance !== 'undefined' ? performance.now() : Date.now())
       try { console.log(JSON.stringify({ event: 'cart.add_reconciled', t_click_to_reconcile_ms: Math.round(tReconcile - tClick) })) } catch {}
-    } catch (e) {
+    } catch {
       // fallback: schedule revalidate to recover
     } finally {
       isMutatingRef.current = false
@@ -80,7 +72,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const onChange = () => {
       // Optimistic only; reconciliation handled by addOptimisticThenReconcile
     }
-    const onUpdate = (_e: Event) => {
+    const onUpdate = () => {
       // No optimistic adjustment here; callers perform optimistic mutate directly.
     }
     const onReset = () => {

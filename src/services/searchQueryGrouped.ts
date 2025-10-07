@@ -73,9 +73,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   const pageSize = Math.min(25, Math.max(1, params.pageSize || 25))
   const sort = parseSortParam(params.sort || 'relevance')
   const q0 = normalize(params.q || '')
-  const { tokens, exactQuoted } = tokenize(q0)
-  const exact = Boolean(params.exactOnly) || exactQuoted
-  const mode = params.mode || 'name'
+  const { tokens } = tokenize(q0)
   const groupId = (params.groupId || '').trim()
   // Allow empty query when filters (like set) are provided
   const hasFilters = (Array.isArray(params.printing) && params.printing.length > 0)
@@ -112,7 +110,6 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   } catch {}
   const tAfterCount = Date.now()
 
-  const first = tokens[0]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw query rows
   const itemsRaw: any[] = await prisma.$queryRaw(Prisma.sql`
     WITH base AS (
@@ -355,7 +352,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   const facetLimit = 10000
   const tFacet1Start = Date.now()
   // Try cached facets first
-  let cachedFacets = await cacheGetJSON<{ sets: any[]; rarity: any[]; printing: any[] }>(facetsKey)
+  const cachedFacets = await cacheGetJSON<{ sets: any[]; rarity: any[]; printing: any[] }>(facetsKey)
   let idRows: Array<{ id: string; setCode: string; setName: string | null; rarity: string | null; has_nonfoil: boolean; has_foil: boolean; has_etched: boolean }> = []
   if (!cachedFacets) {
     idRows = await prisma.$queryRaw(Prisma.sql`

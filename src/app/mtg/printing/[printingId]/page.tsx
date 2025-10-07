@@ -1,4 +1,3 @@
-import CardImage from '@/components/CardImage'
 import TwoSidedImage from '@/components/TwoSidedImage'
 import AddToCartButton from '@/components/AddToCartButton'
 import Link from 'next/link'
@@ -7,16 +6,11 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import OtherPrintingsCarousel from '@/components/OtherPrintingsCarousel'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
+import { formatUsd } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
 
-function formatUsdWholeCeil(value: unknown | null): string {
-  if (value === null || value === undefined) return 'Not available'
-  const num = Number(value)
-  if (Number.isNaN(num)) return 'Not available'
-  return `$${Math.ceil(num)}`
-}
 
 function toNumberOrNull(value: unknown): number | null {
   if (value === null || value === undefined) return null
@@ -205,7 +199,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <span className="font-medium">Normal</span>
                   <span className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>
-                    {formatUsdWholeCeil(data.priceUsd)}
+                    {formatUsd(data.priceUsd)}
                   </span>
                 </div>
               )}
@@ -213,7 +207,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <span className="font-medium">Foil</span>
                   <span className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>
-                    {formatUsdWholeCeil(data.priceUsdFoil)}
+                    {formatUsd(data.priceUsdFoil)}
                   </span>
                 </div>
               )}
@@ -221,7 +215,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <span className="font-medium">Etched</span>
                   <span className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>
-                    {formatUsdWholeCeil(data.priceUsdEtched)}
+                    {formatUsd(data.priceUsdEtched)}
                   </span>
                 </div>
               )}

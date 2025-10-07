@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
 import { getSessionUser } from '@/lib/supabase'
 
-export async function GET(req: Request) {
+export async function GET() {
   const t0 = Date.now()
   let dbMs = 0
   try {
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
     res.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=120')
     res.headers.set('X-Server-Timing', `db;dur=${dbMs},total;dur=${Date.now()-t0}`)
     return res
-  } catch (e) {
+  } catch {
     const res = NextResponse.json({ totalCount: 0, totalPrice: 0 })
     res.headers.set('X-Server-Timing', `db;dur=${dbMs},total;dur=${Date.now()-t0}`)
     return res

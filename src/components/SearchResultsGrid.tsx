@@ -7,6 +7,7 @@ import TwoSidedImage from '@/components/TwoSidedImage'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
+import { formatUsd } from '@/lib/format'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 type Item = {
@@ -58,16 +59,6 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     const printing = searchParams?.getAll('printing') || []
     return sets.length > 0 || rarity.length > 0 || printing.length > 0
   }, [searchParams])
-  const visibleSets = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const i of primary) {
-      const code = String(i.setCode || '').toUpperCase()
-      if (!code) continue
-      const name = String(i.setName || code)
-      if (!map.has(code)) map.set(code, name)
-    }
-    return Array.from(map.entries()).map(([code, name]) => ({ code, name })).sort((a, b) => a.name.localeCompare(b.name))
-  }, [primary])
   const [openFacet, setOpenFacet] = useState<null | 'sets' | 'rarity' | 'printing'>(null)
   const barRef = useRef<HTMLDivElement | null>(null)
   const setsRef = useRef<HTMLDivElement | null>(null)
@@ -462,26 +453,16 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
             // If only one printing type is selected, show that specific price
             if (printingSel.length === 1) {
               const selected = printingSel[0]
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime number coercion from server payload
               const v = selected === 'etched' ? item.priceUsdEtched : 
                        selected === 'foil' ? item.priceUsdFoil : 
                        item.priceUsd
-              if (v === null || v === undefined) return 'Not available'
-              const n = Number(v)
-              if (Number.isNaN(n)) return 'Not available'
-              const ceilVal = Math.ceil(n)
-              return `$${ceilVal}`
+              return formatUsd(v)
             }
             
             // Multiple or no printing filters: use Normal → Foil → Etched priority
             const order = [item.priceUsd, item.priceUsdFoil, item.priceUsdEtched]
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime number coercion from server payload
-            const v = (order.find((x) => typeof x === 'number' && !Number.isNaN(Number(x))) ?? null) as any
-            if (v === null || v === undefined) return 'Not available'
-            const n = Number(v)
-            if (Number.isNaN(n)) return 'Not available'
-            const ceilVal = Math.ceil(n)
-            return `$${ceilVal}`
+            const v = order.find((x) => typeof x === 'number' && !Number.isNaN(Number(x))) ?? null
+            return formatUsd(v)
           })()
           const chips = (() => {
             const out: Array<{ key: string; label: string }> = []
@@ -493,7 +474,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
               <div className="w-full flex items-center justify-center">
                 <Link href={href} className="block">
                   {item.id ? (
-                    <TwoSidedImage scryfallId={item.id} alt={`${item.title} · ${item.setName || (item.setCode || '').toUpperCase()} #${item.collectorNumber || ''}`} mode="thumb" thumbWidth={160} />
+                    <TwoSidedImage scryfallId={item.id} alt={`${item.title} · ${item.setName || (item.setCode || '').toUpperCase()} #${item.collectorNumber || ''}`} mode="thumb" widthPx={160} />
                   ) : item.imageNormalUrl ? (
                     <CardImage mode="thumb" src={item.imageNormalUrl} alt={`${item.title} · ${item.setName || (item.setCode || '').toUpperCase()} #${item.collectorNumber || ''}`} width={160} />
                   ) : (

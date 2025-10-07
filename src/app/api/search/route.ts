@@ -19,7 +19,6 @@ export async function GET(req: NextRequest) {
     const debug = String(searchParams.get('debug') || '') === '1'
     const modeRaw = String(searchParams.get('mode') || 'name').toLowerCase()
     const mode: 'name' | 'text' | 'all' = (modeRaw === 'text' || modeRaw === 'all' || modeRaw === 'name') ? (modeRaw as 'name' | 'text' | 'all') : 'name'
-    const explain = String(searchParams.get('explain') || '') === '1'
     // filters
     const printing = (searchParams.getAll('printing') || [])
       .map((v) => String(v).toLowerCase())

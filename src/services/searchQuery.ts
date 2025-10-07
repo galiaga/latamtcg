@@ -85,7 +85,7 @@ export async function searchSuggestions(params: SearchParams): Promise<SearchIte
   const langPref: 'en' | 'all' = params.lang === 'all' || process.env.SEARCH_LANGS === 'all' ? 'all' : 'en'
   const qNorm = normalize(params.q || '')
   if (!qNorm) return []
-  const { modifiers, tokens, firstToken } = parseModifiers(qNorm)
+  const { modifiers, firstToken } = parseModifiers(qNorm)
   const first = firstToken || qNorm
 
   // Build SQL with ranking (preferred path via SearchIndex table)

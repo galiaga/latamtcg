@@ -15,12 +15,12 @@ function withConnectionLimit(dbUrl: string | undefined, limit: number = 5): stri
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var prismaGlobal: PrismaClient | undefined
 }
 
 if (!process.env.DATABASE_URL) {
-  // eslint-disable-next-line no-console
+   
   console.error('[prisma] Missing DATABASE_URL')
   throw new Error('Missing DATABASE_URL env var')
 }

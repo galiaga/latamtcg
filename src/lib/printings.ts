@@ -53,6 +53,7 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
       lang: string | null
       releasedAt: Date | null
       setName: string | null
+      borderColor: string | null
     }>>(
       Prisma.sql`
         SELECT
@@ -70,6 +71,7 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
           c."priceUsdEtched",
           c.lang,
           c."releasedAt",
+          c."borderColor",
           s.set_name AS "setName"
         FROM "public"."MtgCard" c
         LEFT JOIN "public"."Set" s ON s.set_code = c."setCode"
@@ -147,7 +149,6 @@ export async function findPrintingIdBySetCollector(setCode: string, collectorNum
     const id = String(card?.id || '')
     if (!UUID_V4.test(id)) return null
     // best-effort upsert minimal row so the page has data immediately
-    const imageNormal = card?.image_uris?.normal || (Array.isArray(card?.card_faces) ? card.card_faces[0]?.image_uris?.normal : null)
     await prisma.mtgCard.upsert({
       where: { scryfallId: id },
       create: {
