@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR, { type KeyedMutator } from 'swr'
-import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useRef, useCallback } from 'react'
 
 type CartItem = { printingId: string; quantity: number; unitPrice: number; lineTotal: number; name: string; setCode: string; setName: string | null; collectorNumber: string; imageUrl: string }
 type CartData = { items: CartItem[]; subtotal: number; total: number; count: number }
@@ -20,10 +20,6 @@ const CartContext = createContext<CartContextType>({ data: null, loading: true, 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const isMutatingRef = useRef(false)
   const revalidateTimerRef = useRef<any>(null)
-  const scheduleDebouncedRevalidate = () => {
-    try { if (revalidateTimerRef.current) clearTimeout(revalidateTimerRef.current) } catch {}
-    revalidateTimerRef.current = setTimeout(() => { try { mutate() } catch {} }, 900)
-  }
 
   const { data, error, isLoading, mutate } = useSWR<CartData>('/api/cart/summary', async () => {
     const res = await fetch('/api/cart/summary', { headers: { accept: 'application/json' }, cache: 'no-store' })
@@ -31,7 +27,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return { items: [], subtotal: s.totalPrice, total: s.totalPrice, count: s.totalCount }
   }, { dedupingInterval: 3000, revalidateOnFocus: false, revalidateIfStale: true, revalidateOnReconnect: false, revalidateOnMount: true })
 
-  const addOptimisticThenReconcile = async (p: Promise<{ totalCount?: number, totalPrice?: number }>) => {
+  const scheduleDebouncedRevalidate = useCallback(() => {
+    try { if (revalidateTimerRef.current) clearTimeout(revalidateTimerRef.current) } catch {}
+    revalidateTimerRef.current = setTimeout(() => { try { mutate() } catch {} }, 900)
+  }, [mutate])
+
+  const addOptimisticThenReconcile = useCallback(async (p: Promise<{ totalCount?: number, totalPrice?: number }>) => {
     if (isMutatingRef.current) return
     isMutatingRef.current = true
     const tClick = (typeof performance !== 'undefined' ? performance.now() : Date.now())
@@ -57,7 +58,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       isMutatingRef.current = false
       scheduleDebouncedRevalidate()
     }
-  }
+  }, [mutate, scheduleDebouncedRevalidate])
 
   // Listen to cart change events and cross-tab storage pulses to keep data fresh
   useEffect(() => {
@@ -100,7 +101,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     }
   }, [mutate])
-  const value = useMemo<CartContextType>(() => ({ data: data || null, loading: isLoading, error, mutate, addOptimisticThenReconcile }), [data, error, isLoading, mutate])
+  const value = useMemo<CartContextType>(() => ({ data: data || null, loading: isLoading, error, mutate, addOptimisticThenReconcile }), [data, error, isLoading, mutate, addOptimisticThenReconcile])
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
 

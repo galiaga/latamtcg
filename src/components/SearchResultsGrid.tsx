@@ -197,7 +197,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
       setLoading(false)
     }, 300)
     return () => { clearTimeout(t); controller.abort() }
-  }, [q, searchParams, hasAnyFilter])
+  }, [q, searchParams, hasAnyFilter, initialData, initialKey])
 
   function setPage(nextPage: number) {
     const params = new URLSearchParams(searchParams?.toString() || '')

@@ -1,10 +1,10 @@
 // Lightweight cache wrapper: in-memory in dev, Redis in prod if REDIS_URL is set.
 // Stores JSON-serializable values only.
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- simple cache value container
-const memory = new Map<string, { value: any; expiresAt: number }>()
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- lazy optional redis client
-let redisClient: any = null
+// Simple cache value container
+const memory = new Map<string, { value: unknown; expiresAt: number }>()
+// Lazy optional redis client
+let redisClient: { get: (key: string) => Promise<string | null>; set: (key: string, value: string, options: { EX: number }) => Promise<void>; flushAll: () => Promise<void>; on: (event: string, handler: () => void) => void; connect: () => Promise<void> } | null = null
 let redisReady = false
 
 async function ensureRedis(): Promise<void> {
@@ -15,10 +15,10 @@ async function ensureRedis(): Promise<void> {
     // Avoid bundler/module resolution warnings by dynamically importing via eval
     // Only executes when REDIS_URL is set on the server
      
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic import helper
-    const dynamicImport = new Function('s', 'return import(s)') as (s: string) => Promise<any>
+    // Dynamic import helper
+    const dynamicImport = new Function('s', 'return import(s)') as (s: string) => Promise<{ createClient: (config: { url: string }) => unknown }>
     const { createClient } = await dynamicImport('redis')
-    redisClient = createClient({ url })
+    redisClient = createClient({ url }) as { get: (key: string) => Promise<string | null>; set: (key: string, value: string, options: { EX: number }) => Promise<void>; flushAll: () => Promise<void>; on: (event: string, handler: () => void) => void; connect: () => Promise<void> }
     redisClient.on('error', () => {})
     await redisClient.connect()
     redisReady = true
@@ -28,7 +28,7 @@ async function ensureRedis(): Promise<void> {
   }
 }
 
-export async function cacheGetJSON<T = any>(key: string): Promise<T | null> {
+export async function cacheGetJSON<T = unknown>(key: string): Promise<T | null> {
   const t0 = Date.now()
   try {
     await ensureRedis()
@@ -52,7 +52,7 @@ export async function cacheGetJSON<T = any>(key: string): Promise<T | null> {
   return entry.value as T
 }
 
-export async function cacheSetJSON<T = any>(key: string, value: T, ttlSeconds: number): Promise<void> {
+export async function cacheSetJSON<T = unknown>(key: string, value: T, ttlSeconds: number): Promise<void> {
   const t0 = Date.now()
   try {
     await ensureRedis()

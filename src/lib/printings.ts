@@ -47,9 +47,9 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
       frameEffects: string[] | null
       promoTypes: string[] | null
       fullArt: boolean | null
-      priceUsd: any
-      priceUsdFoil: any
-      priceUsdEtched: any
+      priceUsd: unknown
+      priceUsdFoil: unknown
+      priceUsdEtched: unknown
       lang: string | null
       releasedAt: Date | null
       setName: string | null
@@ -125,9 +125,9 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
     }
     if (process.env.NODE_ENV !== 'production') console.debug('[getPrintingById] ok', printingId)
     return data
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Avoid noisy logs for expected 404s triggered via notFound()
-    const message = String(e?.message || '')
+    const message = String((e as { message?: unknown })?.message || '')
     if (!message.includes('NEXT_NOT_FOUND')) {
       console.error('[getPrintingById] failed', printingId, e)
     }
@@ -145,7 +145,7 @@ export async function findPrintingIdBySetCollector(setCode: string, collectorNum
   try {
     const res = await fetch(`https://api.scryfall.com/cards/${encodeURIComponent(set)}/${encodeURIComponent(cn)}`, { cache: 'no-store' })
     if (!res.ok) return null
-    const card: any = await res.json()
+    const card: Record<string, unknown> = await res.json()
     const id = String(card?.id || '')
     if (!UUID_V4.test(id)) return null
     // best-effort upsert minimal row so the page has data immediately
@@ -157,26 +157,26 @@ export async function findPrintingIdBySetCollector(setCode: string, collectorNum
         name: String(card?.name ?? ''),
         setCode: String(card?.set ?? set),
         collectorNumber: String(card?.collector_number ?? cn),
-        finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
-        frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: any) => String(f)) : [],
-        promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
+        finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: unknown) => String(f)) : [],
+        frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: unknown) => String(f)) : [],
+        promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: unknown) => String(p)) : [],
         fullArt: Boolean(card?.full_art ?? false),
         lang: String(card?.lang ?? 'en'),
         isPaper: !card?.digital,
-        releasedAt: card?.released_at ? new Date(card.released_at) : null,
+        releasedAt: card?.released_at ? new Date(String(card.released_at)) : null,
       },
       update: {
         oracleId: String(card?.oracle_id ?? ''),
         name: String(card?.name ?? ''),
         setCode: String(card?.set ?? set),
         collectorNumber: String(card?.collector_number ?? cn),
-        finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
-        frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: any) => String(f)) : [],
-        promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
+        finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: unknown) => String(f)) : [],
+        frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: unknown) => String(f)) : [],
+        promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: unknown) => String(p)) : [],
         fullArt: Boolean(card?.full_art ?? false),
         lang: String(card?.lang ?? 'en'),
         isPaper: !card?.digital,
-        releasedAt: card?.released_at ? new Date(card.released_at) : null,
+        releasedAt: card?.released_at ? new Date(String(card.released_at)) : null,
       },
     })
     return id

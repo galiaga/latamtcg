@@ -146,6 +146,7 @@ export default function OtherPrintingsCarousel({
       el.removeEventListener('pointerleave', endDrag)
       el.removeEventListener('click', onClickCapture, true)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dragging is used in event handlers but effect should only run once to set up listeners
   }, [])
 
   return (

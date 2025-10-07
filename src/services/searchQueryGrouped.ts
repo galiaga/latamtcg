@@ -3,6 +3,7 @@ import { cacheGetJSON, cacheSetJSON } from '@/lib/cache'
 import type { SortOption } from '@/search/sort'
 import { parseSortParam } from '@/search/sort'
 import { Prisma } from '@prisma/client'
+import type { SearchResult, SearchResultItem, SearchFacets } from '@/types/search'
 
 type GroupedParams = {
   q: string
@@ -20,25 +21,7 @@ type GroupedParams = {
   debug?: boolean
 }
 
-export type GroupedResult = {
-  query: string
-  page: number
-  pageSize: number
-  totalResults: number // 0 when unknown (lazy total)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- results are shaped in SQL layer
-  primary: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- results are shaped in SQL layer
-  otherNameMatches: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- results are shaped in SQL layer
-  broad: any[]
-  nextPageToken: string | null
-  facets: {
-    sets: Array<{ code: string; name: string; count: number }>
-    rarity: Array<{ key: string; count: number }>
-    printing: Array<{ key: string; count: number }>
-    approx?: boolean
-  }
-}
+export type GroupedResult = SearchResult
 
 function normalize(input: string): string {
   return (input || '')
@@ -311,39 +294,55 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
       LIMIT 1
     ) b ON TRUE
   `)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- numeric coercion helper
-  function asNum(v: any): number | null {
+  // Numeric coercion helper
+  function asNum(v: unknown): number | null {
     if (v === null || v === undefined) return null
     const n = Number(v)
     return Number.isNaN(n) ? null : n
   }
   const hasMore = itemsRaw.length > pageSize
-      const items = (hasMore ? itemsRaw.slice(0, pageSize) : itemsRaw).map((r) => {
+      const items: SearchResultItem[] = (hasMore ? itemsRaw.slice(0, pageSize) : itemsRaw).map((r) => {
         // Whitelist fields to ensure the object is fully JSON-serializable (avoid Prisma Decimal)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructing response object from raw row
-        const obj: any = {
-          groupId: (r as any).groupId,
-          setCode: (r as any).setCode,
-          collectorNumber: (r as any).collectorNumber,
-          variantLabel: (r as any).variantLabel,
-          finishLabel: (r as any).finishLabel,
-          variantSuffix: (r as any).variantSuffix,
-      id: (r as any).id,
-      title: String((r as any)?.title || '').replace(/\(Full Art\)/gi, '(Borderless)'),
-      setName: (r as any).setName,
-      imageNormalUrl: (r as any).imageNormalUrl,
-      rarity: (r as any).rarity,
-      hasNonfoil: Boolean((r as any).hasNonfoil),
-      hasFoil: Boolean((r as any).hasFoil),
-      hasEtched: Boolean((r as any).hasEtched),
-      priceUsd: asNum((r as any).priceUsd),
-      priceUsdFoil: asNum((r as any).priceUsdFoil),
-      priceUsdEtched: asNum((r as any).priceUsdEtched),
-      priceSort: asNum((r as any).price_sort),
-      rel: asNum((r as any).rel),
-    }
-    return obj
-  })
+        const row = r as Record<string, unknown>
+        const obj: SearchResultItem = {
+          groupId: String(row.groupId || ''),
+          setCode: String(row.setCode || ''),
+          collectorNumber: String(row.collectorNumber || ''),
+          variantLabel: row.variantLabel ? String(row.variantLabel) : null,
+          finishLabel: row.finishLabel ? String(row.finishLabel) : null,
+          variantSuffix: (() => {
+            const suffix = row.variantSuffix ? String(row.variantSuffix) : null
+            if (!suffix) return null
+            
+            // Filter out foil-related suffixes if no foil price is available
+            const hasFoilPrice = row.priceUsdFoil != null && Number(row.priceUsdFoil) > 0
+            if (!hasFoilPrice && suffix.includes('Foil')) {
+              // Remove foil-related parts from the suffix
+              return suffix
+                .replace(/\s*\([^)]*Foil[^)]*\)/g, '') // Remove (Surge Foil), (Galaxy Foil), etc.
+                .replace(/\s*\([^)]*foil[^)]*\)/g, '') // Remove any lowercase foil variants
+                .trim()
+                || null // Return null if nothing left
+            }
+            
+            return suffix
+          })(),
+          id: String(row.id || ''),
+          title: String(row.title || '').replace(/\(Full Art\)/gi, '(Borderless)'),
+          setName: row.setName ? String(row.setName) : null,
+          imageNormalUrl: row.imageNormalUrl ? String(row.imageNormalUrl) : null,
+          rarity: row.rarity ? String(row.rarity) : null,
+          hasNonfoil: Boolean(row.hasNonfoil),
+          hasFoil: Boolean(row.hasFoil),
+          hasEtched: Boolean(row.hasEtched),
+          priceUsd: asNum(row.priceUsd),
+          priceUsdFoil: asNum(row.priceUsdFoil),
+          priceUsdEtched: asNum(row.priceUsdEtched),
+          priceSort: asNum(row.price_sort),
+          rel: asNum(row.rel),
+        }
+        return obj
+      })
 
   const nextPageToken = hasMore ? Buffer.from(String(page + 1)).toString('base64') : null
   const tAfterItems = Date.now()
@@ -352,7 +351,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   const facetLimit = 10000
   const tFacet1Start = Date.now()
   // Try cached facets first
-  const cachedFacets = await cacheGetJSON<{ sets: any[]; rarity: any[]; printing: any[] }>(facetsKey)
+  const cachedFacets = await cacheGetJSON<SearchFacets>(facetsKey)
   let idRows: Array<{ id: string; setCode: string; setName: string | null; rarity: string | null; has_nonfoil: boolean; has_foil: boolean; has_etched: boolean }> = []
   if (!cachedFacets) {
     idRows = await prisma.$queryRaw(Prisma.sql`
@@ -420,7 +419,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   ]
   const tFacet2End = Date.now()
 
-  const facets = cachedFacets ? { ...cachedFacets, approx: false } : { sets: setsAgg, rarity: rarityAgg, printing: printingAgg, approx }
+  const facets: SearchFacets = cachedFacets ? { ...cachedFacets, approx: false } : { sets: setsAgg, rarity: rarityAgg, printing: printingAgg, approx }
 
   // Get total count synchronously for accurate pagination
   let totalEst = 0

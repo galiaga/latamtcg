@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { SWRConfig } from 'swr'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/components/CartProvider'
@@ -33,7 +33,7 @@ export default function CartPage() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.lineTotal, 0), [items])
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setLoading(!hasLoadedOnce)
     setError(null)
     try {
@@ -46,7 +46,7 @@ export default function CartPage() {
     setLoading(false)
     setHasLoadedOnce(true)
     // No global pulses/events on reconcile to avoid loops
-  }
+  }, [hasLoadedOnce])
 
   useEffect(() => {
     // Detect auth via client (avoid hitting server route that touches DB)
@@ -61,7 +61,7 @@ export default function CartPage() {
     })()
     refresh()
     return () => {}
-  }, [])
+  }, [refresh])
 
   async function update(printingId: string, action: 'inc' | 'set' | 'remove', quantity?: number) {
     try {

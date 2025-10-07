@@ -51,7 +51,7 @@ export default function AddToCartButton({ printingId, size = 'md' }: { printingI
       setAdding(false)
       inFlightRef.current.delete(key)
     }
-  }, [printingId])
+  }, [printingId, addOptimisticThenReconcile, mutate])
 
   const className = size === 'sm' ? 'btn btn-sm btn-gradient' : size === 'lg' ? 'btn btn-lg btn-gradient' : 'btn btn-gradient'
 
