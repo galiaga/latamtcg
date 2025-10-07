@@ -6,6 +6,7 @@ import { getPrintingById } from '@/lib/printings'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import OtherPrintingsCarousel from '@/components/OtherPrintingsCarousel'
+import { formatCardVariant } from '@/lib/cards/formatVariant'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -48,10 +49,15 @@ export async function generateMetadata(props: { params: Promise<{ printingId: st
   const { printingId } = await props.params
   try {
     const data = await getPrintingById(printingId)
-    const variant = [data.treatment, data.finish].filter(Boolean).join(' ')
+    const variant = formatCardVariant({
+      finishes: data.finishes,
+      promoTypes: data.promoTypes,
+      frameEffects: data.frameEffects,
+      borderColor: data.borderColor
+    })
     const col = data.collectorNumber ? ` #${data.collectorNumber}` : ''
     const setPart = `${(data.setCode || '').toUpperCase()}${col}`
-    const title = `${data.name}${variant ? ' ' + variant : ''} — ${setPart} | LatamTCG`
+    const title = `${data.name}${variant.suffix} — ${setPart} | LatamTCG`
     const canonical = `/mtg/printing/${printingId}`
     return { title, alternates: { canonical } }
   } catch {
@@ -132,7 +138,17 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
           <li>›</li>
           <li><Link className="underline-offset-2 hover:underline" href={`/mtg/search?set=${encodeURIComponent((data.setCode || '').toUpperCase())}`}>{data.setName ?? (data.setCode || '').toUpperCase()}</Link></li>
           <li>›</li>
-          <li aria-current="page">{data.name}</li>
+          <li aria-current="page">
+            {(() => {
+              const variant = formatCardVariant({
+                finishes: data.finishes,
+                promoTypes: data.promoTypes,
+                frameEffects: data.frameEffects,
+                borderColor: data.borderColor
+              })
+              return `${data.name}${variant.suffix}`
+            })()}
+          </li>
         </ol>
       </nav>
 
@@ -150,16 +166,35 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
         </div>
         {/* Right: details */}
         <div className="flex-1 card card-2xl p-4">
-          <h1 className="text-2xl font-semibold" style={{ letterSpacing: '-0.01em' }}>{data.name}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          {(() => {
+            const variant = formatCardVariant({
+              finishes: data.finishes,
+              promoTypes: data.promoTypes,
+              frameEffects: data.frameEffects,
+              borderColor: data.borderColor
+            })
+            return (
+              <>
+                <h1 className="text-2xl font-semibold" style={{ letterSpacing: '-0.01em' }}>
+                  {data.name}{variant.suffix}
+                </h1>
+                {variant.tags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {variant.tags.map((tag, index) => (
+                      <span key={index} className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )
+          })()}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="badge">{(data.setCode || '').toUpperCase()}</span>
             {data.setName ? <span className="badge">{data.setName}</span> : null}
             {data.collectorNumber ? <span className="badge">#{data.collectorNumber}</span> : null}
             {data.language && data.language !== 'EN' ? <span className="badge">{data.language.toUpperCase()}</span> : null}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {data.finish ? <span className="badge">{data.finish}</span> : null}
-            {data.treatment ? <span className="badge">{data.treatment}</span> : null}
           </div>
           
           {/* Pricing section */}

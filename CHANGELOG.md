@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.15.0 — 2025-01-27
+### Features
+- Dynamic variant rendering system for MTG cards:
+  - Comprehensive variant tags display (finishes, frame effects, promo types, border color)
+  - Consistent formatting across search results, detail pages, and SEO titles
+  - Support for curated frame effects (Showcase, Extended Art, Retro Frame, etc.)
+  - Dynamic foil variant detection (any promoTypes ending in "foil")
+  - Borderless detection from borderColor field
+  - Proper ordering: Frame Effects → Foil Variants → Base Finish → Borderless (always last)
+- Enhanced search experience:
+  - Variant information now appears in search results titles and breadcrumbs
+  - Search index includes comprehensive variant suffix field for consistent display
+  - Improved search functionality for variant terms (e.g., "fracture foil", "galaxy foil")
+- User-friendly empty state:
+  - Humorous TCG-themed "No items found" message with helpful search suggestions
+  - Generic messaging ready for future games and item types beyond MTG
+  - Engaging personality that resonates with the TCG community
+
+### Fixes
+- Removed generic "Foil" and "Normal" chips from search results (variant info now in titles)
+- Eliminated "(Inverted)" references as users don't care about this frame effect
+- Fixed variant suffix ordering to ensure "Borderless" appears last in all combinations
+- Resolved search index population to include variantSuffix field end-to-end
+- Improved search query to include keywordsText for better variant term matching
+
+### Performance
+- Optimized search index rebuild process with comprehensive variant suffix generation
+- Enhanced SQL queries with prioritized variant picking for grouped results
+- Improved cache busting mechanism for search results after index updates
+
+### Refactors / Chore
+- Added comprehensive unit tests for formatCardVariant helper function
+- Created integration tests for variantSuffix functionality
+- Updated search services to use consistent variant formatting logic
+- Enhanced type safety with proper MtgCard interface including borderColor field
+- Improved error handling and validation in search index rebuild process
+
 ## v0.14.0 — 2025-01-27
 ### Features
 - Enhanced search filtering and pricing system:

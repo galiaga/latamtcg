@@ -16,6 +16,7 @@ type Item = {
   title: string
   variantLabel?: string | null
   finishLabel?: string | null
+  variantSuffix?: string | null
   setCode?: string
   setName?: string | null
   collectorNumber?: string | number | null
@@ -430,6 +431,27 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
       {loading && primary.length === 0 ? (
         <div className="text-sm" style={{ color: 'var(--mutedText)' }}>Loading…</div>
       ) : null}
+      {!loading && meta.totalResults === 0 && q.trim() ? (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4" style={{ color: 'var(--mutedText)' }}>🔍</div>
+          <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text)' }}>No items found</h3>
+          <p className="text-sm mb-4" style={{ color: 'var(--mutedText)' }}>
+            Looks like "<span className="font-medium">{q}</span>" got exiled from our collection! 📦
+          </p>
+          <div className="text-xs" style={{ color: 'var(--mutedText)' }}>
+            <p className="mb-2">Try these search strategies to find what you're looking for:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Item name (e.g., "Lightning Bolt")</li>
+              <li>Partial name (e.g., "Lightning")</li>
+              <li>Set code (e.g., "SLD")</li>
+              <li>Artist or creator name</li>
+            </ul>
+            <p className="mt-3 text-xs italic" style={{ color: 'var(--mutedText)' }}>
+              💡 Pro tip: Sometimes the best cards are hiding in plain sight!
+            </p>
+          </div>
+        </div>
+      ) : null}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {primary.map((item) => {
           const href = item.id ? printingHref(item.id) : '#'
@@ -463,21 +485,8 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
           })()
           const chips = (() => {
             const out: Array<{ key: string; label: string }> = []
-            const finish = String(item.finishLabel || '')
-            if (finish && finish !== 'Standard') {
-              const norm = finish.toLowerCase()
-              if (norm.includes('etched')) out.push({ key: 'etched', label: 'Etched 💎' })
-              else if (norm.includes('foil')) out.push({ key: 'foil', label: 'Foil ✨' })
-              else out.push({ key: 'normal', label: 'Normal' })
-            } else if (finish === '' || finish === 'Standard') {
-              out.push({ key: 'normal', label: 'Normal' })
-            }
-            const variant = String(item.variantLabel || '')
-            if (variant) {
-              const v = variant.replace(/Full Art/gi, 'Full Art').replace(/Extended Art/gi, 'Extended Art')
-              out.push({ key: 'variant', label: v })
-            }
-            return out.length > 3 ? [...out.slice(0, 3), { key: 'more', label: `+${out.length - 3}` }] : out
+            // No chips - variant information is already in the title via variantSuffix
+            return out
           })()
           return (
             <div key={`${item.id || item.groupId}-${item.title}`} className="card card-2xl p-2 hover-glow-purple transition-soft" style={{ transform: 'translateZ(0)' }}>
@@ -496,8 +505,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                 <Link href={href} className="text-sm font-medium truncate block">
                   {(() => {
                     const title = String(item.title || '').replace(/\(Full Art\)/gi, '(Borderless)')
-                    const parts: string[] = []
-                    return parts.length ? `${title} (${parts.join(', ')})` : title
+                    return item.variantSuffix ? `${title}${item.variantSuffix}` : title
                   })()}
                 </Link>
                 <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
