@@ -39,7 +39,10 @@ export async function GET(req: NextRequest) {
     const exact = String(searchParams.get('exact') || '')
     const facetAll = String(searchParams.get('facetAll') || '')
     const sort = String(searchParams.get('sort') || 'relevance')
-    const mode = String(searchParams.get('mode') || 'name')
+    const mode = (() => {
+      const m = String(searchParams.get('mode') || 'name')
+      return m === 'text' || m === 'all' ? m : 'name'
+    })() as 'name' | 'text' | 'all'
     const debug = String(searchParams.get('debug') || '')
     const printing = (searchParams.getAll('printing') || [])
       .map((v) => String(v).toLowerCase())

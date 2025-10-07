@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { printingHref, cardHref } from '@/lib/routes'
 import { fmtCollector } from '@/lib/format'
+import Spinner from './Spinner'
 
 type ApiItem = {
   kind: 'printing' | 'group'
@@ -269,7 +270,7 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
           onBlur={() => { setIsFocused(false) }}
         />
         <button type="submit" className="btn btn-gradient transition-soft" aria-label="Search" disabled={!query.trim() || submitting} style={{ opacity: submitting ? 0.95 : undefined }}>
-          {submitting ? 'Searching…' : 'Search'}
+          {submitting ? <Spinner size="sm" /> : 'Search'}
         </button>
       </form>
       {open && typeof document !== 'undefined' && createPortal(
@@ -327,7 +328,10 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
               </li>
             ))}
             {loading && (
-              <li className="px-3 py-2 text-sm text-zinc-500">Loading…</li>
+              <li className="px-3 py-2 text-sm flex items-center gap-2" style={{ color: 'var(--mutedText)' }}>
+                <Spinner size="sm" />
+                <span>Searching...</span>
+              </li>
             )}
           </ul>
         ),

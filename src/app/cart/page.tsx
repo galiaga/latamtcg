@@ -8,6 +8,7 @@ import { supabaseBrowser } from '@/lib/supabase-browser'
 import { formatUsd } from '@/lib/format'
 import Image from 'next/image'
 import Link from 'next/link'
+import SkeletonCartRow from '@/components/SkeletonCartRow'
 
 
 type CartItem = {
@@ -158,7 +159,13 @@ export default function CartPage() {
     <SWRConfig value={{ revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0, dedupingInterval: 4000 }}>
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="text-xl font-semibold">Your Cart</h1>
-      {loading && !hasLoadedOnce ? <div className="mt-4">Loading…</div> : null}
+      {loading && !hasLoadedOnce ? (
+        <div className="mt-4 grid grid-cols-1 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <SkeletonCartRow key={i} />
+          ))}
+        </div>
+      ) : null}
       {error ? <div className="mt-4 text-red-600">{error}</div> : null}
       {!loading && items.length === 0 ? (
         <div className="mt-6">
