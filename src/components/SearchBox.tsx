@@ -47,12 +47,13 @@ export default function SearchBox({ placeholder = 'Search printings…', default
   const [panelStyle, setPanelStyle] = useState<{ left: number; top: number; width: number; maxHeight: number }>({ left: 0, top: 0, width: 0, maxHeight: 320 })
 
   function normalizeSubmitQuery(text: string): string {
-    return text
-      .toLowerCase()
+    // Preserve user casing as typed, but normalize internal spacing/diacritics
+    const cleaned = text
       .normalize('NFD')
       .replace(/\p{Diacritic}+/gu, '')
       .replace(/\s+/g, ' ')
       .trim()
+    return cleaned
   }
 
   function handleSearchSubmit(src: 'enter' | 'button' | 'chip', value?: string) {
@@ -78,6 +79,16 @@ export default function SearchBox({ placeholder = 'Search printings…', default
     }, 300)
   }
 
+  // Separate effect for URL sync - only runs when searchParams change
+  useEffect(() => {
+    const qp = searchParams?.get('q')
+    if (typeof qp === 'string') {
+      const shown = qp.replace(/\+/g, ' ')
+      setQuery(shown)
+    }
+  }, [searchParams])
+
+  // Separate effect for search suggestions - only runs when query changes
   useEffect(() => {
     const qTrim = query.trim()
     const shouldFetch = isFocused && open && qTrim.length >= 2 && !submitting

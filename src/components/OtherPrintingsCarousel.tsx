@@ -213,9 +213,9 @@ export default function OtherPrintingsCarousel({
                 <div className="self-start text-xs font-medium" style={{ color: 'var(--primary)' }}>
                   {(() => {
                     const v = s.priceUsd
-                    if (v === null || v === undefined || v === '') return '—'
+                    if (v === null || v === undefined || v === '') return 'Not available'
                     const n = Number(v)
-                    if (Number.isNaN(n)) return '—'
+                    if (Number.isNaN(n)) return 'Not available'
                     return `$${Math.ceil(n)}`
                   })()}
                 </div>

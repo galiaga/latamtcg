@@ -95,8 +95,8 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     if (meta.totalResults && meta.totalResults > 0) {
       return Math.max(1, Math.ceil(meta.totalResults / per))
     }
-    // Unknown total: optimistic lookahead of 3 pages beyond current if next page exists
-    return meta.page + (meta.nextPageToken ? 3 : 0)
+    // Fallback: if no total but we have a next page, show current + 1
+    return meta.page + (meta.nextPageToken ? 1 : 0)
   }, [meta.totalResults, meta.pageSize, meta.page, meta.nextPageToken])
 
   const pageItems = useMemo(() => {
@@ -434,11 +434,30 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
           {primary.map((item) => {
           const href = item.id ? printingHref(item.id) : '#'
           const price = (() => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime number coercion from server payload
-          const v = (item.priceUsdEtched ?? item.priceUsdFoil ?? item.priceUsd) as any
-            if (v === null || v === undefined) return '—'
+            // Show price based on selected printing filter
+            const printingSel = searchParams?.getAll('printing') || []
+            
+            // If only one printing type is selected, show that specific price
+            if (printingSel.length === 1) {
+              const selected = printingSel[0]
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime number coercion from server payload
+              const v = selected === 'etched' ? item.priceUsdEtched : 
+                       selected === 'foil' ? item.priceUsdFoil : 
+                       item.priceUsd
+              if (v === null || v === undefined) return 'Not available'
+              const n = Number(v)
+              if (Number.isNaN(n)) return 'Not available'
+              const ceilVal = Math.ceil(n)
+              return `$${ceilVal}`
+            }
+            
+            // Multiple or no printing filters: use Normal → Foil → Etched priority
+            const order = [item.priceUsd, item.priceUsdFoil, item.priceUsdEtched]
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime number coercion from server payload
+            const v = (order.find((x) => typeof x === 'number' && !Number.isNaN(Number(x))) ?? null) as any
+            if (v === null || v === undefined) return 'Not available'
             const n = Number(v)
-            if (Number.isNaN(n)) return '—'
+            if (Number.isNaN(n)) return 'Not available'
             const ceilVal = Math.ceil(n)
             return `$${ceilVal}`
           })()
@@ -490,7 +509,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                   })()}
                 </div>
                 <div className="mt-1 flex items-center justify-between">
-                  <div className="text-sm" style={{ color: price === '—' ? 'var(--mutedText)' : 'var(--primary)' }}>{price}</div>
+                  <div className="text-sm" style={{ color: price === 'Not available' ? 'var(--mutedText)' : 'var(--primary)' }}>{price}</div>
                   <span className="text-xs" title="Prices shown are market proxies. Final checkout shows CLP with VAT + import + shipping options." aria-label="Pricing info" style={{ color: 'var(--mutedText)' }}>ⓘ</span>
                 </div>
                 {chips.length > 0 && (
