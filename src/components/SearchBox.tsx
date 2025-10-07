@@ -139,7 +139,7 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
     setOpen(false)
     setIsFocused(false)
     aborter?.abort()
-  }, [pathname, searchParams])
+  }, [pathname, searchParams, aborter])
 
   // Close on outside click or scroll
   useEffect(() => {
