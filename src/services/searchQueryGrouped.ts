@@ -218,6 +218,16 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     ), filtered_groups AS (
       SELECT * FROM groups
       WHERE 1=1
+        -- Only show items that have at least one price available
+        AND EXISTS (
+          SELECT 1 FROM base2 b 
+          WHERE b."groupId" = groups."groupId" 
+            AND b."setCode" = groups."setCode" 
+            AND b."collectorNumber" = groups."collectorNumber" 
+            AND b.variant_group = groups.variant_group 
+            AND b.finish_group = groups.finish_group
+            AND (b.price_nonfoil IS NOT NULL OR b.price_foil IS NOT NULL OR b.price_etched IS NOT NULL)
+        )
         ${printing.length > 0 ? Prisma.sql`
           AND (
             ${printing.includes('etched') ? Prisma.sql`EXISTS (SELECT 1 FROM base2 b WHERE b."groupId" = groups."groupId" AND b."setCode" = groups."setCode" AND b."collectorNumber" = groups."collectorNumber" AND b.variant_group = groups.variant_group AND b.finish_group = groups.finish_group AND b.has_etched = true)` : Prisma.sql`false`}

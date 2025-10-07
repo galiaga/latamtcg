@@ -234,16 +234,18 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
       </div>
 
       <OtherPrintingsCarousel
-        items={siblings.map((s) => ({
-          id: String(s.id),
-          name: String(s.name),
-          setCode: s.setCode,
-          setName: s.setName,
-          collectorNumber: toStringOrNull(s.collectorNumber),
-          variant_group: s.variant_group,
-          finish_group: s.finish_group,
-          priceUsd: toNumberOrNull(s.priceUsd) ?? toNumberOrNull(s.priceUsdFoil) ?? toNumberOrNull(s.priceUsdEtched) ?? null,
-        }))}
+        items={siblings
+          .map((s) => ({
+            id: String(s.id),
+            name: String(s.name),
+            setCode: s.setCode,
+            setName: s.setName,
+            collectorNumber: toStringOrNull(s.collectorNumber),
+            variant_group: s.variant_group,
+            finish_group: s.finish_group,
+            priceUsd: toNumberOrNull(s.priceUsd) ?? toNumberOrNull(s.priceUsdFoil) ?? toNumberOrNull(s.priceUsdEtched) ?? null,
+          }))
+          .filter(item => item.priceUsd !== null)}
         currentId={String(data.id)}
         oracleId={String(data.oracleId)}
       />

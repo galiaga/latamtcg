@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
 import { formatUsd } from '@/lib/format'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import SkeletonCard from './SkeletonCard'
 
 type Item = {
   kind: 'printing' | 'group'
@@ -420,7 +421,11 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
       {/* Always-visible compact filter controls */}
       {/* All-filters popover removed */}
       {loading && primary.length === 0 ? (
-        <div className="text-sm" style={{ color: 'var(--mutedText)' }}>Loading…</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       ) : null}
       {!loading && meta.totalResults === 0 && q.trim() ? (
         <div className="text-center py-12">

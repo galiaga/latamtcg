@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCart } from './CartProvider'
+import Spinner from './Spinner'
 
 export default function AddToCartButton({ printingId, size = 'md' }: { printingId: string; size?: 'sm' | 'md' | 'lg' }) {
   const [adding, setAdding] = useState(false)
@@ -57,7 +58,7 @@ export default function AddToCartButton({ printingId, size = 'md' }: { printingI
 
   return (
     <button type="button" className={className} disabled={adding} aria-disabled={adding} onClick={add} aria-busy={adding}>
-      {adding ? 'Adding…' : ok ? 'Added ✓' : 'Add to cart'}
+      {adding ? <Spinner size="sm" /> : ok ? 'Added ✓' : 'Add to cart'}
     </button>
   )
 }
