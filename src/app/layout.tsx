@@ -10,6 +10,7 @@ import Link from "next/link";
 import HeaderUser from "@/components/HeaderUser";
 import HeaderCart from "@/components/HeaderCart";
 import { CartProvider } from "@/components/CartProvider";
+import ProgressBar from "@/components/ProgressBar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,6 +57,7 @@ export default function RootLayout({
         </Script>
         {/* Global providers and client-only sections */}
         <SafeClient>
+          <ProgressBar />
           <CartProvider>
             {/* Global search section */}
             <header className="py-4">

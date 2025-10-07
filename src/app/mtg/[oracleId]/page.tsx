@@ -36,7 +36,17 @@ export default async function OraclePage(props: { params: Promise<{ oracleId: st
   }
 
   const rows = await prisma.mtgCard.findMany({
-    where: { oracleId, isPaper: true, lang: 'en' },
+    where: { 
+      oracleId, 
+      isPaper: true, 
+      lang: 'en',
+      // Only show items that have at least one price available
+      OR: [
+        { priceUsd: { not: null } },
+        { priceUsdFoil: { not: null } },
+        { priceUsdEtched: { not: null } }
+      ]
+    },
     orderBy: [{ releasedAt: 'desc' }, { setCode: 'asc' }, { collectorNumber: 'asc' }],
     select: {
       scryfallId: true,
