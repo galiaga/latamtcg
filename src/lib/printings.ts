@@ -93,6 +93,12 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
     // Pricing rule: fall back to foil when nonfoil missing; if both missing, allow null (no 404)
     const coalescedPrice = (row?.priceUsd as any) ?? (row?.priceUsdFoil as any) ?? null
 
+    // Determine which finishes are actually available for this printing
+    const availableFinishes = row?.finishes || []
+    const hasNonfoil = availableFinishes.includes('nonfoil')
+    const hasFoil = availableFinishes.includes('foil')
+    const hasEtched = availableFinishes.includes('etched')
+
     const data = {
       id: row.scryfallId,
       name: (row.name ?? '(Unknown name)').replace(/\(Full Art\)/gi, '(Borderless)'),
@@ -101,6 +107,11 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
       collectorNumber: fmtCollector(row.collectorNumber) ?? '',
       imageUrl: row.scryfallId ? getScryfallNormalUrl(row.scryfallId) : null,
       priceUsd: coalescedPrice,
+      priceUsdFoil: row?.priceUsdFoil as any,
+      priceUsdEtched: row?.priceUsdEtched as any,
+      hasNonfoil,
+      hasFoil,
+      hasEtched,
       finish: finish,
       treatment: treatment,
       language: (row.lang || 'en').toUpperCase(),

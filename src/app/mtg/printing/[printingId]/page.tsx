@@ -11,9 +11,9 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 300
 
 function formatUsdWholeCeil(value: unknown | null): string {
-  if (value === null || value === undefined) return '—'
+  if (value === null || value === undefined) return 'Not available'
   const num = Number(value)
-  if (Number.isNaN(num)) return '—'
+  if (Number.isNaN(num)) return 'Not available'
   return `$${Math.ceil(num)}`
 }
 
@@ -161,8 +161,41 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             {data.finish ? <span className="badge">{data.finish}</span> : null}
             {data.treatment ? <span className="badge">{data.treatment}</span> : null}
           </div>
-          <div className="mt-4 text-xl" style={{ color: 'var(--primary)' }}>
-            {formatUsdWholeCeil(data.priceUsd)}
+          
+          {/* Pricing section */}
+          <div className="mt-4 space-y-2">
+            <h3 className="text-lg font-medium">Pricing</h3>
+            <div className="space-y-2">
+              {data.hasNonfoil && data.priceUsd && (
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <span className="font-medium">Normal</span>
+                  <span className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>
+                    {formatUsdWholeCeil(data.priceUsd)}
+                  </span>
+                </div>
+              )}
+              {data.hasFoil && data.priceUsdFoil && (
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <span className="font-medium">Foil</span>
+                  <span className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>
+                    {formatUsdWholeCeil(data.priceUsdFoil)}
+                  </span>
+                </div>
+              )}
+              {data.hasEtched && data.priceUsdEtched && (
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <span className="font-medium">Etched</span>
+                  <span className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>
+                    {formatUsdWholeCeil(data.priceUsdEtched)}
+                  </span>
+                </div>
+              )}
+              {!data.hasNonfoil && !data.hasFoil && !data.hasEtched && (
+                <div className="p-3 border rounded-lg text-center text-gray-500">
+                  No pricing available
+                </div>
+              )}
+            </div>
           </div>
           <div className="mt-4 flex gap-2">
             {/* Replace wishlist/track with add to cart for MVP */}
