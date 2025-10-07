@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(props: { params: Promise<{ cardSlug: string }> }) {
   const { cardSlug } = await props.params
-  return { title: `${decodeURIComponent(cardSlug)} — All printings | LatamTCG` }
+  const name = decodeURIComponent(cardSlug).replace(/-/g, ' ')
+  return { title: `${name} — All printings | LatamTCG` }
 }
 
 export default async function CardPage(props: { params: Promise<{ cardSlug: string }> }) {

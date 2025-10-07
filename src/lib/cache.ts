@@ -66,4 +66,16 @@ export async function cacheSetJSON<T = any>(key: string, value: T, ttlSeconds: n
   try { console.log(JSON.stringify({ event: 'cache.set', layer: 'memory', keyLen: key.length, ttl: ttlSeconds, latencyMs: Date.now() - t0 })) } catch {}
 }
 
+export async function cacheClear(): Promise<void> {
+  try {
+    await ensureRedis()
+    if (redisReady && redisClient) {
+      await redisClient.flushAll()
+      try { console.log(JSON.stringify({ event: 'cache.clear', layer: 'redis' })) } catch {}
+    }
+  } catch {}
+  memory.clear()
+  try { console.log(JSON.stringify({ event: 'cache.clear', layer: 'memory' })) } catch {}
+}
+
 

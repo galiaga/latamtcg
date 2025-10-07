@@ -116,6 +116,10 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
       treatment: treatment,
       language: (row.lang || 'en').toUpperCase(),
       oracleId: row.oracleId,
+      finishes: row?.finishes || [],
+      promoTypes: row?.promoTypes || [],
+      frameEffects: row?.frameEffects || [],
+      borderColor: row?.borderColor || null,
     }
     if (process.env.NODE_ENV !== 'production') console.debug('[getPrintingById] ok', printingId)
     return data
