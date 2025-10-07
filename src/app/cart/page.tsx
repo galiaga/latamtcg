@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { SWRConfig } from 'swr'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/components/CartProvider'
 import { supabaseBrowser } from '@/lib/supabase-browser'
+import { formatUsd } from '@/lib/format'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -32,7 +33,7 @@ export default function CartPage() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.lineTotal, 0), [items])
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setLoading(!hasLoadedOnce)
     setError(null)
     try {
@@ -45,7 +46,7 @@ export default function CartPage() {
     setLoading(false)
     setHasLoadedOnce(true)
     // No global pulses/events on reconcile to avoid loops
-  }
+  }, [hasLoadedOnce])
 
   useEffect(() => {
     // Detect auth via client (avoid hitting server route that touches DB)
@@ -60,7 +61,7 @@ export default function CartPage() {
     })()
     refresh()
     return () => {}
-  }, [])
+  }, [refresh])
 
   async function update(printingId: string, action: 'inc' | 'set' | 'remove', quantity?: number) {
     try {
@@ -77,7 +78,6 @@ export default function CartPage() {
             arr[idx] = { ...arr[idx], quantity: nextQty, lineTotal: nextQty * arr[idx].unitPrice }
           } else if (action === 'set') {
             const next = Math.max(1, Number(quantity || 1))
-            const delta = next - arr[idx].quantity
             arr[idx] = { ...arr[idx], quantity: next, lineTotal: next * arr[idx].unitPrice }
           }
         }
@@ -182,8 +182,8 @@ export default function CartPage() {
                 <div className="w-8 text-center tabular-nums">{it.quantity}</div>
                 <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', 1)} aria-label="Increase quantity">+</button>
               </div>
-              <div className="w-20 text-right tabular-nums">${Math.ceil(it.unitPrice)}</div>
-              <div className="w-24 text-right tabular-nums font-medium">${Math.ceil(it.lineTotal)}</div>
+              <div className="w-20 text-right tabular-nums">{formatUsd(it.unitPrice)}</div>
+              <div className="w-24 text-right tabular-nums font-medium">{formatUsd(it.lineTotal)}</div>
               <div>
                 <button className="btn btn-ghost" onClick={() => update(it.printingId, 'remove')}>Remove</button>
               </div>
@@ -196,7 +196,7 @@ export default function CartPage() {
         <div className="mt-6 ml-auto max-w-sm border rounded p-4">
           <div className="flex justify-between">
             <span>Subtotal</span>
-            <span className="tabular-nums">${Math.ceil(subtotal)}</span>
+            <span className="tabular-nums">{formatUsd(subtotal)}</span>
           </div>
           <div className="mt-4">
             {authed ? (

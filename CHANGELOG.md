@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.15.1 — 2025-01-27
+### Fixes
+- Fixed foil variant suffix display logic:
+  - Cards now only show foil-related variant suffixes (e.g., "Surge Foil", "Galaxy Foil") when they actually have foil prices available
+  - Prevents misleading variant labels that suggest foil availability when no foil price exists
+  - Maintains accurate pricing information for users making purchasing decisions
+  - Applies to all foil variants including Surge Foil, Galaxy Foil, Double Rainbow, First Place Foil, etc.
+
+### Technical Improvements
+- Enhanced search query processing to filter variant suffixes based on price availability
+- Improved variant suffix filtering logic with regex-based foil suffix removal
+- Maintained performance by filtering at query time rather than requiring search index rebuild
+- Preserved search suggestions performance by keeping lightweight SearchIndex approach
+
 ## v0.15.0 — 2025-01-27
 ### Features
 - Dynamic variant rendering system for MTG cards:

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { groupedSearch } from '@/services/searchQueryGrouped'
 import { cacheGetJSON, cacheSetJSON } from '@/lib/cache'
 import { parseSortParam } from '@/search/sort'
+import type { SearchApiResponse } from '@/types/search'
+import { SearchParamsSchema, SearchResponseSchema } from '@/schemas/api'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -9,18 +11,36 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
+    
+    // Parse and validate search parameters using Zod
+    const rawParams = {
+      q: searchParams.get('q'),
+      page: searchParams.get('page'),
+      pageSize: searchParams.get('pageSize'),
+      limit: searchParams.get('limit'),
+      exact: searchParams.get('exact'),
+      facetAll: searchParams.get('facetAll'),
+      sort: searchParams.get('sort'),
+      mode: searchParams.get('mode'),
+      debug: searchParams.get('debug'),
+      printing: searchParams.getAll('printing'),
+      sets: searchParams.getAll('set'),
+      rarity: searchParams.getAll('rarity'),
+      groupId: searchParams.get('groupId'),
+    }
+    
+    // Zod validation temporarily disabled - working with manual parsing
+    // const validatedParams = SearchParamsSchema.parse(rawParams)
+    
     const q = String(searchParams.get('q') || '')
     const page = parseInt(String(searchParams.get('page') || '1'), 10) || 1
     const requested = parseInt(String(searchParams.get('pageSize') || searchParams.get('limit') || '25'), 10) || 25
     const pageSize = Math.min(25, Math.max(1, requested))
-    const exactOnly = String(searchParams.get('exact') || '') === '1'
-    const facetAll = String(searchParams.get('facetAll') || '') === '1'
-    const sort = parseSortParam(String(searchParams.get('sort') || 'relevance'))
-    const debug = String(searchParams.get('debug') || '') === '1'
-    const modeRaw = String(searchParams.get('mode') || 'name').toLowerCase()
-    const mode: 'name' | 'text' | 'all' = (modeRaw === 'text' || modeRaw === 'all' || modeRaw === 'name') ? (modeRaw as 'name' | 'text' | 'all') : 'name'
-    const explain = String(searchParams.get('explain') || '') === '1'
-    // filters
+    const exact = String(searchParams.get('exact') || '')
+    const facetAll = String(searchParams.get('facetAll') || '')
+    const sort = String(searchParams.get('sort') || 'relevance')
+    const mode = String(searchParams.get('mode') || 'name')
+    const debug = String(searchParams.get('debug') || '')
     const printing = (searchParams.getAll('printing') || [])
       .map((v) => String(v).toLowerCase())
       .filter((v) => v === 'normal' || v === 'foil' || v === 'etched') as Array<'normal' | 'foil' | 'etched'>
@@ -32,30 +52,32 @@ export async function GET(req: NextRequest) {
       const g = String(searchParams.get('groupId') || '').trim()
       return g.length ? g : null
     })()
+    const exactOnly = exact === '1'
+    const facetAllBool = facetAll === '1'
+    const debugBool = debug === '1'
+    const sortParam = parseSortParam(sort)
+    const groupIdOrNull = groupId || null
 
-    const key = JSON.stringify({ q, page, pageSize, exactOnly, printing, sets, rarity, groupId, facetAll, sort, mode })
+    const key = JSON.stringify({ q, page, pageSize, exactOnly, printing, sets, rarity, groupIdOrNull, facetAllBool, sort, mode })
     const ttl = 300
     const t0 = Date.now()
     try {
-      const cached = await cacheGetJSON<any>(key)
+      const cached = await cacheGetJSON<SearchApiResponse>(key)
       if (cached) {
         try { console.log(JSON.stringify({ event: 'search.cache_hit', keyLen: key.length })) } catch {}
         return NextResponse.json(cached)
       }
     } catch {}
-    const result = await groupedSearch({ q, page, pageSize, exactOnly, printing, sets, rarity, groupId, facetAll, sort, debug, mode })
+    const result = await groupedSearch({ q, page, pageSize, exactOnly, printing, sets, rarity, groupId: groupIdOrNull, facetAll: facetAllBool, sort: sortParam, debug: debugBool, mode })
     const t1 = Date.now()
     try {
       console.log(JSON.stringify({
         event: 'search', q, page, pageSize,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- result is a plain object from service
-        returned: Array.isArray((result as any)?.primary) ? (result as any).primary.length : 0,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- result is a plain object from service
-        total: (result as any)?.totalResults ?? 0,
+        returned: Array.isArray(result?.primary) ? result.primary.length : 0,
+        total: result?.totalResults ?? 0,
         exactOnly,
         filters: { printing, sets, rarity, groupId, sort, mode },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- result is a plain object from service
-        facets: (result as any)?.facets || undefined,
+        facets: result?.facets || undefined,
         latencyMs: t1 - t0,
         warn: (t1 - t0) > 700 ? 'slow' : undefined,
       }))

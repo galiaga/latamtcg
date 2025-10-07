@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+ 
 import 'dotenv/config'
 import { runScryfallRefresh } from '../src/services/scryfallIngest'
 

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import React from 'react'
 import HeaderCart from '@/components/HeaderCart'
-import { CartProvider, useCart } from '@/components/CartProvider'
+import { CartProvider } from '@/components/CartProvider'
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
 

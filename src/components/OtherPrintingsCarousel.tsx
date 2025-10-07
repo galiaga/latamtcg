@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { getScryfallNormalUrl, getScryfallSmallUrl } from '@/lib/images'
+import { formatUsd } from '@/lib/format'
 
 type PrintingItem = {
   id: string
@@ -145,6 +146,7 @@ export default function OtherPrintingsCarousel({
       el.removeEventListener('pointerleave', endDrag)
       el.removeEventListener('click', onClickCapture, true)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dragging is used in event handlers but effect should only run once to set up listeners
   }, [])
 
   return (
@@ -211,13 +213,7 @@ export default function OtherPrintingsCarousel({
                   </div>
                 </div>
                 <div className="self-start text-xs font-medium" style={{ color: 'var(--primary)' }}>
-                  {(() => {
-                    const v = s.priceUsd
-                    if (v === null || v === undefined || v === '') return 'Not available'
-                    const n = Number(v)
-                    if (Number.isNaN(n)) return 'Not available'
-                    return `$${Math.ceil(n)}`
-                  })()}
+                  {formatUsd(s.priceUsd)}
                 </div>
               </Link>
             )

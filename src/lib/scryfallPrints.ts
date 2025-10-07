@@ -117,7 +117,7 @@ export async function tryWithOracleLock<T>(oracleId: string, fn: () => Promise<T
     const result = await fn()
     await prisma.kvMeta.update({ where: { key }, data: { value: String(Date.now()) } })
     return result
-  } catch (e) {
+  } catch {
     return null
   }
 }
