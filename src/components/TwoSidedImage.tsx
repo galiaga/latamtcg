@@ -17,7 +17,7 @@ type Props = {
 
 export default function TwoSidedImage({ scryfallId, alt, mode = 'thumb', className, hoverFlip = true, widthPx = 160 }: Props) {
   const [hasBack, setHasBack] = useState<boolean>(false)
-  const [flipped, setFlipped] = useState<boolean>(false)
+  const [flipped] = useState<boolean>(false)
   const [hovering, setHovering] = useState<boolean>(false)
   const firstRenderRef = useRef(true)
 
@@ -33,13 +33,9 @@ export default function TwoSidedImage({ scryfallId, alt, mode = 'thumb', classNa
       .then((res) => { if (!cancelled) setHasBack(res.ok) })
       .catch(() => { if (!cancelled) setHasBack(false) })
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [backUrl])
 
-  const toggleFlip = () => {
-    if (!hasBack) return
-    setFlipped((v) => !v)
-  }
 
   // Track first render but do not show any overlay text (explicitly removed)
   useEffect(() => {

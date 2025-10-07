@@ -93,7 +93,6 @@ maybe('ranking and facets (integration)', () => {
 
 maybe('performance (warm)', () => {
   it('relevance P95 stays under ~200ms when warm', async () => {
-    const t0 = Date.now()
     await groupedSearch({ q: 'mire triton', page: 1, pageSize: 25, sort: 'relevance' })
     // second call should be cached and fast
     const t1 = Date.now()

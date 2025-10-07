@@ -23,7 +23,7 @@ export async function getOrCreateAnonymousCart(): Promise<{ id: string, token: s
   }
   const newToken = crypto.randomUUID()
   const cart = await prisma.cart.create({ data: { token: newToken }, select: { id: true, token: true } })
-  try { (store as any).set?.(CART_COOKIE, newToken, { httpOnly: true, sameSite: 'lax', path: '/', secure: process.env.NODE_ENV === 'production', maxAge: 60*60*24*30 }) } catch {}
+  try { (store as { set?: (name: string, value: string, options: Record<string, unknown>) => void }).set?.(CART_COOKIE, newToken, { httpOnly: true, sameSite: 'lax', path: '/', secure: process.env.NODE_ENV === 'production', maxAge: 60*60*24*30 }) } catch {}
   return cart
 }
 
@@ -56,14 +56,14 @@ export async function mergeAnonymousCartIntoUser(userId: string) {
   // Remove anon cart
   await prisma.cart.delete({ where: { id: anon.id } })
   try {
-    (store as any).delete?.(CART_COOKIE)
+    (store as { delete?: (name: string) => void }).delete?.(CART_COOKIE)
   } catch {}
   try {
-    (store as any).set?.(CART_COOKIE, '', { httpOnly: true, sameSite: 'lax', path: '/', secure: process.env.NODE_ENV === 'production', maxAge: 0 })
+    (store as { set?: (name: string, value: string, options: Record<string, unknown>) => void }).set?.(CART_COOKIE, '', { httpOnly: true, sameSite: 'lax', path: '/', secure: process.env.NODE_ENV === 'production', maxAge: 0 })
   } catch {}
   try {
     // Notify client to refresh cart state after merge
-    if (typeof (globalThis as any).window !== 'undefined') {
+    if (typeof (globalThis as { window?: unknown }).window !== 'undefined') {
       try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
       try { localStorage.setItem('cart:pulse', String(Date.now())) } catch {}
     }

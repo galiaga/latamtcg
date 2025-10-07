@@ -5,6 +5,8 @@ import { cookies } from 'next/headers'
 import { getSessionUser } from '@/lib/supabase'
 import { getOrCreateUserCart } from '@/lib/cart'
 import { getScryfallNormalUrl } from '@/lib/images'
+import type { CartApiResponse } from '@/types/search'
+import { CartResponseSchema } from '@/schemas/api'
 
 export async function GET(req: Request) {
   try {
@@ -39,8 +41,8 @@ export async function GET(req: Request) {
       const lineTotal = coalesced * it.quantity
       const name = String(c?.name || '(Unknown)')
       const setCode = String(c?.setCode || '')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- access set relation quickly
-      const setName = (c as any)?.set?.set_name ? String((c as any).set.set_name) : null
+      // Access set relation safely
+      const setName = (c as { set?: { set_name?: unknown } })?.set?.set_name ? String((c as { set: { set_name: string } }).set.set_name) : null
       const collectorNumber = String(c?.collectorNumber || '')
       return {
         printingId: it.printingId,
@@ -66,7 +68,7 @@ export async function GET(req: Request) {
       if (etag.length > 40) etag = etag.slice(0, 40)
     } catch {}
     try {
-      const ifNone = (req.headers as any).get?.('if-none-match') || null
+      const ifNone = (req.headers as { get?: (name: string) => string | null }).get?.('if-none-match') || null
       if (ifNone && ifNone === etag) {
         return new NextResponse(null, { status: 304, headers: { 'ETag': etag, 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' } })
       }
