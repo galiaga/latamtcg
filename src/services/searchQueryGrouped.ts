@@ -94,6 +94,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     ? Prisma.sql`true`
     : Prisma.sql`(
         to_tsvector('simple', unaccent(lower(si.title))) @@ to_tsquery('simple', ${tsQuery})
+        OR to_tsvector('simple', unaccent(lower(si."keywordsText"))) @@ to_tsquery('simple', ${tsQuery})
       )`
   const normExpr = Prisma.sql`regexp_replace(unaccent(lower(si.title)), '[^a-z0-9]+', ' ', 'g')`
 
@@ -125,6 +126,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
              si."collectorNumber",
              si."variantLabel" AS variant_label,
              si."finishLabel" AS finish_label,
+             si."variantSuffix" AS variant_suffix,
              si."sortScore" AS sort_score,
              COALESCE(EXTRACT(EPOCH FROM si."releasedAt"), 0) AS rel,
              char_length(si.title) AS name_len,
@@ -142,6 +144,8 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
              mc."priceUsdFoil" AS "priceUsdFoil",
              mc."priceUsdEtched" AS "priceUsdEtched",
              mc."finishes" AS finishes,
+             mc."promoTypes" AS promo_types,
+             mc."frameEffects" AS frame_effects,
              mc."rarity" AS rarity
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
@@ -190,6 +194,25 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
              "collectorNumber",
              variant_group,
              finish_group,
+             (SELECT variant_suffix FROM base2 b2 
+              WHERE b2."groupId" = base2."groupId" 
+                AND b2."setCode" = base2."setCode" 
+                AND b2."collectorNumber" = base2."collectorNumber"
+                AND b2.variant_group = base2.variant_group
+                AND b2.finish_group = base2.finish_group
+                AND variant_suffix IS NOT NULL 
+                AND variant_suffix != ''
+              ORDER BY CASE 
+                WHEN variant_suffix LIKE '%Surge Foil%' THEN 1
+                WHEN variant_suffix LIKE '%Galaxy Foil%' THEN 2
+                WHEN variant_suffix LIKE '%Retro Frame%' THEN 3
+                WHEN variant_suffix LIKE '%Showcase%' THEN 4
+                WHEN variant_suffix LIKE '%Borderless%' THEN 5
+                WHEN variant_suffix LIKE '%Etched%' THEN 6
+                WHEN variant_suffix LIKE '%Foil%' THEN 7
+                ELSE 8
+              END
+              LIMIT 1) AS variant_suffix,
              MAX(exact_name) AS exact_name,
              MAX(phrase_prefix_in_order) AS phrase_prefix_in_order,
              MAX(all_tokens_prefix_any_order) AS all_tokens_prefix_any_order,
@@ -250,8 +273,9 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     SELECT g."groupId",
            g."setCode",
            g."collectorNumber",
-           g.variant_group AS "variantLabel",
-           g.finish_group AS "finishLabel",
+             g.variant_group AS "variantLabel",
+             g.finish_group AS "finishLabel",
+             g.variant_suffix AS "variantSuffix",
            g.min_price AS min_price,
            g.max_price AS max_price,
            g.min_any_price AS min_any_price,
@@ -297,15 +321,16 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     return Number.isNaN(n) ? null : n
   }
   const hasMore = itemsRaw.length > pageSize
-  const items = (hasMore ? itemsRaw.slice(0, pageSize) : itemsRaw).map((r) => {
-    // Whitelist fields to ensure the object is fully JSON-serializable (avoid Prisma Decimal)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructing response object from raw row
-    const obj: any = {
-      groupId: (r as any).groupId,
-      setCode: (r as any).setCode,
-      collectorNumber: (r as any).collectorNumber,
-      variantLabel: (r as any).variantLabel,
-      finishLabel: (r as any).finishLabel,
+      const items = (hasMore ? itemsRaw.slice(0, pageSize) : itemsRaw).map((r) => {
+        // Whitelist fields to ensure the object is fully JSON-serializable (avoid Prisma Decimal)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructing response object from raw row
+        const obj: any = {
+          groupId: (r as any).groupId,
+          setCode: (r as any).setCode,
+          collectorNumber: (r as any).collectorNumber,
+          variantLabel: (r as any).variantLabel,
+          finishLabel: (r as any).finishLabel,
+          variantSuffix: (r as any).variantSuffix,
       id: (r as any).id,
       title: String((r as any)?.title || '').replace(/\(Full Art\)/gi, '(Borderless)'),
       setName: (r as any).setName,
@@ -335,7 +360,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   if (!cachedFacets) {
     idRows = await prisma.$queryRaw(Prisma.sql`
     WITH base AS (
-      SELECT si.id, si."groupId", si."variantLabel" AS variant_label, si."finishLabel" AS finish_label,
+      SELECT si.id, si."groupId", si."variantLabel" AS variant_label, si."finishLabel" AS finish_label, si."variantSuffix" AS variant_suffix,
              si."setCode", COALESCE(si."setName", s.set_name) AS "setName", si."collectorNumber",
              mc."finishes" AS finishes, mc."rarity" AS rarity
       FROM "public"."SearchIndex" si
@@ -414,7 +439,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     try {
       const countRows = await prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
         WITH base AS (
-          SELECT si."groupId", si."setCode", si."collectorNumber", si."variantLabel" AS variant_label, si."finishLabel" AS finish_label,
+          SELECT si."groupId", si."setCode", si."collectorNumber", si."variantLabel" AS variant_label, si."finishLabel" AS finish_label, si."variantSuffix" AS variant_suffix,
                  mc."finishes" AS finishes, mc."rarity" AS rarity
           FROM "public"."SearchIndex" si
           JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id

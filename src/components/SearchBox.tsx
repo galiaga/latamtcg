@@ -15,6 +15,7 @@ type ApiItem = {
   subtitle?: string
   finishLabel?: string | null
   variantLabel?: string | null
+  variantSuffix?: string | null
   imageNormalUrl?: string | null
   setCode?: string
   setName?: string | null
@@ -309,10 +310,7 @@ export default function SearchBox({ placeholder = 'Search printings…', default
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium truncate">
                     {(() => {
-                      const parts: string[] = []
-                      if (item.variantLabel) parts.push(item.variantLabel)
-                      if (item.finishLabel && item.finishLabel !== 'Standard') parts.push(item.finishLabel)
-                      return parts.length ? `${item.title} (${parts.join(', ')})` : item.title
+                      return item.variantSuffix ? `${item.title}${item.variantSuffix}` : item.title
                     })()}
                   </div>
                   <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
