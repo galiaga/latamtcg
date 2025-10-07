@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.14.0 — 2025-01-27
+### Features
+- Enhanced search filtering and pricing system:
+  - Merged Price and Printings filters into a single, intuitive "Printings" filter
+  - When selecting a printing type (Normal, Foil, Etched), shows only cards with that specific price type available
+  - Displays the corresponding price for the selected printing type
+  - All printing options remain visible in the dropdown regardless of current selection, allowing multi-selection
+  - Price sorting continues to work correctly based on the displayed price
+- Improved card detail page pricing display:
+  - Shows all available prices (Normal, Foil, Etched) with clear labels
+  - Only displays prices for finishes that are actually available for that specific printing
+  - Eliminates confusion about non-existent pricing options
+
+### Fixes
+- Fixed search bar editability: users can now edit the search term after performing a search
+- Resolved pagination accuracy: now shows correct total page count from the start using accurate backend counts
+- Fixed sorting by price to use the same price priority as displayed (Normal → Foil → Etched)
+- Eliminated Decimal object serialization errors when passing data from Server to Client Components
+- Fixed facet calculation to show all available printing types for the current search, not just filtered results
+
+### Performance
+- Backend now provides accurate total result counts synchronously for better pagination
+- Improved facet calculation efficiency by removing redundant filtering logic
+- Enhanced caching strategy for search results and facets
+
+### Refactors / Chore
+- Removed redundant Price filter parameter from API endpoints and components
+- Updated backend SQL queries to use consistent price display logic
+- Consolidated price display logic across search results and card detail pages
+- Enhanced type safety for printing availability flags
+
 ## v0.13.0 — 2025-10-06
 ### Features
 - Double‑faced/transform cards: front/back support in Search and Printing pages.
