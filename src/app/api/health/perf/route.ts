@@ -1,15 +1,8 @@
 import { NextResponse } from 'next/server'
 
 // In-memory ring buffers for last N metrics in dev
-const N = 100
 const store: Record<string, number[]> = Object.create(null)
 
-function add(name: string, ms: number) {
-  if (!store[name]) store[name] = []
-  const arr = store[name]
-  arr.push(ms)
-  if (arr.length > N) arr.shift()
-}
 
 export async function GET() {
   // No-op filler: metrics are pushed via console logs elsewhere. This endpoint simply returns the current buffers.

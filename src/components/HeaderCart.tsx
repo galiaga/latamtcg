@@ -1,13 +1,13 @@
 "use client"
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import { useCart } from './CartProvider'
 import { selectCartTotalCount } from '@/lib/cartSelectors'
 
 export default function HeaderCart() {
-  const { data, loading } = useCart()
+  const { data } = useCart()
   const pathname = usePathname()
   const count = useMemo(() => selectCartTotalCount(data as any), [data])
 

@@ -29,7 +29,7 @@ type Props = {
   limit?: number
 }
 
-export default function SearchBox({ placeholder = 'Search printings…', defaultGame = 'mtg', defaultLang = 'en', limit = 15 }: Props) {
+export default function SearchBox({ placeholder = 'Search printings…' }: Props) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)

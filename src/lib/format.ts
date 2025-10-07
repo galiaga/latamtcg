@@ -4,4 +4,11 @@ export function fmtCollector(v: unknown): string | null {
   return s.length ? s : null
 }
 
+export function formatUsd(value: unknown | null): string {
+  if (value === null || value === undefined) return 'Not available'
+  const num = Number(value)
+  if (Number.isNaN(num)) return 'Not available'
+  return `$${Math.ceil(num)}`
+}
+
 

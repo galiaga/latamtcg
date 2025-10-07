@@ -1,6 +1,5 @@
 "use server"
 import { prisma } from '@/lib/prisma'
-import type { MtgCard } from '@prisma/client'
 import { Prisma } from '@prisma/client'
 import { Readable } from 'stream'
 import fs from 'fs'

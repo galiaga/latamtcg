@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma'
-import { rebuildSearchIndex } from '@/services/searchIndex'
 import { groupedSearch } from '@/services/searchQueryGrouped'
 
 describe('variantSuffix Integration Test', () => {
