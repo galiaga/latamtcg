@@ -203,7 +203,13 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
              MIN(price_effective) AS min_price,
              MAX(price_effective) AS max_price,
              LEAST(MIN(price_nonfoil), MIN(price_foil), MIN(price_etched)) AS min_any_price,
-             GREATEST(MAX(price_nonfoil), MAX(price_foil), MAX(price_etched)) AS max_any_price
+             GREATEST(MAX(price_nonfoil), MAX(price_foil), MAX(price_etched)) AS max_any_price,
+             -- Display price: Use selected printing type, fallback to Normal → Foil → Etched
+             ${printing.length === 1 && printing[0] === 'etched'
+               ? Prisma.sql`COALESCE(MIN(price_etched), MIN(price_nonfoil), MIN(price_foil)) AS display_price`
+               : printing.length === 1 && printing[0] === 'foil'
+                 ? Prisma.sql`COALESCE(MIN(price_foil), MIN(price_nonfoil), MIN(price_etched)) AS display_price`
+                 : Prisma.sql`COALESCE(MIN(price_nonfoil), MIN(price_foil), MIN(price_etched)) AS display_price`}
       FROM base2
       GROUP BY "groupId", "setCode", "collectorNumber", variant_group, finish_group
     ), filtered_groups AS (
@@ -212,7 +218,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
         ${printing.length > 0 ? Prisma.sql`
           AND (
             ${printing.includes('etched') ? Prisma.sql`EXISTS (SELECT 1 FROM base2 b WHERE b."groupId" = groups."groupId" AND b."setCode" = groups."setCode" AND b."collectorNumber" = groups."collectorNumber" AND b.variant_group = groups.variant_group AND b.finish_group = groups.finish_group AND b.has_etched = true)` : Prisma.sql`false`}
-            ${printing.includes('foil') ? Prisma.sql`OR EXISTS (SELECT 1 FROM base2 b WHERE b."groupId" = groups."groupId" AND b."setCode" = groups."setCode" AND b."collectorNumber" = groups."collectorNumber" AND b.variant_group = groups.variant_group AND b.finish_group = groups.finish_group AND b.has_foil = true AND b.has_etched = false)` : Prisma.sql``}
+            ${printing.includes('foil') ? Prisma.sql`OR EXISTS (SELECT 1 FROM base2 b WHERE b."groupId" = groups."groupId" AND b."setCode" = groups."setCode" AND b."collectorNumber" = groups."collectorNumber" AND b.variant_group = groups.variant_group AND b.finish_group = groups.finish_group AND b.has_foil = true)` : Prisma.sql``}
             ${printing.includes('normal') ? Prisma.sql`OR EXISTS (SELECT 1 FROM base2 b WHERE b."groupId" = groups."groupId" AND b."setCode" = groups."setCode" AND b."collectorNumber" = groups."collectorNumber" AND b.variant_group = groups.variant_group AND b.finish_group = groups.finish_group AND b.has_nonfoil = true)` : Prisma.sql``}
           )
         ` : Prisma.sql``}
@@ -232,9 +238,9 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
         ${sort === 'name'
           ? Prisma.sql`title ASC, rel DESC, score DESC`
           : sort === 'price_asc'
-            ? Prisma.sql`COALESCE(min_price, min_any_price) ASC NULLS LAST, rel DESC, title ASC`
+            ? Prisma.sql`display_price ASC NULLS LAST, rel DESC, title ASC`
             : sort === 'price_desc'
-              ? Prisma.sql`COALESCE(max_price, max_any_price) DESC NULLS LAST, rel DESC, title ASC`
+              ? Prisma.sql`display_price DESC NULLS LAST, rel DESC, title ASC`
               : sort === 'release_desc'
                 ? Prisma.sql`rel DESC, title ASC`
                 : Prisma.sql`score DESC, rel DESC, title ASC`
@@ -246,6 +252,10 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
            g."collectorNumber",
            g.variant_group AS "variantLabel",
            g.finish_group AS "finishLabel",
+           g.min_price AS min_price,
+           g.max_price AS max_price,
+           g.min_any_price AS min_any_price,
+           g.max_any_price AS max_any_price,
            b.id,
            b.title,
            b."setCode",
@@ -260,7 +270,12 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
            (CASE WHEN b.has_foil THEN true ELSE false END) AS "hasFoil",
            (CASE WHEN b.has_etched THEN true ELSE false END) AS "hasEtched",
            g.rel,
-           g.score
+           g.score,
+           ${sort === 'price_asc'
+             ? Prisma.sql`g.display_price AS price_sort`
+             : sort === 'price_desc'
+               ? Prisma.sql`g.display_price AS price_sort`
+               : Prisma.sql`NULL::numeric AS price_sort`}
     FROM page_groups g
     JOIN LATERAL (
       SELECT id, title, "setCode", "setName", "collectorNumber", "imageNormalUrl", "priceUsd", "priceUsdFoil", "priceUsdEtched",
@@ -283,20 +298,28 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   }
   const hasMore = itemsRaw.length > pageSize
   const items = (hasMore ? itemsRaw.slice(0, pageSize) : itemsRaw).map((r) => {
+    // Whitelist fields to ensure the object is fully JSON-serializable (avoid Prisma Decimal)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructing response object from raw row
     const obj: any = {
-      ...r,
-      title: String(r?.title || '').replace(/\(Full Art\)/gi, '(Borderless)'),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw row field access
+      groupId: (r as any).groupId,
+      setCode: (r as any).setCode,
+      collectorNumber: (r as any).collectorNumber,
+      variantLabel: (r as any).variantLabel,
+      finishLabel: (r as any).finishLabel,
+      id: (r as any).id,
+      title: String((r as any)?.title || '').replace(/\(Full Art\)/gi, '(Borderless)'),
+      setName: (r as any).setName,
+      imageNormalUrl: (r as any).imageNormalUrl,
+      rarity: (r as any).rarity,
+      hasNonfoil: Boolean((r as any).hasNonfoil),
+      hasFoil: Boolean((r as any).hasFoil),
+      hasEtched: Boolean((r as any).hasEtched),
       priceUsd: asNum((r as any).priceUsd),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw row field access
       priceUsdFoil: asNum((r as any).priceUsdFoil),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw row field access
       priceUsdEtched: asNum((r as any).priceUsdEtched),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw row field access
+      priceSort: asNum((r as any).price_sort),
       rel: asNum((r as any).rel),
     }
-    if (!params.debug) delete obj.score
     return obj
   })
 
@@ -337,13 +360,6 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
              has_nonfoil, has_foil, has_etched
       FROM base2
       WHERE 1=1
-        ${printing.length > 0 ? Prisma.sql`
-          AND (
-            ${printing.includes('etched') ? Prisma.sql`has_etched = true` : Prisma.sql`false`}
-            ${printing.includes('foil') ? Prisma.sql`OR (has_foil = true AND has_etched = false)` : Prisma.sql``}
-            ${printing.includes('normal') ? Prisma.sql`OR has_nonfoil = true` : Prisma.sql``}
-          )
-        ` : Prisma.sql``}
         ${rarity.length > 0 ? Prisma.sql`AND lower(rarity) = ANY(${rarity.map((r) => r.toLowerCase())})` : Prisma.sql``}
       LIMIT ${Prisma.raw(String(params.facetAll ? facetLimit * 10 : facetLimit))}
     )
@@ -368,7 +384,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     rarityAggMap.set(rar, (rarityAggMap.get(rar) || 0) + 1)
 
     if (r.has_etched) etched += 1
-    if (r.has_foil && !r.has_etched) foil += 1
+    if (r.has_foil) foil += 1
     if (r.has_nonfoil) normal += 1
   }
   const setsAggFull = Array.from(setsAggMap.values()).sort((a, b) => b.count - a.count)
@@ -384,38 +400,58 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
 
   const facets = cachedFacets ? { ...cachedFacets, approx: false } : { sets: setsAgg, rarity: rarityAgg, printing: printingAgg, approx }
 
-  // Try to get a cached total estimate (non-blocking for SSR). If missing, compute in background with low timeout.
+  // Get total count synchronously for accurate pagination
   let totalEst = 0
   try {
     const cachedTotal = await cacheGetJSON<number>(totalKey)
-    if (typeof cachedTotal === 'number' && cachedTotal >= 0) totalEst = cachedTotal
+    if (typeof cachedTotal === 'number' && cachedTotal >= 0) {
+      totalEst = cachedTotal
+    }
   } catch {}
+  
   if (totalEst === 0) {
-    // Fire-and-forget background estimation using EXPLAIN (fast and non-blocking)
-    ;(async () => {
-      try {
-        await prisma.$transaction(async (tx) => {
-          try { await tx.$executeRawUnsafe('SET LOCAL statement_timeout = 300') } catch {}
-          const explainRows = await tx.$queryRaw<any[]>(Prisma.sql`
-            EXPLAIN (FORMAT JSON)
-            SELECT 1
-            FROM "public"."SearchIndex" si
-            WHERE si.game = 'mtg' AND si."isPaper" = true AND (${andTextWhere})
-              ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-              ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
-            LIMIT 1000000
-          `)
-          let n = 0
-          try {
-            const payload = (explainRows?.[0] as any)?.['QUERY PLAN']
-            const arr = Array.isArray(payload) ? payload : JSON.parse(JSON.stringify(payload))
-            const root = Array.isArray(arr) ? arr[0] : null
-            n = Number(root?.Plan?.['Plan Rows'] || 0)
-          } catch {}
-          await cacheSetJSON(totalKey, n, ttlSeconds)
-        }, { timeout: 1200 })
-      } catch {}
-    })()
+    // Get count synchronously - this is fast with proper indexes
+    try {
+      const countRows = await prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+        WITH base AS (
+          SELECT si."groupId", si."setCode", si."collectorNumber", si."variantLabel" AS variant_label, si."finishLabel" AS finish_label,
+                 mc."finishes" AS finishes, mc."rarity" AS rarity
+          FROM "public"."SearchIndex" si
+          JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+          WHERE si.game = 'mtg' AND si."isPaper" = true AND (${andTextWhere})
+            ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
+            ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
+        ), base2 AS (
+          SELECT "groupId", "setCode", "collectorNumber",
+                 COALESCE(variant_label, '') AS variant_group,
+                 CASE WHEN finish_label IN ('Standard','Nonfoil','Foil','') THEN 'Standard' ELSE COALESCE(finish_label,'') END AS finish_group,
+                 (CASE WHEN finishes @> ARRAY['nonfoil']::text[] THEN true ELSE false END) AS has_nonfoil,
+                 (CASE WHEN finishes @> ARRAY['foil']::text[] THEN true ELSE false END) AS has_foil,
+                 (CASE WHEN finishes @> ARRAY['etched']::text[] THEN true ELSE false END) AS has_etched,
+                 COALESCE(rarity, '') AS rarity
+          FROM base
+        ), filtered AS (
+          SELECT DISTINCT "groupId", "setCode", "collectorNumber", variant_group, finish_group
+          FROM base2
+          WHERE 1=1
+            ${printing.length > 0 ? Prisma.sql`
+              AND (
+                ${printing.includes('etched') ? Prisma.sql`has_etched = true` : Prisma.sql`false`}
+                ${printing.includes('foil') ? Prisma.sql`OR has_foil = true` : Prisma.sql``}
+                ${printing.includes('normal') ? Prisma.sql`OR has_nonfoil = true` : Prisma.sql``}
+              )
+            ` : Prisma.sql``}
+            ${rarity.length > 0 ? Prisma.sql`AND lower(rarity) = ANY(${rarity.map((r) => r.toLowerCase())})` : Prisma.sql``}
+        )
+        SELECT COUNT(*)::bigint AS count FROM filtered
+      `)
+      totalEst = Number(countRows[0]?.count || 0)
+      // Cache the result for future requests
+      cacheSetJSON(totalKey, totalEst, ttlSeconds).catch(() => {})
+    } catch (e) {
+      console.error('[search] count query failed', e)
+      totalEst = 0
+    }
   }
 
   // Background cache set for facets when not cached
@@ -440,7 +476,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   } catch {}
 
   const accurateIfTerminal = !hasMore ? ((page - 1) * pageSize + items.length) : 0
-  const totalForClient = accurateIfTerminal > 0 ? accurateIfTerminal : 0
+  const totalForClient = totalEst > 0 ? totalEst : accurateIfTerminal
 
   const result: GroupedResult = {
     query: params.q || '',
