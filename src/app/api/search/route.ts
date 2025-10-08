@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { groupedSearch } from '@/services/searchQueryGroupedSimple'
-import { cacheGetJSON, cacheSetJSON } from '@/lib/cache'
+import { cacheGetJSON, cacheSetJSON, buildCacheKey } from '@/lib/cache'
 import { parseSortParam } from '@/search/sort'
+import { recordMetric } from '@/app/api/health/route'
 import type { SearchApiResponse } from '@/types/search'
 import { SearchParamsSchema, SearchResponseSchema } from '@/schemas/api'
 
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest) {
     const sortParam = parseSortParam(sort)
     const groupIdOrNull = groupId || null
 
-    const key = JSON.stringify({ q, page, pageSize, exactOnly, printing, sets, rarity, groupIdOrNull, facetAllBool, sort, mode, showUnavailable })
+    const key = buildCacheKey({ q, page, pageSize, exactOnly, printing, sets, rarity, groupIdOrNull, facetAllBool, sort, mode, showUnavailable })
     const ttl = 300
     const t0 = Date.now()
     try {
@@ -87,9 +88,11 @@ export async function GET(req: NextRequest) {
       }))
     } catch {}
     cacheSetJSON(key, result, ttl).catch(() => {})
+    recordMetric('/api/search', Date.now() - t0)
     return NextResponse.json(result, { headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=240' } })
   } catch (err) {
     console.error('[search] failed', err)
+    recordMetric('/api/search', Date.now() - t0, true)
     return NextResponse.json({ error: 'failed' }, { status: 500 })
   }
 }

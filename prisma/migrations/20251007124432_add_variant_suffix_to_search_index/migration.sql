@@ -1,0 +1,3 @@
+-- Add variant suffix to search index (placeholder)
+-- This migration was created as a placeholder
+-- No actual changes needed
