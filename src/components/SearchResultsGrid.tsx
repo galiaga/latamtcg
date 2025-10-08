@@ -467,6 +467,8 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                       aria-label="Sort results"
                     >
                       <option value="relevance">Relevance</option>
+                      <option value="name_asc">Name: A → Z</option>
+                      <option value="name_desc">Name: Z → A</option>
                       <option value="price_asc">Price: Low → High</option>
                       <option value="price_desc">Price: High → Low</option>
                     </select>
@@ -505,6 +507,12 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
               💡 Pro tip: Sometimes the best cards are hiding in plain sight!
             </p>
           </div>
+        </div>
+      ) : null}
+      {/* Total results count */}
+      {!loading && meta.totalResults > 0 && q.trim() ? (
+        <div className="mb-4 text-sm" style={{ color: 'var(--mutedText)' }}>
+          Showing {primary.length} of {meta.totalResults.toLocaleString()} results
         </div>
       ) : null}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">

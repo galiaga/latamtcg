@@ -87,6 +87,10 @@ model SearchIndex {
   /// For MTG suggestions
   setCode          String
   setName          String?
+  /// Precomputed sort key for deterministic A-Z sorting (normalized title + variantSuffix)
+  nameSortKey      String?
+  /// Precomputed sort key for deterministic Z-A sorting (same as nameSortKey, sorted DESC)
+  nameSortKeyDesc  String?
   collectorNumber  String
   imageNormalUrl   String?
   name             String
