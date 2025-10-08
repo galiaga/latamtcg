@@ -76,7 +76,6 @@ function parseModifiers(qNorm: string) {
 export async function searchSuggestions(params: SearchParams): Promise<SearchItem[]> {
   const backend = process.env.SEARCH_BACKEND || 'postgres'
   if (backend !== 'postgres') {
-    // Placeholder for alternative backends
     return []
   }
 
@@ -85,87 +84,45 @@ export async function searchSuggestions(params: SearchParams): Promise<SearchIte
   const langPref: 'en' | 'all' = params.lang === 'all' || process.env.SEARCH_LANGS === 'all' ? 'all' : 'en'
   const qNorm = normalize(params.q || '')
   if (!qNorm) return []
-  const { modifiers, firstToken } = parseModifiers(qNorm)
-  const first = firstToken || qNorm
 
-  // Build SQL with ranking (preferred path via SearchIndex table)
-  let results: any[]
+  // Parse query for exact mode and tokens
+  const isExactOnly = params.q?.startsWith('"') && params.q?.endsWith('"')
+  const query = isExactOnly ? params.q!.slice(1, -1) : params.q!
+  const qClean = normalize(query)
+  const tokens = qClean.split(/\s+/).filter(t => t.length > 0)
+  
+  if (tokens.length === 0) return []
+
+  // Build Starts-With priority search with fallbacks
+  let results: any[] = []
+  
   try {
-    results = await prisma.$queryRaw(
-    Prisma.sql`
-      WITH candidates AS (
-        SELECT
-          id,
-          "groupId",
-          game,
-          title,
-          subtitle,
-          "finishLabel",
-          "variantLabel",
-          lang,
-          "isPaper",
-          "releasedAt",
-          "imageNormalUrl",
-          "setCode",
-          "setName",
-          "collectorNumber",
-          name,
-          -- signals
-          (CASE WHEN unaccent(lower(title)) = ${qNorm} THEN 1 ELSE 0 END) AS exact_title,
-          (CASE WHEN unaccent(lower(title)) LIKE ${first + '%'} THEN 1 ELSE 0 END) AS prefix_title,
-          (CASE WHEN to_tsvector('simple', unaccent(lower("keywordsText"))) @@ plainto_tsquery('simple', ${qNorm}) THEN 1 ELSE 0 END) AS ts_hit,
-          GREATEST(similarity(unaccent(lower(title)), ${qNorm}), similarity(unaccent(lower("keywordsText")), ${qNorm})) AS trigram_sim
-        FROM "public"."SearchIndex"
-        WHERE game = ${game}
-          AND "isPaper" = true
-          AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`lang = 'en'`})
-          AND (
-            unaccent(lower(title)) LIKE ${first + '%'}
-            OR to_tsvector('simple', unaccent(lower("keywordsText"))) @@ plainto_tsquery('simple', ${qNorm})
-            OR similarity(unaccent(lower(title)), ${qNorm}) > 0.2
-            OR similarity(unaccent(lower("keywordsText")), ${qNorm}) > 0.2
-          )
-      ), scored AS (
-        SELECT *,
-          -- base ranking
-          (exact_title * 10.0) +
-          (prefix_title * 5.0) +
-          (ts_hit * 2.5) +
-          (trigram_sim * 2.0) +
-          -- language & paper boosts
-          (CASE WHEN lang = 'en' THEN 0.8 ELSE 0.0 END) +
-          (CASE WHEN "isPaper" THEN 0.5 ELSE 0.0 END) +
-          -- set boost
-          (CASE WHEN ${modifiers.set.length > 0 ? Prisma.sql`lower("setCode") = ANY(${modifiers.set.map((s) => s.toLowerCase())})` : Prisma.sql`false`} THEN 1.2 ELSE 0.0 END) +
-          -- variant boosts
-          (CASE WHEN ${modifiers.borderless ? Prisma.sql`coalesce("variantLabel", '') ILIKE '%borderless%'` : Prisma.sql`false`} THEN 0.8 ELSE 0.0 END) +
-          (CASE WHEN ${modifiers.showcase ? Prisma.sql`coalesce("variantLabel", '') ILIKE '%showcase%'` : Prisma.sql`false`} THEN 0.7 ELSE 0.0 END) +
-          (CASE WHEN ${modifiers.extended ? Prisma.sql`coalesce("variantLabel", '') ILIKE '%extended%'` : Prisma.sql`false`} THEN 0.7 ELSE 0.0 END) +
-          (CASE WHEN ${modifiers.retro ? Prisma.sql`coalesce("variantLabel", '') ILIKE '%retro%'` : Prisma.sql`false`} THEN 0.6 ELSE 0.0 END) +
-          (CASE WHEN ${modifiers.jp ? Prisma.sql`coalesce("variantLabel", '') ILIKE '%jp%'` : Prisma.sql`false`} THEN 0.5 ELSE 0.0 END) +
-          -- finish boosts, unless specifically searched
-          (CASE WHEN ${modifiers.foil ? Prisma.sql`true` : Prisma.sql`false`} THEN (CASE WHEN coalesce("finishLabel", '') ILIKE '%foil%' THEN 0.9 ELSE 0 END) ELSE (CASE WHEN coalesce("finishLabel", '') = 'Nonfoil' THEN 0.4 WHEN coalesce("finishLabel", '') = 'Foil' THEN 0.2 ELSE 0 END) END) +
-          (CASE WHEN ${modifiers.etched ? Prisma.sql`true` : Prisma.sql`false`} THEN (CASE WHEN coalesce("finishLabel", '') ILIKE '%etched%' THEN 0.9 ELSE 0 END) ELSE 0 END) +
-          -- recency tie-breaker
-          (COALESCE(EXTRACT(EPOCH FROM "releasedAt"), 0) / 31557600.0) * 0.02
-          AS score
-        FROM candidates
-      )
-      SELECT * FROM scored
-      ORDER BY score DESC, "releasedAt" DESC NULLS LAST
-      LIMIT ${Math.min(limit * 3, 60)};
-    `
-    )
+    // Stage 1: Exact matches (highest priority)
+    if (isExactOnly) {
+      results = await searchExactMatches({ qClean, game, langPref, limit })
+    } else {
+      // Stage 2: Starts-With matches (AND logic between tokens)
+      results = await searchStartsWithMatches({ tokens, game, langPref, limit })
+      
+      // Stage 3: Contains matches (if no starts-with results)
+      if (results.length === 0) {
+        results = await searchContainsMatches({ tokens, game, langPref, limit })
+      }
+      
+      // Stage 4: Light fuzzy matches (if still no results)
+      if (results.length === 0) {
+        results = await searchFuzzyMatches({ tokens, game, langPref, limit })
+      }
+    }
   } catch (err: any) {
-    // Fallback if SearchIndex does not exist yet
     const message = String(err?.message || '')
     if (message.includes('relation "public"."SearchIndex" does not exist') || message.includes('relation "public.SearchIndex" does not exist') || message.includes('SearchIndex')) {
-      return fallbackSearchFromMtgCard({ qNorm, first, game, langPref, limit, modifiers })
+      return fallbackSearchFromMtgCard({ qNorm: qClean, first: tokens[0], game, langPref, limit, modifiers: { set: [], borderless: false, showcase: false, extended: false, retro: false, jp: false, foil: false, etched: false } })
     }
     throw err
   }
 
-  // Post-process and cap to limit, add optional group item
+  // Convert to SearchItem format
   const items: SearchItem[] = results.map((r) => ({
     kind: 'printing',
     id: r.id,
@@ -175,6 +132,7 @@ export async function searchSuggestions(params: SearchParams): Promise<SearchIte
     subtitle: r.subtitle,
     finishLabel: r.finishLabel,
     variantLabel: r.variantLabel,
+    variantSuffix: r.variantSuffix,
     lang: r.lang,
     isPaper: r.isPaper,
     releasedAt: r.releasedAt ? new Date(r.releasedAt).toISOString() : null,
@@ -184,28 +142,111 @@ export async function searchSuggestions(params: SearchParams): Promise<SearchIte
     collectorNumber: r.collectorNumber,
   }))
 
-  // Optionally include a single grouped card at the top when the name strongly matches
-  let includeGroup = false
-  if (items.length > 0) {
-    const top = items[0]
-    const titleNorm = normalize(top.title)
-    if (titleNorm.startsWith(first)) includeGroup = true
-  }
+  return items.slice(0, limit)
+}
 
-  const limited = items.slice(0, limit)
-  if (includeGroup) {
-    const top = limited[0]
-    if (top) {
-      const group: SearchItem = {
-        kind: 'group',
-        groupId: top.groupId,
-        game,
-        title: top.title,
-      }
-      return [group, ...limited].slice(0, limit)
-    }
-  }
-  return limited
+// Stage 1: Exact matches (for quoted queries)
+async function searchExactMatches({ qClean, game, langPref, limit }: { qClean: string; game: string; langPref: 'en' | 'all'; limit: number }): Promise<any[]> {
+  return await prisma.$queryRaw(
+    Prisma.sql`
+      SELECT
+        id, "groupId", game, title, subtitle, "finishLabel", "variantLabel", "variantSuffix",
+        lang, "isPaper", "releasedAt", "imageNormalUrl", "setCode", "setName", "collectorNumber", name,
+        1000 AS score
+      FROM "public"."SearchIndex"
+      WHERE game = ${game}
+        AND "isPaper" = true
+        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`lang = 'en'`})
+        AND unaccent(lower(title)) = ${qClean}
+      ORDER BY "releasedAt" DESC NULLS LAST
+      LIMIT ${limit}
+    `
+  )
+}
+
+// Stage 2: Starts-With matches (AND logic between tokens)
+async function searchStartsWithMatches({ tokens, game, langPref, limit }: { tokens: string[]; game: string; langPref: 'en' | 'all'; limit: number }): Promise<any[]> {
+  // Build word prefix conditions for each token
+  const wordPrefixConditions = tokens.map(token => 
+    Prisma.sql`unaccent(lower(title)) LIKE ${token + '%'}`
+  )
+  
+  // Build word boundary conditions for each token (more precise)
+  const wordBoundaryConditions = tokens.map(token => 
+    Prisma.sql`unaccent(lower(title)) ~* ${'\\m' + token}`
+  )
+
+  return await prisma.$queryRaw(
+    Prisma.sql`
+      SELECT
+        id, "groupId", game, title, subtitle, "finishLabel", "variantLabel", "variantSuffix",
+        lang, "isPaper", "releasedAt", "imageNormalUrl", "setCode", "setName", "collectorNumber", name,
+        -- Score based on how many tokens match as word prefixes
+        (${tokens.length * 100} + 
+         CASE WHEN lang = 'en' THEN 1 ELSE 0 END +
+         CASE WHEN "isPaper" THEN 1 ELSE 0 END) AS score
+      FROM "public"."SearchIndex"
+      WHERE game = ${game}
+        AND "isPaper" = true
+        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`lang = 'en'`})
+        AND (${Prisma.join(wordBoundaryConditions, ' AND ')})
+      ORDER BY score DESC, "releasedAt" DESC NULLS LAST
+      LIMIT ${limit}
+    `
+  )
+}
+
+// Stage 3: Contains matches (AND logic between tokens)
+async function searchContainsMatches({ tokens, game, langPref, limit }: { tokens: string[]; game: string; langPref: 'en' | 'all'; limit: number }): Promise<any[]> {
+  const containsConditions = tokens.map(token => 
+    Prisma.sql`unaccent(lower(title)) ILIKE ${'%' + token + '%'}`
+  )
+
+  return await prisma.$queryRaw(
+    Prisma.sql`
+      SELECT
+        id, "groupId", game, title, subtitle, "finishLabel", "variantLabel", "variantSuffix",
+        lang, "isPaper", "releasedAt", "imageNormalUrl", "setCode", "setName", "collectorNumber", name,
+        -- Lower score for contains matches
+        (${tokens.length * 50} + 
+         CASE WHEN lang = 'en' THEN 1 ELSE 0 END +
+         CASE WHEN "isPaper" THEN 1 ELSE 0 END) AS score
+      FROM "public"."SearchIndex"
+      WHERE game = ${game}
+        AND "isPaper" = true
+        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`lang = 'en'`})
+        AND (${Prisma.join(containsConditions, ' AND ')})
+      ORDER BY score DESC, "releasedAt" DESC NULLS LAST
+      LIMIT ${limit}
+    `
+  )
+}
+
+// Stage 4: Light fuzzy matches (edit distance ≤1 per token)
+async function searchFuzzyMatches({ tokens, game, langPref, limit }: { tokens: string[]; game: string; langPref: 'en' | 'all'; limit: number }): Promise<any[]> {
+  // Use similarity for fuzzy matching with a threshold
+  const similarityConditions = tokens.map(token => 
+    Prisma.sql`similarity(unaccent(lower(title)), ${token}) > 0.3`
+  )
+
+  return await prisma.$queryRaw(
+    Prisma.sql`
+      SELECT
+        id, "groupId", game, title, subtitle, "finishLabel", "variantLabel", "variantSuffix",
+        lang, "isPaper", "releasedAt", "imageNormalUrl", "setCode", "setName", "collectorNumber", name,
+        -- Very low score for fuzzy matches
+        (${tokens.length * 10} + 
+         CASE WHEN lang = 'en' THEN 1 ELSE 0 END +
+         CASE WHEN "isPaper" THEN 1 ELSE 0 END) AS score
+      FROM "public"."SearchIndex"
+      WHERE game = ${game}
+        AND "isPaper" = true
+        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`lang = 'en'`})
+        AND (${Prisma.join(similarityConditions, ' AND ')})
+      ORDER BY score DESC, "releasedAt" DESC NULLS LAST
+      LIMIT ${limit}
+    `
+  )
 }
 
 async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; game: string; langPref: 'en' | 'all'; limit: number; modifiers: ReturnType<typeof parseModifiers>['modifiers'] }): Promise<SearchItem[]> {

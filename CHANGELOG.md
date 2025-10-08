@@ -1,5 +1,68 @@
 # Changelog
 
+## v0.16.0 — 2025-01-27
+### Features
+- Enhanced search suggestions system:
+  - Implemented Starts-With priority search logic with intelligent fallbacks (Exact → Starts-With → Contains → Fuzzy)
+  - Added comprehensive variant suffix display in suggestions (e.g., "Ancient Tomb (Galaxy Foil) (Borderless)")
+  - Improved search ranking to prioritize exact matches and word-prefix matches
+  - Added dedicated `/api/search/suggestions` endpoint with optimized caching (30min TTL)
+  - Enhanced suggestions dropdown with compact, consistent height (~280px) and proper scrolling
+- Advanced filter system improvements:
+  - Added "Show unavailable items" filter option with proper URL parameter handling
+  - Implemented comprehensive loading indicators across all filter controls (Sets, Rarity, Printings, Clear Filters, Sort)
+  - Enhanced Clear Filters functionality to reset all filter parameters including showUnavailable
+  - Added visual feedback with spinners and disabled states during filter operations
+
+### Fixes
+- Search suggestions UX improvements:
+  - Fixed suggestions not appearing due to incorrect API endpoint usage
+  - Resolved suggestions dropdown height issues on search results page
+  - Eliminated suggestions flickering when typing on search results page
+  - Prevented suggestions from showing when search box gets auto-focused after navigation
+  - Fixed suggestions appearing briefly when navigating to search results page
+- Search functionality enhancements:
+  - Unified search behavior across the entire app with Starts-With priority system
+  - Improved search ranking for partial queries (e.g., "jace, the mi" now correctly prioritizes "Jace, The Mind Sculptor")
+  - Fixed price sorting to use maximum available price across all finishes (GREATEST function)
+  - Resolved pagination issues where total results were artificially limited
+  - Fixed filter persistence and pagination consistency across different pages
+- Database and performance optimizations:
+  - Added composite indexes for improved search performance (GIN and B-tree indexes)
+  - Enhanced SQL query structure with proper column qualification to avoid ambiguity errors
+  - Improved fallback search logic with sequential stages for comprehensive results
+  - Optimized suggestion caching with granular cache keys and longer TTL
+
+### Technical Improvements
+- Search query processing:
+  - Implemented word boundary matching using PostgreSQL regex (`~* '\\m'`) for precise Starts-With matching
+  - Added query normalization with diacritic removal and space collapsing
+  - Enhanced AND logic between tokens for more accurate multi-word searches
+  - Improved exact match detection for quoted queries and exactOnly parameter
+- State management enhancements:
+  - Added `isUserTyping` state to distinguish between user input and URL parameter sync
+  - Implemented robust focus handling to prevent unwanted suggestion displays
+  - Enhanced route change detection to properly close suggestions on navigation
+  - Added comprehensive error handling and fallback mechanisms
+- UI/UX improvements:
+  - Compact suggestion items with consistent height and proper text hierarchy
+  - Enhanced loading states with spinners and disabled controls
+  - Improved visual feedback for all interactive elements
+  - Better responsive design for suggestions dropdown
+
+### Performance
+- Optimized suggestion fetching with debounced requests and proper abort handling
+- Enhanced caching strategy with more granular cache keys and appropriate TTL values
+- Improved database query performance with targeted indexes and optimized SQL structure
+- Reduced unnecessary re-renders with better state management and effect dependencies
+
+### Refactors / Chore
+- Consolidated search logic into unified `searchQueryGroupedSimple.ts` service
+- Removed deprecated `searchQueryGrouped.ts` file
+- Enhanced type safety with proper parameter validation and error handling
+- Updated all search-related components to use consistent state management patterns
+- Added comprehensive error logging and debugging capabilities
+
 ## v0.15.1 — 2025-01-27
 ### Fixes
 - Fixed foil variant suffix display logic:

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { groupedSearch } from '@/services/searchQueryGrouped'
+import { groupedSearch } from '@/services/searchQueryGroupedSimple'
 import { cacheGetJSON, cacheSetJSON } from '@/lib/cache'
 import { parseSortParam } from '@/search/sort'
 import type { SearchApiResponse } from '@/types/search'
@@ -55,13 +55,14 @@ export async function GET(req: NextRequest) {
       const g = String(searchParams.get('groupId') || '').trim()
       return g.length ? g : null
     })()
+    const showUnavailable = String(searchParams.get('showUnavailable') || '') === 'true'
     const exactOnly = exact === '1'
     const facetAllBool = facetAll === '1'
     const debugBool = debug === '1'
     const sortParam = parseSortParam(sort)
     const groupIdOrNull = groupId || null
 
-    const key = JSON.stringify({ q, page, pageSize, exactOnly, printing, sets, rarity, groupIdOrNull, facetAllBool, sort, mode })
+    const key = JSON.stringify({ q, page, pageSize, exactOnly, printing, sets, rarity, groupIdOrNull, facetAllBool, sort, mode, showUnavailable })
     const ttl = 300
     const t0 = Date.now()
     try {
@@ -71,7 +72,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(cached)
       }
     } catch {}
-    const result = await groupedSearch({ q, page, pageSize, exactOnly, printing, sets, rarity, groupId: groupIdOrNull, facetAll: facetAllBool, sort: sortParam, debug: debugBool, mode })
+    const result = await groupedSearch({ q, page, pageSize, exactOnly, printing, sets, rarity, groupId: groupIdOrNull, facetAll: facetAllBool, sort: sortParam, debug: debugBool, mode, showUnavailable })
     const t1 = Date.now()
     try {
       console.log(JSON.stringify({
