@@ -1,6 +1,6 @@
 {
   "name": "latamtcg",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "private": true,
   "scripts": {
     "dev": "NEXT_FORCE_WEBPACK=1 next dev",

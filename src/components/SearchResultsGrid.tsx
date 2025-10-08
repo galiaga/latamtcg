@@ -10,6 +10,7 @@ import { printingHref } from '@/lib/routes'
 import { formatUsd } from '@/lib/format'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import SkeletonCard from './SkeletonCard'
+import Spinner from './Spinner'
 
 type Item = {
   kind: 'printing' | 'group'
@@ -215,7 +216,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     return { printing, set, rarity }
   }
 
-  function updateFilter(name: 'printing' | 'set' | 'rarity', value: string | string[]) {
+  function updateFilter(name: 'printing' | 'set' | 'rarity' | 'showUnavailable', value: string | string[]) {
     const params = new URLSearchParams(searchParams?.toString() || '')
     params.set('q', q)
     params.set('page', '1')
@@ -228,6 +229,12 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     } else if (name === 'set') {
       params.delete('set')
       ;(Array.isArray(value) ? value : [value]).forEach((v) => { const vv = String(v || '').trim(); if (vv) params.append('set', vv) })
+    } else if (name === 'showUnavailable') {
+      if (Array.isArray(value) && value.length > 0) {
+        params.set('showUnavailable', 'true')
+      } else {
+        params.delete('showUnavailable')
+      }
     }
     console.log(JSON.stringify({ event: 'search.filter_changed', filters: currentFilters() }))
     router.push(`${pathname}?${params.toString()}`)
@@ -248,6 +255,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     params.delete('printing')
     params.delete('rarity')
     params.delete('set')
+    params.delete('showUnavailable') // Also clear the showUnavailable filter
     console.log(JSON.stringify({ event: 'search.filter_changed', filters: { printing: [], rarity: [], set: '' } }))
     router.push(`${pathname}?${params.toString()}`)
   }
@@ -277,13 +285,23 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
             <>
               <div ref={setsRef} className="relative">
                 <button type="button"
-                  className={`chip ${setsSel.length > 0 ? 'chip-primary' : ''}`}
+                  className={`chip ${setsSel.length > 0 ? 'chip-primary' : ''} ${loading ? 'opacity-50' : ''}`}
                   aria-expanded={openFacet === 'sets'}
                   aria-controls="facet-sets"
+                  disabled={loading}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpenFacet(openFacet === 'sets' ? null : 'sets') }}
                 >
-                  {setsLabel} <span>▼</span>
+                  {loading ? (
+                    <>
+                      <Spinner size="sm" />
+                      <span className="ml-1">Sets</span>
+                    </>
+                  ) : (
+                    <>
+                      {setsLabel} <span>▼</span>
+                    </>
+                  )}
                 </button>
                 {openFacet === 'sets' && (
                   <div id="facet-sets" className="absolute left-0 top-full mt-2 w-[min(360px,92vw)] popover p-3" style={{ zIndex: 1000 }}>
@@ -318,13 +336,23 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
               </div>
               <div ref={rarityRef} className="relative">
                 <button type="button"
-                  className={`chip ${rarities.length > 0 ? 'chip-primary' : ''}`}
+                  className={`chip ${rarities.length > 0 ? 'chip-primary' : ''} ${loading ? 'opacity-50' : ''}`}
                   aria-expanded={openFacet === 'rarity'}
                   aria-controls="facet-rarity"
+                  disabled={loading}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpenFacet(openFacet === 'rarity' ? null : 'rarity') }}
                 >
-                  {rarityLabel} <span>▼</span>
+                  {loading ? (
+                    <>
+                      <Spinner size="sm" />
+                      <span className="ml-1">Rarity</span>
+                    </>
+                  ) : (
+                    <>
+                      {rarityLabel} <span>▼</span>
+                    </>
+                  )}
                 </button>
                 {openFacet === 'rarity' && (
                   <div id="facet-rarity" className="absolute left-0 top-full mt-2 w-[min(280px,92vw)] popover p-3" style={{ zIndex: 1000 }}>
@@ -357,13 +385,23 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
               </div>
               <div ref={printingRef} className="relative">
                 <button type="button"
-                  className={`chip ${printing.length > 0 ? 'chip-primary' : ''}`}
+                  className={`chip ${printing.length > 0 ? 'chip-primary' : ''} ${loading ? 'opacity-50' : ''}`}
                   aria-expanded={openFacet === 'printing'}
                   aria-controls="facet-printing"
+                  disabled={loading}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpenFacet(openFacet === 'printing' ? null : 'printing') }}
                 >
-                  {printLabel} <span>▼</span>
+                  {loading ? (
+                    <>
+                      <Spinner size="sm" />
+                      <span className="ml-1">Printings</span>
+                    </>
+                  ) : (
+                    <>
+                      {printLabel} <span>▼</span>
+                    </>
+                  )}
                 </button>
                 {openFacet === 'printing' && (
                   <div id="facet-printing" className="absolute left-0 top-full mt-2 w-[min(280px,92vw)] popover p-3" style={{ zIndex: 1000 }}>
@@ -390,10 +428,29 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                         )
                       })}
                     </div>
+                    <div className="border-t pt-2 mt-2">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input 
+                          type="checkbox" 
+                          checked={searchParams?.get('showUnavailable') === 'true'} 
+                          onChange={(e) => updateFilter('showUnavailable', e.target.checked ? ['true'] : [])} 
+                        />
+                        Show unavailable items
+                      </label>
+                    </div>
                   </div>
                 )}
               </div>
-              <button type="button" className="btn btn-ghost" onClick={clearFilters}>Clear Filters</button>
+              <button type="button" className="btn btn-ghost" onClick={clearFilters} disabled={loading}>
+                {loading ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span className="ml-2">Clearing...</span>
+                  </>
+                ) : (
+                  'Clear Filters'
+                )}
+              </button>
               {/* Sort control moved to the right */}
               {(() => {
                 const current = String(searchParams?.get('sort') || 'relevance')
@@ -402,9 +459,10 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                     <label htmlFor="sort-select" className="text-sm" style={{ color: 'var(--mutedText)' }}>Sort by:</label>
                     <select
                       id="sort-select"
-                      className="chip"
+                      className={`chip ${loading ? 'opacity-50' : ''}`}
                       value={current}
                       onChange={(e) => setSort(e.target.value as any)}
+                      disabled={loading}
                       aria-label="Sort results"
                     >
                       <option value="relevance">Relevance</option>

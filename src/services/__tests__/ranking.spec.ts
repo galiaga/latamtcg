@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest'
-import { groupedSearch } from '@/services/searchQueryGrouped'
+import { groupedSearch } from '@/services/searchQueryGroupedSimple'
 
 const RUN = process.env.SEARCH_DB_TESTS === '1'
 const maybe = RUN ? describe : describe.skip
