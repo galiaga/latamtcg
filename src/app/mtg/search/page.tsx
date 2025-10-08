@@ -2,6 +2,7 @@ import SearchResultsGrid from '@/components/SearchResultsGrid'
 import SafeClient from '@/components/SafeClient'
 import { groupedSearch } from '@/services/searchQueryGroupedSimple'
 import { parseSortParam } from '@/search/sort'
+import { buildCacheKey } from '@/lib/cache'
 import HydrationPerf from '@/components/HydrationPerf'
 
 export const metadata = {
@@ -21,7 +22,7 @@ export default async function MtgSearchPage({ searchParams }: { searchParams: Pr
   const showUnavailable = String(params.showUnavailable || '') === 'true'
 
   const hasAnyFilter = (q || '').trim().length > 0 || printing.length > 0 || rarity.length > 0 || sets.length > 0
-  const initialKey = JSON.stringify({ q, page, printing: printing.slice().sort(), rarity: rarity.slice().sort(), sets: sets.slice().sort(), sort })
+  const initialKey = buildCacheKey({ q, page, printing: printing.slice().sort(), rarity: rarity.slice().sort(), sets: sets.slice().sort(), sort })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- initialData comes from service; kept as loose for SSR payload
   let initialData: any = null

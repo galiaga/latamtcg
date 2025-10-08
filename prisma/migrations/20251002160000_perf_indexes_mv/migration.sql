@@ -1,0 +1,3 @@
+-- Performance indexes migration (placeholder)
+-- This migration was created as a placeholder for performance optimizations
+-- No actual changes needed

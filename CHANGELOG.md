@@ -1,5 +1,49 @@
 # Changelog
 
+## v0.17.0 — 2025-01-27
+### Infrastructure & Reliability
+- **Horizontal Scaling Infrastructure**: Complete production-ready scaling implementation
+  - Enhanced cache adapter with unified interface (`get`, `set`, `getSWR`, `withLock`)
+  - Redis/Memory driver toggle via `CACHE_DRIVER` environment variable
+  - Centralized cache key builder with query normalization (lowercase, unaccent, sorted)
+  - Stale-while-revalidate caching for improved performance
+- **Health Monitoring & Metrics**:
+  - Added `/api/health` endpoint with fast path and deep validation modes
+  - Implemented comprehensive metrics collection (P50/P95 latencies, error rates)
+  - Metrics flushed every 30s as structured JSON logs for observability
+  - Applied monitoring to `/api/search` and `/api/search/suggestions` endpoints
+- **Database Pool Safeguards**:
+  - Configurable connection pool sizing (10 dev, 20 prod via `DB_POOL_SIZE`)
+  - Added connection, statement, and transaction timeouts (30s, 60s, 30s)
+  - Enhanced Prisma client configuration for production scaling
+- **Load Testing Infrastructure**:
+  - Comprehensive k6 performance testing scripts (`scripts/load-test.js`)
+  - Artillery alternative configuration (`scripts/load-test.yml`)
+  - Performance thresholds: P95 API < 200ms, SSR < 400ms, errors < 0.5%
+
+### Technical Improvements
+- **Cache Architecture**:
+  - Unified cache key generation across SSR and client-side components
+  - Consistent parameter ordering and normalization for cache hit optimization
+  - Legacy compatibility maintained while introducing enhanced interface
+- **Stateless Server Verification**:
+  - Confirmed stateless architecture with Supabase cookie-based sessions
+  - Verified cart state persistence in PostgreSQL with anonymous tokens
+  - Validated ephemeral file processing (no permanent local storage)
+- **Next.js 15 Compliance**:
+  - Verified proper `await searchParams` usage across all page components
+  - Confirmed SSR/client hydration optimization prevents duplicate API calls
+  - Maintained backward compatibility with existing search functionality
+
+### Documentation & Configuration
+- **Environment Variables**: Added scaling configuration options
+  - `CACHE_DRIVER`: Memory/Redis adapter selection
+  - `REDIS_URL`: Distributed caching configuration
+  - `DB_POOL_SIZE`: Database connection pool sizing
+- **Performance Monitoring**: Comprehensive health check and metrics documentation
+- **Load Testing**: Automated performance validation with clear thresholds
+- **Infrastructure Checklist**: Complete phase tracking and implementation status
+
 ## v0.16.0 — 2025-01-27
 ### Features
 - Enhanced search suggestions system:
