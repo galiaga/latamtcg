@@ -84,11 +84,42 @@ Models:
 - `DATABASE_URL`: PostgreSQL connection string (Prisma)
 - `CRON_SECRET`: shared bearer token for the job endpoint
 - Optional: `SCRYFALL_BATCH_SIZE` (default 500)
- - Optional: `SCRYFALL_EXCLUDE_SET_TYPES` (default `token,memorabilia,alchemy,minigame`)
- - Optional: `SEARCH_BACKEND` = `postgres` | `meilisearch` (default `postgres`)
- - Optional: `SEARCH_LANGS` = `en` | `all` (default `en`)
- - Optional: `SEARCH_SUGGESTION_LIMIT` (default 15)
- - Optional: `SCRYFALL_IMAGE_HOST` (default `cards.scryfall.io`)
+- Optional: `SCRYFALL_EXCLUDE_SET_TYPES` (default `token,memorabilia,alchemy,minigame`)
+- Optional: `SEARCH_BACKEND` = `postgres` | `meilisearch` (default `postgres`)
+- Optional: `SEARCH_LANGS` = `en` | `all` (default `en`)
+- Optional: `SEARCH_SUGGESTION_LIMIT` (default 15)
+- Optional: `SCRYFALL_IMAGE_HOST` (default `cards.scryfall.io`)
+
+### Horizontal Scaling Configuration
+
+- `CACHE_DRIVER`: `memory` (dev) | `redis` (prod) - Cache adapter selection
+- `REDIS_URL`: Redis connection string for distributed caching
+- `DB_POOL_SIZE`: Database connection pool size (default: 10 dev, 20 prod)
+
+### Health Checks & Monitoring
+
+- `/api/health`: Basic health check (fast path)
+- `/api/health?deep=1`: Deep health check with DB/Redis connectivity
+- Metrics: P50/P95 latencies, error rates flushed every 30s as JSON logs
+
+### Load Testing
+
+Run performance tests to validate scaling thresholds:
+
+```bash
+# Using k6 (recommended)
+npm install -g k6
+k6 run scripts/load-test.js
+
+# Using Artillery (alternative)
+npm install -g artillery
+artillery run scripts/load-test.yml
+```
+
+**Performance Thresholds:**
+- P95 API response time < 200ms
+- P95 SSR render time < 400ms  
+- Error rate < 0.5%
 
 ### Run locally
 

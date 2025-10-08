@@ -1,0 +1,62 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 10
+      arrivalRate: 5
+    - duration: 30
+      arrivalRate: 10
+    - duration: 10
+      arrivalRate: 5
+  defaults:
+    headers:
+      accept: 'application/json'
+  plugins:
+    metrics-by-endpoint: {}
+
+scenarios:
+  - name: "Search API Load Test"
+    weight: 50
+    flow:
+      - loop:
+          - get:
+              url: "/api/search"
+              qs:
+                q: "{{ $randomString() }}"
+                page: "{{ $randomInt(1, 3) }}"
+                limit: "25"
+          - think: 1
+        count: 3
+
+  - name: "Suggestions API Load Test"
+    weight: 30
+    flow:
+      - loop:
+          - get:
+              url: "/api/search/suggestions"
+              qs:
+                q: "{{ $randomString() }}"
+                limit: "10"
+                game: "mtg"
+                lang: "en"
+          - think: 0.5
+        count: 5
+
+  - name: "SSR Search Load Test"
+    weight: 20
+    flow:
+      - loop:
+          - get:
+              url: "/mtg/search"
+              qs:
+                q: "{{ $randomString() }}"
+                page: "1"
+          - think: 2
+        count: 2
+
+# Custom functions for random data
+functions:
+  randomString: |
+    function() {
+      const prefixes = ['light', 'black', 'blue', 'red', 'green', 'white', 'art', 'plan', 'cre', 'inst'];
+      return prefixes[Math.floor(Math.random() * prefixes.length)];
+    }

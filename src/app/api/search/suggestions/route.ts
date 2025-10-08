@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchSuggestions } from '@/services/searchQuery'
-import { cacheGetJSON, cacheSetJSON } from '@/lib/cache'
+import { cacheGetJSON, cacheSetJSON, buildCacheKey } from '@/lib/cache'
+import { recordMetric } from '@/app/api/health/route'
 import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  const t0 = Date.now()
   try {
     const { searchParams } = new URL(req.url)
     
@@ -20,8 +22,7 @@ export async function GET(req: NextRequest) {
     }
     
     // More granular cache key for better hit rates
-    const normalizedQuery = q.trim().toLowerCase()
-    const key = `suggestions:${game}:${lang}:${normalizedQuery}:${limit}`
+    const key = buildCacheKey({ type: 'suggestions', q: q.trim().toLowerCase(), game, lang, limit })
     const ttl = 1800 // 30 minutes cache (suggestions change infrequently)
     
     try {
@@ -34,6 +35,7 @@ export async function GET(req: NextRequest) {
     const result = await searchSuggestions({ q, limit, game, lang: lang as 'en' | 'all' })
     
     cacheSetJSON(key, result, ttl).catch(() => {})
+    recordMetric('/api/search/suggestions', Date.now() - t0)
     
     return NextResponse.json(result, { 
       headers: { 
@@ -42,6 +44,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (err) {
     console.error('[search:suggestions] failed', err)
+    recordMetric('/api/search/suggestions', Date.now() - t0, true)
     return NextResponse.json({ error: 'failed' }, { status: 500 })
   }
 }
