@@ -45,8 +45,11 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
   const searchParams = useSearchParams()
   const [submitting, setSubmitting] = useState(false)
   const [isFocused, setIsFocused] = useState(false)
+  const [isUserTyping, setIsUserTyping] = useState(false)
   const [aborter, setAborter] = useState<AbortController | null>(null)
-  const [panelStyle, setPanelStyle] = useState<{ left: number; top: number; width: number; maxHeight: number }>({ left: 0, top: 0, width: 0, maxHeight: 320 })
+  const [panelStyle, setPanelStyle] = useState<{ left: number; top: number; width: number; maxHeight: number }>({ left: 0, top: 0, width: 0, maxHeight: 280 })
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const openRef = useRef(false)
 
   function normalizeSubmitQuery(text: string): string {
     // Preserve user casing as typed, but normalize internal spacing/diacritics
@@ -87,60 +90,81 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
     if (typeof qp === 'string') {
       const shown = qp.replace(/\+/g, ' ')
       setQuery(shown)
+      // Use a small delay to ensure this runs after any auto-focus
+      setTimeout(() => {
+        setIsUserTyping(false) // Mark as not user typing when syncing from URL
+      }, 0)
     }
   }, [searchParams])
 
   // Separate effect for search suggestions - only runs when query changes
   useEffect(() => {
     const qTrim = query.trim()
-    const shouldFetch = isFocused && open && qTrim.length >= 2 && !submitting
+    const shouldFetch = qTrim.length >= 2 && !submitting && isUserTyping
     if (!shouldFetch) {
-      setLoading(false)
+      if (qTrim.length < 2 || !isUserTyping) {
+        setLoading(false)
+        setItems([])
+        setOpen(false)
+        openRef.current = false
+      }
       return
     }
     setLoading(true)
-    const controller = new AbortController()
-    setAborter(controller)
-    const t = setTimeout(async () => {
+    
+    // Clear any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current)
+    }
+    
+    fetchTimeoutRef.current = setTimeout(async () => {
       try {
-        const url = new URL('/api/search', window.location.origin)
+        const url = new URL('/api/search/suggestions', window.location.origin)
         url.searchParams.set('q', qTrim)
-        url.searchParams.set('page', '1')
         url.searchParams.set('limit', '10')
-        const cacheKey = JSON.stringify({ q: qTrim, page: 1, limit: 10 })
-        const res = await fetch(url.toString(), { signal: controller.signal, headers: { 'accept': 'application/json', 'x-cache-key': cacheKey } })
+        const cacheKey = JSON.stringify({ q: qTrim, limit: 10, type: 'suggestions' })
+        const res = await fetch(url.toString(), { headers: { 'accept': 'application/json', 'x-cache-key': cacheKey } })
         if (res.ok) {
           const json = await res.json()
-          const primary: any[] = Array.isArray(json?.primary) ? json.primary : []
-          const other: any[] = Array.isArray(json?.otherNameMatches) ? json.otherNameMatches : []
-          const merged = [...primary, ...other].slice(0, 10)
-          const mapped: ApiItem[] = merged.map((i: any) => ({
-            kind: 'printing', id: i.id, groupId: i.groupId, game: 'mtg', title: i.title,
+          const suggestions: any[] = Array.isArray(json) ? json : []
+          const mapped: ApiItem[] = suggestions.map((i: any) => ({
+            kind: i.kind || 'printing', id: i.id, groupId: i.groupId, game: i.game || 'mtg', title: i.title,
             subtitle: i.subtitle, imageNormalUrl: i.imageNormalUrl, setCode: i.setCode, setName: i.setName,
             collectorNumber: i.collectorNumber, finishLabel: i.finishLabel ?? null, variantLabel: i.variantLabel ?? null,
+            variantSuffix: i.variantSuffix ?? null,
           }))
           setItems(mapped)
-          setOpen(isFocused && mapped.length > 0)
+          setOpen(mapped.length > 0)
+          openRef.current = mapped.length > 0
           setHighlight(0)
         } else {
           setItems([])
           setOpen(false)
+          openRef.current = false
         }
-      } catch {
-        // ignore
+      } catch (error) {
       } finally {
         setLoading(false)
       }
     }, 300)
-    return () => { clearTimeout(t); controller.abort() }
-  }, [query, open, isFocused, submitting])
+    
+    return () => { 
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+        fetchTimeoutRef.current = null
+      }
+    }
+  }, [query, submitting, pathname, isUserTyping])
 
-  // Close dropdown on route change (pathname or search params change)
+  // Close dropdown on route change (pathname change only)
   useEffect(() => {
     setOpen(false)
+    openRef.current = false
     setIsFocused(false)
+    setLoading(false)
+    setItems([])
     aborter?.abort()
-  }, [pathname, searchParams, aborter])
+  }, [pathname, aborter])
 
   // Close on outside click or scroll
   useEffect(() => {
@@ -172,12 +196,15 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
       const viewportSpace = window.innerHeight - inputBottom - 8
       const filterEl = document.getElementById('search-filter-bar')
       let filterSpace = Number.POSITIVE_INFINITY
+      let minHeight = 280
       if (filterEl) {
         const fr = filterEl.getBoundingClientRect()
         const filterTop = fr.top
         filterSpace = Math.max(0, filterTop - inputBottom - 8)
+        // Increase minimum height when filter bar is present
+        minHeight = 240
       }
-      const maxHeight = Math.max(0, Math.min(360, viewportSpace, filterSpace)) || 240
+      const maxHeight = Math.max(minHeight, Math.min(320, viewportSpace, filterSpace, window.innerHeight * 0.5))
       setPanelStyle({ left, top: inputBottom + 4, width, maxHeight })
     }
     const onResize = () => { window.requestAnimationFrame(reposition) }
@@ -198,8 +225,8 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
-      // If a suggestion is highlighted, consume Enter and submit that title.
-      if (open && items.length > 0 && items[highlight]) {
+      // If a suggestion is highlighted AND the user has navigated through suggestions, submit that title.
+      if (open && items.length > 0 && items[highlight] && highlight > 0) {
         e.preventDefault()
         handleSearchSubmit('enter', items[highlight].title)
         return
@@ -264,10 +291,29 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
           aria-expanded={open}
           aria-autocomplete="list"
           value={query}
-          onChange={(e) => { if (process.env.NODE_ENV === 'development') console.debug('[search] input', e.target.value); setQuery(e.target.value); setOpen(true) }}
+          onChange={(e) => { 
+            if (process.env.NODE_ENV === 'development') console.debug('[search] input', e.target.value); 
+            setQuery(e.target.value); 
+            setIsUserTyping(true); // Mark as user typing
+            setOpen(true); 
+            openRef.current = true 
+          }}
           onKeyDown={onKeyDown}
-          onFocus={() => { setIsFocused(true); if (query.trim().length >= 2 && items.length) setOpen(true) }}
-          onBlur={() => { setIsFocused(false) }}
+          onFocus={() => { 
+            setIsFocused(true); 
+            if (query.trim().length >= 2 && isUserTyping) { 
+              setOpen(true); 
+              openRef.current = true 
+            } 
+          }}
+          onBlur={() => { 
+            setTimeout(() => {
+              // Only set isFocused to false if the dropdown is not open
+              if (!openRef.current) {
+                setIsFocused(false)
+              }
+            }, 100) 
+          }}
         />
         <button type="submit" className="btn btn-gradient transition-soft" aria-label="Search" disabled={!query.trim() || submitting} style={{ opacity: submitting ? 0.95 : undefined }}>
           {submitting ? <Spinner size="sm" /> : 'Search'}
@@ -288,15 +334,15 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
               width: panelStyle.width,
               maxHeight: panelStyle.maxHeight,
               overflowY: 'auto',
-              background: 'var(--card)',
-              border: '1px solid var(--border)'
+              background: 'var(--card, #fff)',
+              border: '1px solid var(--border, #ddd)'
             }}
           >
-            <li className="px-3 py-1 text-[11px]" style={{ color: 'var(--mutedText)', borderBottom: '1px solid var(--divider)' }}>
+            <li className="px-3 py-1" style={{ fontSize: '11px', color: 'var(--mutedText, #666)', borderBottom: '1px solid var(--divider, #ddd)' }}>
               in Magic: The Gathering
             </li>
             {items.length === 0 && !loading && (
-              <li className="px-3 py-2 text-sm text-zinc-500">No results</li>
+              <li className="px-3 py-2 text-zinc-500" style={{ fontSize: '14px' }}>No results</li>
             )}
             {items.map((item, idx) => (
               <li
@@ -308,27 +354,34 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
                 onMouseEnter={() => setHighlight(idx)}
                 onMouseDown={(e) => { e.preventDefault(); select(item) }}
               >
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">
-                    {(() => {
-                      return item.variantSuffix ? `${item.title}${item.variantSuffix}` : item.title
-                    })()}
-                  </div>
-                  <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
-                    {(() => {
-                      const c = fmtCollector(item.collectorNumber as any)
-                      const left = item.setName || item.setCode || ''
-                      return [left, c ? `#${c}` : null].filter(Boolean).join(' · ')
-                    })()}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {item.imageNormalUrl && <img src={item.imageNormalUrl} alt={item.title} className="w-6 h-6 object-cover rounded flex-shrink-0" />}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate" style={{ fontSize: '14px', fontWeight: '500', lineHeight: '1.2' }}>
+                      {item.variantSuffix ? `${item.title}${item.variantSuffix}` : item.title}
+                    </div>
+                    <div className="truncate" style={{ fontSize: '11px', color: 'var(--mutedText, #666)', lineHeight: '1.2' }}>
+                      {(() => {
+                        const c = fmtCollector(item.collectorNumber as any)
+                        const setName = item.setName || ''
+                        return [setName, c ? `#${c}` : null].filter(Boolean).join(' · ')
+                      })()}
+                    </div>
                   </div>
                 </div>
-                {item.setCode ? (
-                  <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>{(item.setCode || '').toUpperCase()}</span>
-                ) : null}
+                {item.setCode && (
+                  <div className="ml-2 px-1.5 py-0.5 rounded text-xs font-bold flex-shrink-0" style={{ 
+                    fontSize: '10px', 
+                    background: 'var(--primarySoft, #e0e7ff)', 
+                    color: 'var(--primary, #3b82f6)' 
+                  }}>
+                    {item.setCode.toUpperCase()}
+                  </div>
+                )}
               </li>
             ))}
             {loading && (
-              <li className="px-3 py-2 text-sm flex items-center gap-2" style={{ color: 'var(--mutedText)' }}>
+              <li className="px-3 py-2 flex items-center gap-2" style={{ color: 'var(--mutedText)', fontSize: '14px' }}>
                 <Spinner size="sm" />
                 <span>Searching...</span>
               </li>

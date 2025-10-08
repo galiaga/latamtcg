@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { groupedSearch } from '@/services/searchQueryGrouped'
+import { groupedSearch } from '@/services/searchQueryGroupedSimple'
 
 describe('variantSuffix Integration Test', () => {
   it('should return variantSuffix in search results', async () => {
