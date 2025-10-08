@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
 import { formatUsd } from '@/lib/format'
+import { buildCacheKey } from '@/lib/cache'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import SkeletonCard from './SkeletonCard'
 import Spinner from './Spinner'
@@ -136,7 +137,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     const rarity = searchParams?.getAll('rarity') || []
     const sets = (searchParams?.getAll('set') || []).map((s) => String(s).toUpperCase())
     const sort = String(searchParams?.get('sort') || 'relevance')
-    const cacheKey = JSON.stringify({ q, page: pageParam, printing: printing.slice().sort(), rarity: rarity.slice().sort(), sets: sets.slice().sort(), sort })
+    const cacheKey = buildCacheKey({ q, page: pageParam, printing: printing.slice().sort(), rarity: rarity.slice().sort(), sets: sets.slice().sort(), sort })
     if (initialKey && initialData && cacheKey === initialKey) {
       if (process.env.NODE_ENV !== 'production') console.debug('[search] mount fetch suppressed (SSR data reused)', { cacheKey })
       // Hydrate state from SSR payload immediately and skip client fetch
