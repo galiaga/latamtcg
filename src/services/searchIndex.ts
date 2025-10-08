@@ -13,6 +13,32 @@ function normalizeForKeywords(input: string): string {
     .trim()
 }
 
+function shouldOverrideFinishToStandard(finishLabel: string | null, priceUsdFoil: number | null): boolean {
+  if (!finishLabel) return false
+  
+  // List of special finishes that require priceUsdFoil to be valid
+  const specialFinishes = [
+    'Surge Foil', 'Etched', 'Halo', 'Gilded', 'Textured', 'Rainbow', 
+    'Step-and-Compleat', 'Mana Foil', 'Serialized', 'Double Rainbow',
+    'Surge Foil', 'Etched Foil', 'Halo Foil', 'Gilded Foil', 'Textured Foil'
+  ]
+  
+  // Check if this is a special finish
+  const isSpecialFinish = specialFinishes.some(finish => 
+    finishLabel.toLowerCase().includes(finish.toLowerCase())
+  )
+  
+  // If it's a special finish but no foil price, override to Standard
+  return isSpecialFinish && !priceUsdFoil
+}
+
+function getOverriddenFinishLabel(originalFinishLabel: string | null, priceUsdFoil: number | null): string | null {
+  if (shouldOverrideFinishToStandard(originalFinishLabel, priceUsdFoil)) {
+    return 'Standard'
+  }
+  return originalFinishLabel
+}
+
 function pickFinishLabel(finishes: string[], promoTypes: string[]): string | null {
   const variant = formatCardVariant({
     finishes: finishes || [],
@@ -102,6 +128,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
   const pageSize = 2000
   let skip = 0
   let totalInserted = 0
+  let reclassificationCount = 0
 
   // Clear existing index for the selected language scope to avoid duplicates
   await withRetries(async () => {
@@ -138,6 +165,9 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         lang: true,
         isPaper: true,
         releasedAt: true,
+        priceUsd: true,
+        priceUsdFoil: true,
+        priceUsdEtched: true,
       },
     })
 
@@ -145,7 +175,25 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
 
     const rows = cards.map((c) => {
       const title = String(c.name || '').replace(/\(Full Art\)/gi, '(Borderless)')
-      const finishLabel = pickFinishLabel(c.finishes || [], c.promoTypes || [])
+      const originalFinishLabel = pickFinishLabel(c.finishes || [], c.promoTypes || [])
+      const finishLabel = getOverriddenFinishLabel(originalFinishLabel, c.priceUsdFoil)
+      
+      // Log reclassifications for observability
+      if (originalFinishLabel && finishLabel !== originalFinishLabel) {
+        reclassificationCount++
+        console.log(JSON.stringify({
+          event: 'finish.reclassification',
+          scryfallId: c.scryfallId,
+          setCode: c.setCode,
+          collectorNumber: c.collectorNumber,
+          originalFinish: originalFinishLabel,
+          overriddenFinish: finishLabel,
+          reason: 'missing_priceUsdFoil',
+          hasPriceUsd: !!c.priceUsd,
+          hasPriceUsdFoil: !!c.priceUsdFoil
+        }))
+      }
+      
       const variantLabel = variantFromTags(c.frameEffects || [], c.promoTypes || [], c.setCode, c.fullArt)
       
       // Generate the complete variant suffix using formatCardVariant
@@ -155,6 +203,35 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         frameEffects: c.frameEffects || [],
         borderColor: c.borderColor
       })
+      
+      // Override variant suffix if finish was reclassified to Standard
+      let variantSuffix = variant.suffix
+      if (finishLabel === 'Standard' && originalFinishLabel && originalFinishLabel !== 'Standard') {
+        // Remove special finish references from the suffix
+        const specialFinishPatterns = [
+          /\(Surge Foil\)/gi,
+          /\(Etched\)/gi,
+          /\(Halo\)/gi,
+          /\(Gilded\)/gi,
+          /\(Textured\)/gi,
+          /\(Rainbow\)/gi,
+          /\(Step-and-Compleat\)/gi,
+          /\(Mana Foil\)/gi,
+          /\(Serialized\)/gi,
+          /\(Double Rainbow\)/gi,
+          /\(Etched Foil\)/gi,
+          /\(Halo Foil\)/gi,
+          /\(Gilded Foil\)/gi,
+          /\(Textured Foil\)/gi
+        ]
+        
+        variantSuffix = specialFinishPatterns.reduce((suffix, pattern) => {
+          return suffix.replace(pattern, '').trim()
+        }, variant.suffix)
+        
+        // Clean up any double spaces or trailing/leading spaces
+        variantSuffix = variantSuffix.replace(/\s+/g, ' ').trim()
+      }
       
       const subtitle = buildSubtitle(c.setCode, null, c.collectorNumber)
       const keywordsText = buildKeywords({
@@ -169,6 +246,16 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
       const recency = c.releasedAt ? c.releasedAt.getTime() / 1_000_000_000 : 0
       const finishPref = finishLabel === 'Nonfoil' ? 1.0 : finishLabel === 'Foil' ? 0.9 : finishLabel ? 0.8 : 0.5
       const sortScore = recency + finishPref
+      // Generate precomputed sort keys
+      const fullDisplayName = title + (variant.suffix || '')
+      const nameSortKey = fullDisplayName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      
       return {
         id: c.scryfallId,
         groupId: c.oracleId,
@@ -178,7 +265,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         keywordsText,
         finishLabel: finishLabel ?? null,
         variantLabel: variantLabel ?? null,
-        variantSuffix: variant.suffix,
+        variantSuffix: variantSuffix,
         lang: c.lang,
         isPaper: Boolean(c.isPaper),
         releasedAt: c.releasedAt ?? null,
@@ -188,6 +275,8 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         collectorNumber: c.collectorNumber,
         imageNormalUrl: c.scryfallId ? getScryfallNormalUrl(c.scryfallId) : null,
         name: title,
+        nameSortKey: nameSortKey,
+        nameSortKeyDesc: nameSortKey, // Same key, will be sorted DESC in queries
       }
     })
 
@@ -211,6 +300,16 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
   })
   
   console.log(`[rebuildSearchIndex] Total rows: ${totalRows}, With suffix: ${withSuffix}`)
+  
+  // Log reclassification metrics
+  if (reclassificationCount > 0) {
+    console.log(JSON.stringify({
+      event: 'finish.reclassification.metrics',
+      totalReclassified: reclassificationCount,
+      totalRows: totalRows,
+      reclassificationRate: (reclassificationCount / totalRows * 100).toFixed(2) + '%'
+    }))
+  }
   
   return { inserted: totalInserted }
 }

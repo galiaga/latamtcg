@@ -1,5 +1,73 @@
 # Changelog
 
+## v0.18.0 — 2025-01-27
+### Features
+- **Special Finish Reclassification System**:
+  - Cards with special finishes (Surge Foil, Etched, Halo, Gilded, etc.) are now automatically reclassified to Standard when `priceUsdFoil` is missing
+  - Reclassified cards appear as Standard in search results and autocomplete without special finish suffixes
+  - Cards are sellable using `priceUsd` instead of `priceUsdFoil` when reclassified
+  - System automatically restores special finish classification if `priceUsdFoil` becomes available later
+- **Deterministic A–Z / Z–A Name Sorting**:
+  - Implemented precomputed sort keys (`nameSortKey`, `nameSortKeyDesc`) for consistent alphabetical sorting
+  - Added "Name: A → Z" and "Name: Z → A" sorting options to search results
+  - Sorting applies globally across all search results before pagination
+  - Names are normalized (lowercase, unaccent, remove punctuation, collapse spaces) for consistent ordering
+  - Secondary sorting by release date, set code, and collector number ensures stable pagination
+
+### Technical Improvements
+- **Search Index Enhancements**:
+  - Added `nameSortKey` and `nameSortKeyDesc` columns to SearchIndex for precomputed sorting
+  - Enhanced SearchIndex rebuild process to populate sort keys during indexing
+  - Added comprehensive observability logging for reclassifications and sorting operations
+- **Search Query Optimization**:
+  - Unified `buildOrderByClause` function for consistent sorting across all search paths
+  - Updated all search functions (exact, starts-with, contains, fuzzy) to use precomputed sort keys
+  - Enhanced search grouping to properly handle reclassified cards
+- **UI/UX Improvements**:
+  - Search results now display total count ("Showing X of Y results")
+  - Sort dropdown includes new alphabetical options with clear labels
+  - Reclassified cards show clean names without special finish badges
+
+### Observability & Metrics
+- **Reclassification Tracking**:
+  - Detailed logging for each reclassified card (original finish, overridden finish, reason)
+  - Metrics showing total reclassified items (1,248 cards, 1.39% of all cards)
+  - Comprehensive audit trail for special finish handling
+- **Sorting Observability**:
+  - Logging of sort parameters and ORDER BY clauses used
+  - Performance metrics for sorting operations
+  - Cache hit/miss tracking for different sort options
+
+### Fixes
+- **Search Consistency**:
+  - Fixed edge case where searching for "Ajani, Nacatl" returned 3 results instead of 4
+  - Resolved search results count discrepancy (DB vs App) by ensuring complete SearchIndex population
+  - Fixed pagination stability with deterministic sorting
+- **Special Finish Handling**:
+  - FIC Surge Foil cards (e.g., FIC-282) now correctly appear as Standard when no foil price exists
+  - Special finish suffixes are properly removed from display names for reclassified items
+  - Cards with valid foil prices maintain their special finish classification
+
+### Performance
+- **Precomputed Sorting**:
+  - Eliminated runtime normalization overhead by precomputing sort keys
+  - Improved search performance with indexed sort key columns
+  - Enhanced cache efficiency with sort-aware cache keys
+- **Search Index Optimization**:
+  - Streamlined SearchIndex rebuild process with parallel processing
+  - Added database indexes for sort key columns
+  - Optimized variant suffix generation and cleaning
+
+### Refactors / Chore
+- **Code Organization**:
+  - Centralized finish reclassification logic in SearchIndex rebuild process
+  - Unified sorting logic across all search query functions
+  - Enhanced type safety with proper SortOption validation
+- **Database Schema**:
+  - Added `nameSortKey` and `nameSortKeyDesc` columns to SearchIndex model
+  - Updated Prisma schema and regenerated client
+  - Added database indexes for sort key performance
+
 ## v0.17.0 — 2025-01-27
 ### Infrastructure & Reliability
 - **Horizontal Scaling Infrastructure**: Complete production-ready scaling implementation
