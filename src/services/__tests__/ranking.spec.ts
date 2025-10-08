@@ -46,8 +46,8 @@ maybe('ranking and facets (integration)', () => {
     expect(t0.startsWith('ajani')).toBe(true)
   })
 
-  it('sort=name is alphabetical', async () => {
-    const res = await groupedSearch({ q: 'ajani', page: 1, pageSize: 10, sort: 'name' })
+  it('sort=name_asc is alphabetical', async () => {
+    const res = await groupedSearch({ q: 'ajani', page: 1, pageSize: 10, sort: 'name_asc' })
     const titles = (res.primary || []).map((i: any) => String(i.title || ''))
     const sorted = [...titles].sort((a, b) => a.localeCompare(b))
     expect(titles.slice(0, 5)).toEqual(sorted.slice(0, 5))

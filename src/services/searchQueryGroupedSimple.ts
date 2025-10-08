@@ -34,10 +34,44 @@ function normalize(q: string): string {
     .trim()
 }
 
+function buildOrderByClause(sort: SortOption): Prisma.Sql {
+  switch (sort) {
+    case 'name_asc':
+      return Prisma.sql`si."nameSortKey" ASC NULLS LAST, si."releasedAt" DESC NULLS LAST, si."setCode" ASC NULLS LAST, si."collectorNumber" ASC NULLS LAST`
+    case 'name_desc':
+      return Prisma.sql`si."nameSortKeyDesc" DESC NULLS LAST, si."releasedAt" DESC NULLS LAST, si."setCode" ASC NULLS LAST, si."collectorNumber" ASC NULLS LAST`
+    case 'price_asc':
+      return Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) ASC NULLS LAST`
+    case 'price_desc':
+      return Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) DESC NULLS LAST`
+    case 'release_desc':
+      return Prisma.sql`si."releasedAt" DESC NULLS LAST`
+    default:
+      return Prisma.sql`score DESC, si."releasedAt" DESC NULLS LAST`
+  }
+}
+
 export async function groupedSearch(params: GroupedParams): Promise<GroupedResult> {
   const page = Math.max(1, params.page || 1)
   const pageSize = Math.min(25, Math.max(1, params.pageSize || 25))
   const sort = parseSortParam(params.sort || 'relevance')
+  
+  // Log sorting information for observability
+  const orderByUsed = sort === 'name_asc' ? 'nameSortKey' : 
+                     sort === 'name_desc' ? 'nameSortKeyDesc' : 
+                     sort === 'price_asc' ? 'priceUsd_asc' :
+                     sort === 'price_desc' ? 'priceUsd_desc' :
+                     sort === 'release_desc' ? 'releasedAt_desc' : 'relevance'
+  
+  try {
+    console.log(JSON.stringify({
+      event: 'search.sorting',
+      q: params.q,
+      sort: sort,
+      orderByUsed: orderByUsed,
+      path: 'groupedSearch'
+    }))
+  } catch {}
   const groupId = (params.groupId || '').trim()
   
   // Allow empty query when filters (like set) are provided
@@ -94,6 +128,11 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
       Prisma.sql`unaccent(lower(si.title)) ~* ${'\\m' + token}`
     )
     
+    // Also try contains matching for better coverage of multi-word queries
+    const containsConditions = queryTokens.map(token => 
+      Prisma.sql`unaccent(lower(si.title)) ~* ${token}`
+    )
+    
     try {
       itemsRaw = await prisma.$queryRaw(
         Prisma.sql`
@@ -117,7 +156,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
           JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
           LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
           WHERE si.game = 'mtg' AND si."isPaper" = true
-            AND (${Prisma.join(wordBoundaryConditions, ' AND ')})
+            AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
             ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
             ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
             ${printing.length > 0 ? Prisma.sql`AND (
@@ -128,11 +167,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
             ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
             ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
             ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
-          ORDER BY 
-            ${sort === 'price_asc' ? Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) ASC NULLS LAST` : 
-             sort === 'price_desc' ? Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) DESC NULLS LAST` :
-             sort === 'release_desc' ? Prisma.sql`si."releasedAt" DESC NULLS LAST` :
-             Prisma.sql`score DESC, si."releasedAt" DESC NULLS LAST`}
+          ORDER BY ${buildOrderByClause(sort)}
           LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
         `
       )
@@ -176,10 +211,7 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
               ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
             ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
             ORDER BY 
-            ${sort === 'price_asc' ? Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) ASC NULLS LAST` : 
-             sort === 'price_desc' ? Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) DESC NULLS LAST` :
-             sort === 'release_desc' ? Prisma.sql`si."releasedAt" DESC NULLS LAST` :
-             Prisma.sql`score DESC, si."releasedAt" DESC NULLS LAST`}
+            ${buildOrderByClause(sort)}
             LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
           `
         )
@@ -240,13 +272,17 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
         Prisma.sql`unaccent(lower(si.title)) ~* ${'\\m' + token}`
       )
       
+      const containsConditions = queryTokens.map(token =>
+        Prisma.sql`unaccent(lower(si.title)) ~* ${token}`
+      )
+      
       const countResult = await prisma.$queryRaw(
         Prisma.sql`
           SELECT COUNT(*) as count
           FROM "public"."SearchIndex" si
           JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
           WHERE si.game = 'mtg' AND si."isPaper" = true
-            AND (${Prisma.join(wordBoundaryConditions, ' AND ')})
+            AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
             ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
             ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
             ${printing.length > 0 ? Prisma.sql`AND (
@@ -311,11 +347,7 @@ async function searchExactMatchesGrouped({ qClean, groupId, setList, printing, r
         ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
         ${printing.length > 0 ? Prisma.sql`AND mc.finishes && ${printing}` : Prisma.sql``}
         ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
-      ORDER BY 
-        ${sort === 'price_asc' ? Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) ASC NULLS LAST` : 
-         sort === 'price_desc' ? Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) DESC NULLS LAST` :
-         sort === 'release_desc' ? Prisma.sql`si."releasedAt" DESC NULLS LAST` :
-         Prisma.sql`si."releasedAt" DESC NULLS LAST`}
+      ORDER BY ${buildOrderByClause(sort)}
       LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
     `
   )
@@ -356,7 +388,8 @@ async function searchStartsWithMatchesGrouped({ tokens, groupId, setList, printi
         )
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
         ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
-      ORDER BY score DESC, si."releasedAt" DESC NULLS LAST
+      ORDER BY 
+        ${buildOrderByClause(sort)}
       LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
     `
   )
@@ -391,7 +424,8 @@ async function searchContainsMatchesGrouped({ tokens, groupId, setList, printing
         ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
         ${printing.length > 0 ? Prisma.sql`AND mc.finishes && ${printing}` : Prisma.sql``}
         ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
-      ORDER BY score DESC, si."releasedAt" DESC NULLS LAST
+      ORDER BY 
+        ${buildOrderByClause(sort)}
       LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
     `
   )
@@ -426,7 +460,8 @@ async function searchFuzzyMatchesGrouped({ tokens, groupId, setList, printing, r
         ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
         ${printing.length > 0 ? Prisma.sql`AND mc.finishes && ${printing}` : Prisma.sql``}
         ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
-      ORDER BY score DESC, si."releasedAt" DESC NULLS LAST
+      ORDER BY 
+        ${buildOrderByClause(sort)}
       LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
     `
   )
