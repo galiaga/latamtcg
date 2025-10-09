@@ -152,7 +152,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
           {data.id ? (
             <TwoSidedImage scryfallId={data.id} alt={data.name} mode="large" className="w-full" />
           ) : (
-            <div className="relative aspect-[63/88] w-full rounded-2xl border overflow-hidden skeleton" style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)' }} />
+            <div className="relative aspect-[63/88] w-full rounded-xl border overflow-hidden skeleton" style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)' }} />
           )}
           <div className="mt-2 text-xs" style={{ color: 'var(--mutedText)' }}>
             Data & Images © Scryfall

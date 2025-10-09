@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCart } from './CartProvider'
 import Spinner from './Spinner'
 
-export default function AddToCartButton({ printingId, size = 'md' }: { printingId: string; size?: 'sm' | 'md' | 'lg' }) {
+export default function AddToCartButton({ printingId, size = 'md' }: { printingId: string; size?: 'sm' | 'md' | 'lg' | 'xs' }) {
   const [adding, setAdding] = useState(false)
   const [ok, setOk] = useState(false)
   const { mutate, addOptimisticThenReconcile } = useCart()
@@ -54,7 +54,10 @@ export default function AddToCartButton({ printingId, size = 'md' }: { printingI
     }
   }, [printingId, addOptimisticThenReconcile, mutate])
 
-  const className = size === 'sm' ? 'btn btn-sm btn-gradient' : size === 'lg' ? 'btn btn-lg btn-gradient' : 'btn btn-gradient'
+  const className = size === 'xs' ? 'inline-flex items-center justify-center text-xs leading-none px-2 py-1 h-5 btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
+                    size === 'sm' ? 'btn btn-sm btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
+                    size === 'lg' ? 'btn btn-lg btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
+                    'btn btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200'
 
   return (
     <button type="button" className={className} disabled={adding} aria-disabled={adding} onClick={add} aria-busy={adding}>

@@ -71,9 +71,9 @@ function normalize(q: string): string {
 function buildOrderByClause(sort: SortOption): Prisma.Sql {
   switch (sort) {
     case 'name_asc':
-      return Prisma.sql`si."nameSortKey" ASC NULLS LAST, si."releasedAt" DESC NULLS LAST, si."setCode" ASC NULLS LAST, si."collectorNumber" ASC NULLS LAST`
+      return Prisma.sql`si.title ASC NULLS LAST, si."releasedAt" DESC NULLS LAST, si."setCode" ASC NULLS LAST, si."collectorNumber" ASC NULLS LAST`
     case 'name_desc':
-      return Prisma.sql`si."nameSortKeyDesc" DESC NULLS LAST, si."releasedAt" DESC NULLS LAST, si."setCode" ASC NULLS LAST, si."collectorNumber" ASC NULLS LAST`
+      return Prisma.sql`si.title DESC NULLS LAST, si."releasedAt" DESC NULLS LAST, si."setCode" ASC NULLS LAST, si."collectorNumber" ASC NULLS LAST`
     case 'price_asc':
       return Prisma.sql`COALESCE(mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched") ASC NULLS LAST`
     case 'price_desc':
