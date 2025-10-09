@@ -5,6 +5,7 @@ import { parseSortParam } from '@/search/sort'
 import { Prisma } from '@prisma/client'
 import type { SearchResult, SearchResultItem, SearchFacets } from '@/types/search'
 import { buildFacetsOptimized } from './facetsOptimized'
+import { optimizedSearch, optimizedFacets } from './searchOptimized'
 
 // Helper function to safely create ANY() conditions
 function safeAnyCondition<T>(array: T[], column: string, transform?: (val: T) => string): Prisma.Sql {
@@ -84,7 +85,114 @@ function buildOrderByClause(sort: SortOption): Prisma.Sql {
   }
 }
 
-export async function groupedSearch(params: GroupedParams): Promise<GroupedResult> {
+// Optimized grouped search function with improved performance
+export async function groupedSearchOptimized(params: GroupedParams): Promise<GroupedResult> {
+  const page = Math.max(1, params.page || 1)
+  const pageSize = Math.min(25, Math.max(1, params.pageSize || 25))
+  const sort = parseSortParam(params.sort || 'relevance')
+  
+  const groupId = (params.groupId || '').trim()
+  const printing = Array.isArray(params.printing) ? params.printing : []
+  const rarity = Array.isArray(params.rarity) ? params.rarity : []
+  const setList = Array.isArray(params.sets) ? params.sets.filter(Boolean).map((s) => s.toUpperCase()) : []
+  const showUnavailable = Boolean(params.showUnavailable)
+
+  // Parse query for exact mode and tokens
+  const isExactOnly = params.exactOnly || (params.q?.startsWith('"') && params.q?.endsWith('"'))
+  const query = isExactOnly && params.q?.startsWith('"') ?
+    params.q.slice(1, -1).trim() : params.q || ''
+  
+  const queryTokens = query.length > 0 ? 
+    query.toLowerCase().split(/\s+/).filter(t => t.length > 0) : []
+
+  const t0 = Date.now()
+  
+  try {
+    // Use optimized search for better performance
+    const searchResult = await optimizedSearch({
+      queryTokens,
+      groupId,
+      setList,
+      printing,
+      rarity,
+      showUnavailable,
+      page,
+      pageSize,
+      sort
+    })
+
+    const t1 = Date.now()
+    
+    // Convert to expected format
+    const items: SearchResultItem[] = searchResult.items.map((item) => ({
+      id: item.id,
+      groupId: item.groupId,
+      title: item.title,
+      subtitle: item.subtitle,
+      imageNormalUrl: item.imageNormalUrl,
+      setCode: item.setCode,
+      setName: item.setName,
+      collectorNumber: item.collectorNumber,
+      variantLabel: item.variantLabel,
+      finishLabel: item.finishLabel,
+      variantSuffix: item.variantSuffix,
+      releasedAt: item.releasedAt > 0 ? new Date(item.releasedAt * 1000).toISOString() : null,
+      priceUsd: item.priceUsd,
+      priceUsdFoil: item.priceUsdFoil,
+      priceUsdEtched: item.priceUsdEtched,
+      rarity: item.rarity,
+      hasNonfoil: item.hasNonfoil,
+      hasFoil: item.hasFoil,
+      hasEtched: item.hasEtched,
+    }))
+
+    // Compute facets using optimized implementation
+    const facets = await optimizedFacets(searchResult.candidateIds)
+    
+    const t2 = Date.now()
+    
+    // Log performance metrics
+    console.log(JSON.stringify({
+      event: 'search.perf',
+      q: params.q,
+      filters: { printing, sets: setList, rarity, groupId, sort },
+      timingsMs: {
+        total: t2 - t0,
+        db_items_ms: t1 - t0,
+        db_facets_ms: t2 - t1,
+        cache_ms: 0,
+        serialize_ms: 0
+      },
+      facets_count: {
+        sets: facets.sets.length,
+        rarity: facets.rarity.length,
+        printing: facets.printing.length
+      },
+      warn: (t2 - t0) > 700 ? 'slow' : undefined,
+    }))
+
+    return {
+      primary: items,
+      totalResults: searchResult.totalResults,
+      hasMore: searchResult.hasMore,
+      facets
+    }
+  } catch (error) {
+    console.error('Error in optimized grouped search:', error)
+    
+    // Fallback to original implementation
+    console.log(JSON.stringify({
+      event: 'search.fallback',
+      reason: 'optimized_search_failed',
+      error: String(error)
+    }))
+    
+    return groupedSearchOriginal(params)
+  }
+}
+
+// Original grouped search function (kept as fallback)
+export async function groupedSearchOriginal(params: GroupedParams): Promise<GroupedResult> {
   const page = Math.max(1, params.page || 1)
   const pageSize = Math.min(25, Math.max(1, params.pageSize || 25))
   const sort = parseSortParam(params.sort || 'relevance')
@@ -697,3 +805,9 @@ async function buildFacets({ queryTokens, groupId, setList, printing, rarity, fa
     }
   }
 }
+
+// Export the optimized version as the default groupedSearch function
+// Can be controlled via SEARCH_OPTIMIZATION_ENABLED environment variable
+const useOptimizedSearch = process.env.SEARCH_OPTIMIZATION_ENABLED !== 'false'
+
+export const groupedSearch = useOptimizedSearch ? groupedSearchOptimized : groupedSearchOriginal
