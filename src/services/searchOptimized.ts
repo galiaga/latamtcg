@@ -59,21 +59,13 @@ export interface OptimizedSearchResult {
 function buildOptimizedOrderByClause(sort: string, printing: string[] = []): Prisma.Sql {
   switch (sort) {
     case 'name_asc':
-      return Prisma.sql`"nameSortKey" ASC NULLS LAST`
+      return Prisma.sql`title ASC NULLS LAST`
     case 'name_desc':
-      return Prisma.sql`"nameSortKeyDesc" DESC NULLS LAST`
+      return Prisma.sql`title DESC NULLS LAST`
     case 'price_asc':
-      // Use foil price if filtering by foil, otherwise use regular price
-      if (printing.includes('foil') && !printing.includes('normal')) {
-        return Prisma.sql`"priceUsdFoil" ASC NULLS LAST, releasedAt DESC NULLS LAST`
-      }
-      return Prisma.sql`"priceUsd" ASC NULLS LAST, releasedAt DESC NULLS LAST`
+      return Prisma.sql`COALESCE("priceUsd", "priceUsdFoil", "priceUsdEtched") ASC NULLS LAST, releasedAt DESC NULLS LAST`
     case 'price_desc':
-      // Use foil price if filtering by foil, otherwise use regular price
-      if (printing.includes('foil') && !printing.includes('normal')) {
-        return Prisma.sql`"priceUsdFoil" DESC NULLS LAST, releasedAt DESC NULLS LAST`
-      }
-      return Prisma.sql`"priceUsd" DESC NULLS LAST, releasedAt DESC NULLS LAST`
+      return Prisma.sql`COALESCE("priceUsd", "priceUsdFoil", "priceUsdEtched") DESC NULLS LAST, releasedAt DESC NULLS LAST`
     case 'release_desc':
       return Prisma.sql`releasedAt DESC NULLS LAST`
     case 'relevance':
