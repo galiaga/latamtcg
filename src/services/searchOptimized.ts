@@ -56,15 +56,23 @@ export interface OptimizedSearchResult {
 }
 
 // Build optimized ORDER BY clause
-function buildOptimizedOrderByClause(sort: string): Prisma.Sql {
+function buildOptimizedOrderByClause(sort: string, printing: string[] = []): Prisma.Sql {
   switch (sort) {
     case 'name_asc':
       return Prisma.sql`"nameSortKey" ASC NULLS LAST`
     case 'name_desc':
       return Prisma.sql`"nameSortKeyDesc" DESC NULLS LAST`
     case 'price_asc':
+      // Use foil price if filtering by foil, otherwise use regular price
+      if (printing.includes('foil') && !printing.includes('normal')) {
+        return Prisma.sql`"priceUsdFoil" ASC NULLS LAST, releasedAt DESC NULLS LAST`
+      }
       return Prisma.sql`"priceUsd" ASC NULLS LAST, releasedAt DESC NULLS LAST`
     case 'price_desc':
+      // Use foil price if filtering by foil, otherwise use regular price
+      if (printing.includes('foil') && !printing.includes('normal')) {
+        return Prisma.sql`"priceUsdFoil" DESC NULLS LAST, releasedAt DESC NULLS LAST`
+      }
       return Prisma.sql`"priceUsd" DESC NULLS LAST, releasedAt DESC NULLS LAST`
     case 'release_desc':
       return Prisma.sql`releasedAt DESC NULLS LAST`
@@ -162,7 +170,7 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
             "setName", "collectorNumber", "variantLabel", "finishLabel", "variantSuffix",
             releasedAt, "priceUsd", "priceUsdFoil", "priceUsdEtched", rarity,
             hasNonfoil, hasFoil, hasEtched, score, total_count,
-            ROW_NUMBER() OVER(ORDER BY ${buildOptimizedOrderByClause(sort)}) AS row_number
+            ROW_NUMBER() OVER(ORDER BY ${buildOptimizedOrderByClause(sort, printing)}) AS row_number
           FROM search_results
         )
         SELECT 
@@ -172,7 +180,7 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
           hasNonfoil, hasFoil, hasEtched, score, total_count, row_number
         FROM paginated_results
         WHERE row_number BETWEEN ${(page - 1) * pageSize + 1} AND ${page * pageSize + 1}
-        ORDER BY ${buildOptimizedOrderByClause(sort)}
+        ORDER BY ${buildOptimizedOrderByClause(sort, printing)}
       `
     )
     
@@ -248,7 +256,7 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
           "setName", "collectorNumber", "variantLabel", "finishLabel", "variantSuffix",
           releasedAt, "priceUsd", "priceUsdFoil", "priceUsdEtched", rarity,
           hasNonfoil, hasFoil, hasEtched, score, total_count,
-          ROW_NUMBER() OVER(ORDER BY ${buildOptimizedOrderByClause(sort)}) AS row_number
+          ROW_NUMBER() OVER(ORDER BY ${buildOptimizedOrderByClause(sort, printing)}) AS row_number
         FROM search_results
       )
       SELECT 
@@ -258,7 +266,28 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
         hasNonfoil, hasFoil, hasEtched, score, total_count, row_number
       FROM paginated_results
       WHERE row_number BETWEEN ${(page - 1) * pageSize + 1} AND ${page * pageSize + 1}
-      ORDER BY ${buildOptimizedOrderByClause(sort)}
+      ORDER BY ${buildOptimizedOrderByClause(sort, printing)}
+    `
+  )
+
+  // Get all candidate IDs for facets computation (not just paginated results)
+  const allCandidatesResult = await prisma.$queryRaw<Array<{ id: string }>>(
+    Prisma.sql`
+      SELECT si.id
+      FROM "public"."SearchIndex" si
+      JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      WHERE si.game = 'mtg' AND si."isPaper" = true
+        ${searchConditions}
+        ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
+        ${safeUpperAnyCondition(setList, 'si."setCode"')}
+        ${printing.length > 0 ? Prisma.sql`AND (
+          ${printing.includes('normal') ? Prisma.sql`mc."priceUsd" IS NOT NULL` : Prisma.sql`false`}
+          ${printing.includes('foil') ? Prisma.sql`OR mc."priceUsdFoil" IS NOT NULL` : Prisma.sql``}
+          ${printing.includes('etched') ? Prisma.sql`OR mc."priceUsdEtched" IS NOT NULL` : Prisma.sql``}
+        )` : Prisma.sql``}
+        ${safeAnyCondition(rarity, 'mc.rarity')}
+        ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
+      LIMIT 3000
     `
   )
 
@@ -271,7 +300,7 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
   }))
   const hasMore = result.length > pageSize
   const totalResults = result.length > 0 ? Number(result[0].total_count) : 0
-  const candidateIds = result.map(r => r.id)
+  const candidateIds = allCandidatesResult.map(r => r.id)
 
   return {
     items,
