@@ -1,5 +1,6 @@
 import SearchResultsGrid from '@/components/SearchResultsGrid'
 import SafeClient from '@/components/SafeClient'
+import PopularCards from '@/components/PopularCards'
 import { groupedSearch } from '@/services/searchQueryGroupedSimple'
 import { parseSortParam } from '@/search/sort'
 import { buildCacheKey } from '@/lib/cache'
@@ -50,7 +51,11 @@ export default async function MtgSearchPage({ searchParams }: { searchParams: Pr
         <script dangerouslySetInnerHTML={{ __html: "try{performance.mark('mtg-search-hydrate-start')}catch(e){}" }} />
         <HydrationPerf />
         <SafeClient>
-          <SearchResultsGrid initialQuery={q} initialData={initialData} initialKey={initialKey} />
+          {hasAnyFilter ? (
+            <SearchResultsGrid initialQuery={q} initialData={initialData} initialKey={initialKey} />
+          ) : (
+            <PopularCards />
+          )}
         </SafeClient>
       </section>
     </div>
