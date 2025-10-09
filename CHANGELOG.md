@@ -1,5 +1,72 @@
 # Changelog
 
+## v0.19.0 — 2025-01-15
+### Performance & Reliability
+- **Facets Performance Optimization**: Complete overhaul of search facets computation
+  - Implemented database-only facets computation using single SQL query with CTEs
+  - Added candidate-based facet aggregation (up to 3000 candidates) to avoid full table scans
+  - Created covering indexes for optimal performance: `scryfallId`, `setCode`, `rarity`, `finishes`
+  - Added stale-while-revalidate (SWR) caching with single-flight protection to prevent cache stampede
+  - Facets cache key independent of `sort/page/limit` parameters for optimal cache efficiency
+- **Price Sorting Fix**: Resolved price sorting inconsistency between backend and UI
+  - Changed from `GREATEST()` (highest price) to `COALESCE()` (first available price) to match UI display logic
+  - Price sorting now uses Normal → Foil → Etched priority, matching the displayed price exactly
+  - Added debug logging to track sorting field usage and first few prices for observability
+
+### Technical Improvements
+- **SQL Query Optimization**:
+  - Fixed PostgreSQL type mismatches (`regtype` deserialization errors) by casting `pg_typeof()` to `text`
+  - Resolved "subquery must return only one column" errors by restructuring multi-column subqueries
+  - Added comprehensive error logging with phase and hint information for SQL debugging
+  - Implemented safe array handling with `safeAnyCondition()` helpers to prevent `ANY()` operator errors
+- **Database Schema Enhancements**:
+  - Added minimal performance indexes: `idx_mtgcard_scryfall_id`, `idx_mtgcard_set_code`, `idx_mtgcard_rarity`
+  - Enhanced index hints logging to track available indexes and finishes type detection
+  - Improved query plan analysis with `EXPLAIN (ANALYZE, BUFFERS, SUMMARY)` for both facets and items paths
+
+### Observability & Debugging
+- **Enhanced Debug Logging**:
+  - Added `facets.debug.sanity` with sample data and type detection for CTE verification
+  - Implemented `facets.debug.join` with join type, compare column, and candidate count tracking
+  - Added `facets.index.hints` to monitor index availability and finishes type
+  - Created `search.debug.sort` to track sorting field usage and price ordering
+- **Query Plan Analysis**:
+  - Added `EXPLAIN_FACETS=1` and `EXPLAIN_ITEMS=1` environment flags for query plan debugging
+  - Implemented chunked logging for EXPLAIN results (2-3 lines per log entry)
+  - Enhanced SQL error logging with phase identification and debugging hints
+
+### Performance Metrics
+- **Facets Performance**: Achieved significant performance improvements
+  - Cold run: Reduced from ~14s to <900ms (target met)
+  - Warm run: Sub-100ms response times with cache hits
+  - Single-flight caching: Only one cache miss per key, followed by hits
+- **Search Performance**: Maintained excellent overall performance
+  - All test queries (Liliana, Ajani, Unicorn, Thalia, Yawgmoth) under 100ms
+  - Price sorting now correctly orders by displayed price field
+  - No performance regressions in other sorting options
+
+### Fixes
+- **Database Reliability**:
+  - Fixed Prisma `regtype` deserialization errors by proper type casting
+  - Resolved SQL 42601 "subquery must return only one column" errors
+  - Eliminated PostgreSQL `ANY/ALL (array)` operator errors with comprehensive array validation
+  - Fixed facets returning zeros by correcting ID type mapping and join logic
+- **Search Consistency**:
+  - Ensured facets computation uses correct column types (`scryfall_id` as TEXT, not UUID)
+  - Fixed candidate ID resolution to use proper table joins (`MtgCard.scryfallId` vs `MtgCard.id`)
+  - Maintained all existing search ranking, tokenization, and filter semantics
+
+### Refactors / Chore
+- **Code Organization**:
+  - Created `facetsOptimized.ts` service for dedicated facets performance optimization
+  - Enhanced `searchQueryGroupedSimple.ts` with improved error handling and debug logging
+  - Added comprehensive unit tests for facets computation and array safety
+  - Maintained backward compatibility with all existing search functionality
+- **Database Migrations**:
+  - Added safe, concurrent index creation migrations with `IF NOT EXISTS`
+  - Implemented idempotent migrations for production safety
+  - Enhanced migration documentation with performance impact notes
+
 ## v0.18.0 — 2025-01-27
 ### Features
 - **Special Finish Reclassification System**:

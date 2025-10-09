@@ -4,6 +4,39 @@ import type { SortOption } from '@/search/sort'
 import { parseSortParam } from '@/search/sort'
 import { Prisma } from '@prisma/client'
 import type { SearchResult, SearchResultItem, SearchFacets } from '@/types/search'
+import { buildFacetsOptimized } from './facetsOptimized'
+
+// Helper function to safely create ANY() conditions
+function safeAnyCondition<T>(array: T[], column: string, transform?: (val: T) => string): Prisma.Sql {
+  if (!Array.isArray(array) || array.length === 0) {
+    return Prisma.sql``
+  }
+  
+  const validArray = array.filter(val => val != null && val !== '')
+  if (validArray.length === 0) {
+    return Prisma.sql``
+  }
+  
+  if (transform) {
+    return Prisma.sql`AND ${Prisma.raw(column)} = ANY(${validArray.map(transform)})`
+  }
+  
+  return Prisma.sql`AND ${Prisma.raw(column)} = ANY(${validArray})`
+}
+
+// Helper function to safely create upper() ANY() conditions
+function safeUpperAnyCondition(array: string[], column: string): Prisma.Sql {
+  if (!Array.isArray(array) || array.length === 0) {
+    return Prisma.sql``
+  }
+  
+  const validArray = array.filter(val => val != null && val !== '' && typeof val === 'string')
+  if (validArray.length === 0) {
+    return Prisma.sql``
+  }
+  
+  return Prisma.sql`AND upper(${Prisma.raw(column)}) = ANY(${validArray})`
+}
 
 type GroupedParams = {
   q: string
@@ -41,9 +74,9 @@ function buildOrderByClause(sort: SortOption): Prisma.Sql {
     case 'name_desc':
       return Prisma.sql`si."nameSortKeyDesc" DESC NULLS LAST, si."releasedAt" DESC NULLS LAST, si."setCode" ASC NULLS LAST, si."collectorNumber" ASC NULLS LAST`
     case 'price_asc':
-      return Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) ASC NULLS LAST`
+      return Prisma.sql`COALESCE(mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched") ASC NULLS LAST`
     case 'price_desc':
-      return Prisma.sql`GREATEST(COALESCE(mc."priceUsd", 0), COALESCE(mc."priceUsdFoil", 0), COALESCE(mc."priceUsdEtched", 0)) DESC NULLS LAST`
+      return Prisma.sql`COALESCE(mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched") DESC NULLS LAST`
     case 'release_desc':
       return Prisma.sql`si."releasedAt" DESC NULLS LAST`
     default:
@@ -134,6 +167,53 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     )
     
     try {
+      // Add EXPLAIN for items query if enabled
+      if (process.env.EXPLAIN_ITEMS === '1') {
+        const explainResult = await prisma.$queryRaw<Array<{query_plan: string}>>(
+          Prisma.sql`
+            EXPLAIN (ANALYZE, BUFFERS)
+            SELECT
+              si.id, si."groupId", si.title, si."subtitle", si."imageNormalUrl", si."setCode",
+              COALESCE(si."setName", s.set_name) AS "setName", si."collectorNumber",
+              si."variantLabel", si."finishLabel", si."variantSuffix",
+              COALESCE(EXTRACT(EPOCH FROM si."releasedAt"), 0) AS releasedAt,
+              mc."priceUsd",
+              mc."priceUsdFoil", 
+              mc."priceUsdEtched",
+              mc.rarity,
+              (CASE WHEN mc."priceUsd" IS NOT NULL THEN true ELSE false END) AS hasNonfoil,
+              (CASE WHEN mc."priceUsdFoil" IS NOT NULL THEN true ELSE false END) AS hasFoil,
+              (CASE WHEN mc."priceUsdEtched" IS NOT NULL THEN true ELSE false END) AS hasEtched,
+              (${queryTokens.length * 100} + 
+               CASE WHEN si.lang = 'en' THEN 1 ELSE 0 END +
+               CASE WHEN si."isPaper" THEN 1 ELSE 0 END) AS score
+            FROM "public"."SearchIndex" si
+            JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+            LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+            WHERE si.game = 'mtg' AND si."isPaper" = true
+              AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
+              ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
+              ${safeUpperAnyCondition(setList, 'si."setCode"')}
+              ${printing.length > 0 ? Prisma.sql`AND mc.finishes && ${printing}` : Prisma.sql``}
+              ${safeAnyCondition(rarity, 'mc.rarity')}
+              ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
+            ORDER BY ${buildOrderByClause(sort)}
+            LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
+          `
+        )
+        // Log EXPLAIN in chunks of 2-3 lines
+        const explainText = explainResult.map(r => r.query_plan).join('\n')
+        const lines = explainText.split('\n')
+        for (let i = 0; i < lines.length; i += 2) {
+          const chunk = lines.slice(i, i + 2).join('\n')
+          console.log(JSON.stringify({
+            event: 'items.explain',
+            line: i + 1,
+            text: chunk
+          }))
+        }
+      }
+
       itemsRaw = await prisma.$queryRaw(
         Prisma.sql`
           SELECT
@@ -158,13 +238,13 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
           WHERE si.game = 'mtg' AND si."isPaper" = true
             AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
             ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-            ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
+            ${safeUpperAnyCondition(setList, 'si."setCode"')}
             ${printing.length > 0 ? Prisma.sql`AND (
               ${printing.includes('normal') ? Prisma.sql`mc."priceUsd" IS NOT NULL` : Prisma.sql`false`}
               ${printing.includes('foil') ? Prisma.sql`OR mc."priceUsdFoil" IS NOT NULL` : Prisma.sql``}
               ${printing.includes('etched') ? Prisma.sql`OR mc."priceUsdEtched" IS NOT NULL` : Prisma.sql``}
             )` : Prisma.sql``}
-            ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
+            ${safeAnyCondition(rarity, 'mc.rarity')}
             ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
             ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
           ORDER BY ${buildOrderByClause(sort)}
@@ -202,13 +282,13 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
             WHERE si.game = 'mtg' AND si."isPaper" = true
               AND (${Prisma.join(containsConditions, ' AND ')})
               ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-              ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
+              ${safeUpperAnyCondition(setList, 'si."setCode"')}
               ${printing.length > 0 ? Prisma.sql`AND (
               ${printing.includes('normal') ? Prisma.sql`mc."priceUsd" IS NOT NULL` : Prisma.sql`false`}
               ${printing.includes('foil') ? Prisma.sql`OR mc."priceUsdFoil" IS NOT NULL` : Prisma.sql``}
               ${printing.includes('etched') ? Prisma.sql`OR mc."priceUsdEtched" IS NOT NULL` : Prisma.sql``}
             )` : Prisma.sql``}
-              ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
+              ${safeAnyCondition(rarity, 'mc.rarity')}
             ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
             ORDER BY 
             ${buildOrderByClause(sort)}
@@ -261,8 +341,30 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
     rel: asNum(row.releasedAt),
   }))
 
-  // Build facets
-  const facets = await buildFacets({ queryTokens, groupId, setList, printing: dbPrinting, rarity, facetsKey, showUnavailable })
+  // Debug logging for price sorting
+  console.log(JSON.stringify({
+    event: 'search.debug.sort',
+    fieldUsed: orderByUsed,
+    order: sort,
+    firstPrices: items.slice(0, 5).map(r => ({
+      title: r.title,
+      priceUsd: r.priceUsd,
+      priceUsdFoil: r.priceUsdFoil,
+      priceUsdEtched: r.priceUsdEtched,
+      displayPrice: r.priceUsd || r.priceUsdFoil || r.priceUsdEtched
+    }))
+  }))
+
+  // Get additional candidates for facet computation (up to 3000, not just paginated 25)
+  const facetCandidateIds = await getFacetCandidates({ queryTokens, groupId, setList, printing: dbPrinting, rarity, showUnavailable })
+  
+  // Ensure we always pass a valid array to facets computation
+  const safeCandidateIds = Array.isArray(facetCandidateIds) ? facetCandidateIds : []
+
+  // Build facets with timing
+  const tBeforeFacets = Date.now()
+  const facets = await buildFacets({ queryTokens, groupId, setList, printing: dbPrinting, rarity, facetsKey, showUnavailable, candidateIds: safeCandidateIds, idType: 'scryfall_id' })
+  const tAfterFacets = Date.now()
 
   // Get accurate total count for pagination
   let totalResults = items.length + (hasMore ? 1 : 0) // Default fallback
@@ -284,13 +386,13 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
           WHERE si.game = 'mtg' AND si."isPaper" = true
             AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
             ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-            ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
+            ${safeUpperAnyCondition(setList, 'si."setCode"')}
             ${printing.length > 0 ? Prisma.sql`AND (
               ${printing.includes('normal') ? Prisma.sql`mc."priceUsd" IS NOT NULL` : Prisma.sql`false`}
               ${printing.includes('foil') ? Prisma.sql`OR mc."priceUsdFoil" IS NOT NULL` : Prisma.sql``}
               ${printing.includes('etched') ? Prisma.sql`OR mc."priceUsdEtched" IS NOT NULL` : Prisma.sql``}
             )` : Prisma.sql``}
-            ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
+            ${safeAnyCondition(rarity, 'mc.rarity')}
             ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
             ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
         `
@@ -319,7 +421,26 @@ export async function groupedSearch(params: GroupedParams): Promise<GroupedResul
   cacheSetJSON(itemsKey, result, ttlSeconds).catch(() => {})
   
   const tEnd = Date.now()
-  try { console.log(JSON.stringify({ event: 'search.perf', q: params.q || '', filters: { printing, sets: setList, rarity, groupId }, timingsMs: { total: tEnd - tStart, db_items_ms: tAfterItems - tStart, db_facets_ms: tEnd - tAfterItems, cache_ms: 0, serialize_ms: 0 }, ...(tEnd - tStart > 600 ? { warn: 'slow' } : {}) })) } catch {}
+  try { 
+    console.log(JSON.stringify({ 
+      event: 'search.perf', 
+      q: params.q || '', 
+      filters: { printing, sets: setList, rarity, groupId }, 
+      timingsMs: { 
+        total: tEnd - tStart, 
+        db_items_ms: tBeforeFacets - tStart, 
+        db_facets_ms: tAfterFacets - tBeforeFacets,
+        cache_ms: 0, 
+        serialize_ms: 0 
+      }, 
+      facets_count: {
+        sets: facets.sets.length,
+        rarity: facets.rarity.length,
+        printing: facets.printing.length
+      },
+      ...(tEnd - tStart > 600 ? { warn: 'slow' } : {}) 
+    })) 
+  } catch {}
 
   return result
 }
@@ -344,9 +465,9 @@ async function searchExactMatchesGrouped({ qClean, groupId, setList, printing, r
       WHERE si.game = 'mtg' AND si."isPaper" = true
         AND unaccent(lower(si.title)) = ${qClean}
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-        ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
+        ${safeUpperAnyCondition(setList, 'si."setCode"')}
         ${printing.length > 0 ? Prisma.sql`AND mc.finishes && ${printing}` : Prisma.sql``}
-        ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
+        ${safeAnyCondition(rarity, 'mc.rarity')}
       ORDER BY ${buildOrderByClause(sort)}
       LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
     `
@@ -387,7 +508,7 @@ async function searchStartsWithMatchesGrouped({ tokens, groupId, setList, printi
           OR unaccent(lower(si.title)) ILIKE ${'%' + qNorm + '%'}
         )
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-        ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
+        ${safeUpperAnyCondition(setList, 'si."setCode"')}
       ORDER BY 
         ${buildOrderByClause(sort)}
       LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
@@ -421,9 +542,9 @@ async function searchContainsMatchesGrouped({ tokens, groupId, setList, printing
       WHERE si.game = 'mtg' AND si."isPaper" = true
         AND (${Prisma.join(containsConditions, ' AND ')})
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-        ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
+        ${safeUpperAnyCondition(setList, 'si."setCode"')}
         ${printing.length > 0 ? Prisma.sql`AND mc.finishes && ${printing}` : Prisma.sql``}
-        ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
+        ${safeAnyCondition(rarity, 'mc.rarity')}
       ORDER BY 
         ${buildOrderByClause(sort)}
       LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
@@ -457,9 +578,9 @@ async function searchFuzzyMatchesGrouped({ tokens, groupId, setList, printing, r
       WHERE si.game = 'mtg' AND si."isPaper" = true
         AND (${Prisma.join(similarityConditions, ' AND ')})
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-        ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
+        ${safeUpperAnyCondition(setList, 'si."setCode"')}
         ${printing.length > 0 ? Prisma.sql`AND mc.finishes && ${printing}` : Prisma.sql``}
-        ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
+        ${safeAnyCondition(rarity, 'mc.rarity')}
       ORDER BY 
         ${buildOrderByClause(sort)}
       LIMIT ${pageSize + 1} OFFSET ${(page - 1) * pageSize}
@@ -467,155 +588,112 @@ async function searchFuzzyMatchesGrouped({ tokens, groupId, setList, printing, r
   )
 }
 
-// Build facets for the search results
-async function buildFacets({ queryTokens, groupId, setList, printing, rarity, facetsKey, showUnavailable }: { queryTokens: string[]; groupId: string; setList: string[]; printing: string[]; rarity: string[]; facetsKey: string; showUnavailable: boolean }): Promise<SearchFacets> {
-  try {
-    const cached = await cacheGetJSON<SearchFacets>(facetsKey)
-    if (cached) return cached
-  } catch {}
-
-  // Build facets based on the search results
-  const facets: SearchFacets = {
-    sets: [],
-    rarity: [],
-    printing: []
+// Get candidates for facet computation (up to 3000, not just paginated results)
+async function getFacetCandidates({ queryTokens, groupId, setList, printing, rarity, showUnavailable }: { queryTokens: string[]; groupId: string; setList: string[]; printing: string[]; rarity: string[]; showUnavailable: boolean }): Promise<string[]> {
+  if (queryTokens.length === 0) {
+    return []
   }
 
-  if (queryTokens.length > 0) {
-    try {
-      // Build sets facet
-      const setsQuery = queryTokens.map(token =>
-        Prisma.sql`unaccent(lower(si.title)) ILIKE ${'%' + token + '%'}`
-      )
+  const wordBoundaryConditions = queryTokens.map(token => 
+    Prisma.sql`unaccent(lower(si.title)) ~* ${'\\m' + token}`
+  )
+  
+  const containsConditions = queryTokens.map(token => 
+    Prisma.sql`unaccent(lower(si.title)) ~* ${token}`
+  )
 
-      const setsResults = await prisma.$queryRaw(
-        Prisma.sql`
-          SELECT 
-            si."setCode",
-            COALESCE(si."setName", s.set_name) AS "setName",
-            COUNT(*) as count
-          FROM "public"."SearchIndex" si
-          JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-          LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
-          WHERE si.game = 'mtg' AND si."isPaper" = true
-            AND (${Prisma.join(setsQuery, ' AND ')})
-            ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-            ${printing.length > 0 ? Prisma.sql`AND (
-              ${printing.includes('normal') ? Prisma.sql`mc."priceUsd" IS NOT NULL` : Prisma.sql`false`}
-              ${printing.includes('foil') ? Prisma.sql`OR mc."priceUsdFoil" IS NOT NULL` : Prisma.sql``}
-              ${printing.includes('etched') ? Prisma.sql`OR mc."priceUsdEtched" IS NOT NULL` : Prisma.sql``}
-            )` : Prisma.sql``}
-            ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
-            ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
-          GROUP BY si."setCode", si."setName", s.set_name
-          ORDER BY count DESC
-          LIMIT 20
-        `
-      ) as Array<{ setCode: string; setName: string; count: number }>
+  const candidates = await prisma.$queryRaw<Array<{ id: string }>>(
+    Prisma.sql`
+      SELECT DISTINCT si.id
+      FROM "public"."SearchIndex" si
+      JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      WHERE si.game = 'mtg' AND si."isPaper" = true
+        AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
+        ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
+        ${safeUpperAnyCondition(setList, 'si."setCode"')}
+        ${printing.length > 0 ? Prisma.sql`AND (
+          ${printing.includes('normal') ? Prisma.sql`mc."priceUsd" IS NOT NULL` : Prisma.sql`false`}
+          ${printing.includes('foil') ? Prisma.sql`OR mc."priceUsdFoil" IS NOT NULL` : Prisma.sql``}
+          ${printing.includes('etched') ? Prisma.sql`OR mc."priceUsdEtched" IS NOT NULL` : Prisma.sql``}
+        )` : Prisma.sql``}
+        ${safeAnyCondition(rarity, 'mc.rarity')}
+        ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
+      LIMIT 3000
+    `
+  )
 
-      facets.sets = setsResults.map(row => ({
-        code: row.setCode,
-        name: row.setName || row.setCode,
-        count: Number(row.count)
+  // Ensure we always return a valid array with additional safety checks
+  try {
+    if (!Array.isArray(candidates)) {
+      console.log(JSON.stringify({
+        event: 'facets.debug.getFacetCandidates',
+        warning: 'candidates_not_array',
+        type: typeof candidates
       }))
-
-      // Build rarity facet
-      const rarityResults = await prisma.$queryRaw(
-        Prisma.sql`
-          SELECT 
-            mc.rarity,
-            COUNT(*) as count
-          FROM "public"."SearchIndex" si
-          JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-          WHERE si.game = 'mtg' AND si."isPaper" = true
-            AND (${Prisma.join(setsQuery, ' AND ')})
-            ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-            ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
-            ${printing.length > 0 ? Prisma.sql`AND (
-              ${printing.includes('normal') ? Prisma.sql`mc."priceUsd" IS NOT NULL` : Prisma.sql`false`}
-              ${printing.includes('foil') ? Prisma.sql`OR mc."priceUsdFoil" IS NOT NULL` : Prisma.sql``}
-              ${printing.includes('etched') ? Prisma.sql`OR mc."priceUsdEtched" IS NOT NULL` : Prisma.sql``}
-            )` : Prisma.sql``}
-          GROUP BY mc.rarity
-          ORDER BY count DESC
-        `
-      ) as Array<{ rarity: string; count: number }>
-
-      facets.rarity = rarityResults.map(row => ({
-        key: row.rarity,
-        count: Number(row.count)
-      }))
-
-      // Build printing facet based on price availability
-      const printingFacets = []
-      
-      // Count nonfoil (normal) availability
-      const nonfoilCount = await prisma.$queryRaw(
-        Prisma.sql`
-          SELECT COUNT(*) as count
-          FROM "public"."SearchIndex" si
-          JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-          WHERE si.game = 'mtg' AND si."isPaper" = true
-            AND (${Prisma.join(setsQuery, ' AND ')})
-            ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-            ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
-            ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
-            ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
-            AND mc."priceUsd" IS NOT NULL
-        `
-      ) as Array<{ count: number }>
-      
-      if (nonfoilCount[0]?.count > 0) {
-        printingFacets.push({ key: 'normal', count: Number(nonfoilCount[0].count) })
+      return []
+    }
+    
+    const ids = candidates.map(row => {
+      if (!row || typeof row.id !== 'string') {
+        console.log(JSON.stringify({
+          event: 'facets.debug.getFacetCandidates',
+          warning: 'invalid_row_structure',
+          row: row
+        }))
+        return null
       }
-      
-      // Count foil availability
-      const foilCount = await prisma.$queryRaw(
-        Prisma.sql`
-          SELECT COUNT(*) as count
-          FROM "public"."SearchIndex" si
-          JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-          WHERE si.game = 'mtg' AND si."isPaper" = true
-            AND (${Prisma.join(setsQuery, ' AND ')})
-            ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-            ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
-            ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
-            ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
-            AND mc."priceUsdFoil" IS NOT NULL
-        `
-      ) as Array<{ count: number }>
-      
-      if (foilCount[0]?.count > 0) {
-        printingFacets.push({ key: 'foil', count: Number(foilCount[0].count) })
-      }
-      
-      // Count etched availability
-      const etchedCount = await prisma.$queryRaw(
-        Prisma.sql`
-          SELECT COUNT(*) as count
-          FROM "public"."SearchIndex" si
-          JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-          WHERE si.game = 'mtg' AND si."isPaper" = true
-            AND (${Prisma.join(setsQuery, ' AND ')})
-            ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
-            ${setList.length > 0 ? Prisma.sql`AND upper(si."setCode") = ANY(${setList})` : Prisma.sql``}
-            ${rarity.length > 0 ? Prisma.sql`AND mc.rarity = ANY(${rarity})` : Prisma.sql``}
-            ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
-            AND mc."priceUsdEtched" IS NOT NULL
-        `
-      ) as Array<{ count: number }>
-      
-      if (etchedCount[0]?.count > 0) {
-        printingFacets.push({ key: 'etched', count: Number(etchedCount[0].count) })
-      }
-      
-      facets.printing = printingFacets
+      return row.id
+    }).filter(Boolean) as string[]
+    
+    console.log(JSON.stringify({
+      event: 'facets.debug.getFacetCandidates',
+      candidatesFound: ids.length,
+      totalCandidates: candidates.length
+    }))
+    
+    return ids
+  } catch (error) {
+    console.error('Error in getFacetCandidates:', error)
+    return []
+  }
+}
 
-    } catch (error) {
-      console.error('Error building facets:', error)
+// Build facets for the search results using optimized implementation
+async function buildFacets({ queryTokens, groupId, setList, printing, rarity, facetsKey, showUnavailable, candidateIds, idType }: { queryTokens: string[]; groupId: string; setList: string[]; printing: string[]; rarity: string[]; facetsKey: string; showUnavailable: boolean; candidateIds?: string[]; idType?: 'printing_id' | 'scryfall_id' | 'card_id' | 'group_id' }): Promise<SearchFacets> {
+  const t0 = Date.now()
+  
+  try {
+    const facets = await buildFacetsOptimized({
+      queryTokens,
+      groupId,
+      setList,
+      printing,
+      rarity,
+      showUnavailable,
+      candidateIds,
+      idType
+    })
+    
+    const t1 = Date.now()
+    console.log(JSON.stringify({
+      event: 'search.perf',
+      db_facets_ms: t1 - t0,
+      facets_count: {
+        sets: facets.sets.length,
+        rarity: facets.rarity.length,
+        printing: facets.printing.length
+      }
+    }))
+    
+    return facets
+  } catch (error) {
+    console.error('Error building facets:', error)
+    
+    // Fallback to empty facets
+    return {
+      sets: [],
+      rarity: [],
+      printing: []
     }
   }
-
-  cacheSetJSON(facetsKey, facets, 300).catch(() => {})
-  return facets
 }
