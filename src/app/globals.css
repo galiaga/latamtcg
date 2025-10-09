@@ -176,3 +176,31 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: none; }
 }
+
+/* Card image clipping mask for tighter rounded corners */
+.card-mask {
+  /* Tunables: adjust if needed after QA */
+  --card-radius: 16px;   /* stronger curve than border-radius used before */
+  --card-inset: 0.6%;    /* trims a hair from all sides to remove the corner sliver */
+
+  position: relative;
+  overflow: hidden;              /* ensures hover shadow follows the curve */
+  clip-path: inset(var(--card-inset) round var(--card-radius));
+}
+
+/* Optional: slightly smaller radius on very small tiles (mobile) */
+@media (max-width: 480px) {
+  .card-mask { --card-radius: 12px; }
+}
+
+/* Card entry animation */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(4px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}

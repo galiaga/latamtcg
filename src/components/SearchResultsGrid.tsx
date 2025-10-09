@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SWRConfig } from 'swr'
-import CardImage from '@/components/CardImage'
-import TwoSidedImage from '@/components/TwoSidedImage'
+import CardTile, { convertSearchItemToCardTile } from '@/components/CardTile'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
@@ -515,7 +514,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
           Showing {primary.length} of {meta.totalResults.toLocaleString()} results
         </div>
       ) : null}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mt-6">
           {primary.map((item) => {
           const href = item.id ? printingHref(item.id) : '#'
           const price = (() => {
@@ -542,47 +541,10 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
             return out
           })()
           return (
-            <div key={`${item.id || item.groupId}-${item.title}`} className="card card-2xl p-2 hover-glow-purple transition-soft" style={{ transform: 'translateZ(0)' }}>
-              <div className="w-full flex items-center justify-center">
-                <Link href={href} className="block">
-                  {item.id ? (
-                    <TwoSidedImage scryfallId={item.id} alt={`${item.title} · ${item.setName || (item.setCode || '').toUpperCase()} #${item.collectorNumber || ''}`} mode="thumb" widthPx={160} />
-                  ) : item.imageNormalUrl ? (
-                    <CardImage mode="thumb" src={item.imageNormalUrl} alt={`${item.title} · ${item.setName || (item.setCode || '').toUpperCase()} #${item.collectorNumber || ''}`} width={160} />
-                  ) : (
-                    <div className="relative aspect-[3/4] w-full skeleton" />
-                  )}
-                </Link>
-              </div>
-              <div className="mt-2">
-                <Link href={href} className="text-sm font-medium truncate block">
-                  {(() => {
-                    const title = String(item.title || '').replace(/\(Full Art\)/gi, '(Borderless)')
-                    return item.variantSuffix ? `${title}${item.variantSuffix}` : title
-                  })()}
-                </Link>
-                <div className="text-xs truncate" style={{ color: 'var(--mutedText)' }}>
-                  {(() => {
-                    const code = (item.setCode || '').toString().toUpperCase()
-                    const left = item.setName || code
-                    const num = item.collectorNumber ? ` #${item.collectorNumber}` : ''
-                    return `${left}${num}`
-                  })()}
-                </div>
-                <div className="mt-1 flex items-center justify-between">
-                  <div className="text-sm" style={{ color: price === 'Not available' ? 'var(--mutedText)' : 'var(--primary)' }}>{price}</div>
-                  <span className="text-xs" title="Prices shown are market proxies. Final checkout shows CLP with VAT + import + shipping options." aria-label="Pricing info" style={{ color: 'var(--mutedText)' }}>ⓘ</span>
-                </div>
-                {chips.length > 0 && (
-                  <DeferredChips chips={chips} />
-                )}
-                {item.id && (
-                  <div className="mt-2">
-                    <AddToCartButton printingId={item.id} size="sm" />
-                  </div>
-                )}
-              </div>
-            </div>
+            <CardTile
+              key={`${item.id || item.groupId}-${item.title}`}
+              {...convertSearchItemToCardTile(item, href)}
+            />
           )
           })}
       </div>
