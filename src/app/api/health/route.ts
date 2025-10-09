@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     // Fast path - basic health check
     const basicHealth = {
       ok: true,
-      version: process.env.npm_package_version || '0.17.0',
+      version: process.env.npm_package_version || '0.19.0',
       time: new Date().toISOString(),
       uptime: process.uptime()
     }
