@@ -16,8 +16,8 @@ async function handle(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { runScryfallRefresh } = await import('@/services/scryfallIngest')
-    const result = await runScryfallRefresh()
+    const { runDailyPriceUpdate } = await import('@/services/scryfallIngestDaily')
+    const result = await runDailyPriceUpdate()
     return NextResponse.json(result)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- logging path, not critical to type precisely
   } catch (err: any) {
