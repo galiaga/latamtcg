@@ -183,7 +183,7 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
     try {
       const parsed = JSON.parse(raw as string) as { updatedAt?: string; index?: number }
       if (parsed?.updatedAt === bulkUpdatedAt && typeof parsed?.index === 'number') {
-        resumeIndex = parsed.index
+        resumeIndex = parsed.index!
       }
     } catch {}
   }
