@@ -455,6 +455,7 @@ async function upsertCardWithTx(tx: Prisma.TransactionClient, card: any, bulkUpd
       scryfallId: String(card.id),
       oracleId: String(card?.oracle_id ?? ''),
       name: String(card.name ?? ''),
+      flavorName: card?.flavor_name ? String(card.flavor_name) : null,
       setCode: String(card.set ?? ''),
       // set name normalized into Set table
       collectorNumber: String(card.collector_number ?? ''),

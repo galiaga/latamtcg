@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
+import { formatDisplayName } from '@/lib/cardNames'
 
 export type SearchParams = {
   q: string
@@ -273,6 +274,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
       scryfallId: true,
       oracleId: true,
       name: true,
+      flavorName: true,
       setCode: true,
       set: { select: { set_name: true } },
       collectorNumber: true,
@@ -352,7 +354,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
 
   type Scored = { score: number; releasedAtMs: number; item: SearchItem }
   const scored: Scored[] = candidates.map((c) => {
-    const displayName = String(c.name || '').replace(/\(Full Art\)/gi, '(Borderless)')
+    const displayName = formatDisplayName(c.name || '', c.flavorName)
     const titleNorm = norm(displayName)
     const exact = titleNorm === qNorm ? 1 : 0
     const prefix = titleNorm.startsWith(first) ? 1 : 0

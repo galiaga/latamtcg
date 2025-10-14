@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client'
 import OtherPrintingsCarousel from '@/components/OtherPrintingsCarousel'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
 import { formatUsd } from '@/lib/format'
+import { formatDisplayName } from '@/lib/cardNames'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -170,7 +171,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             return (
               <>
                 <h1 className="text-2xl font-semibold" style={{ letterSpacing: '-0.01em' }}>
-                  {data.name}{variant.suffix}
+                  {formatDisplayName(data.name, data.flavorName)}{variant.suffix}
                 </h1>
                 {variant.tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
