@@ -113,17 +113,18 @@ model Set {
   cards        MtgCard[]
 }
 
-model MtgcardPriceHistory {
+model mtgcard_price_history {
   id          BigInt    @id @default(autoincrement())
-  scryfallId  String    @db.Uuid
+  scryfall_id String    @db.Uuid
   finish      String
   price       Decimal   @db.Decimal(10, 2)
-  priceAt     DateTime  @db.Timestamptz
-  priceDay    DateTime  @db.Date
+  price_at    DateTime  @db.Timestamptz
+  price_day   DateTime? @db.Date
   source      String    @default("scryfall")
 
-  @@unique([scryfallId, finish, priceDay], name: "uq_price_hist_per_day")
-  @@index([scryfallId, priceAt(sort: Desc)])
+  @@unique([scryfall_id, finish, price_day], name: "uq_price_hist_per_day")
+  @@index([scryfall_id, price_at(sort: Desc)], name: "ix_price_hist_card_time")
+  @@map("mtgcard_price_history")
 }
 
 
