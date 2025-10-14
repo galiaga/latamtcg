@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.19.1 — 2025-10-13
+### Fixes
+- Printing page images not visible due to zero‑height parent for `next/image` with `fill`.
+  - Made the sized aspect container the relative `card-mask` parent; removed extra absolute wrapper in `src/components/TwoSidedImage.tsx`.
+- Allow Scryfall images regardless of env override.
+  - Added explicit `cards.scryfall.io` to `images.remotePatterns` in `next.config.ts` so remote loader never blocks card images.
+
+### Chore
+- Bump app version to `0.19.1` and update `public/version.json`.
+
 ## v0.19.0 — 2025-01-15
 ### Performance & Reliability
 - **Facets Performance Optimization**: Complete overhaul of search facets computation
