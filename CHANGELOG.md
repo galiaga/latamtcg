@@ -32,6 +32,13 @@
   - Applied schema changes using `npx prisma db push`
   - Updated all ingestion scripts to include flavor name mapping
   - Maintained backward compatibility with existing data
+  - Added `postinstall` script to ensure Prisma client regeneration on deployment
+
+### Deployment
+- **Build Process**: Enhanced build process for Vercel deployment
+  - Added `postinstall` script to regenerate Prisma client after dependency installation
+  - Ensures TypeScript types are updated with new schema fields during deployment
+  - Resolves Prisma client cache issues on Vercel build environment
 
 ## v0.20.0 — 2025-10-14
 ### Features
