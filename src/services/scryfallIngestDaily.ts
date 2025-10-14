@@ -257,8 +257,8 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
           await new Promise(resolve => setTimeout(resolve, 50))
         }
       }
-    } catch (error) {
-      console.log('[scryfall] Phase 2 failed (likely no recent releases):', error.message)
+    } catch (error: unknown) {
+      console.log('[scryfall] Phase 2 failed (likely no recent releases):', (error as Error).message)
       // Continue execution - Phase 2 is optional
     }
 

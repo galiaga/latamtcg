@@ -62,8 +62,8 @@ async function backfillFlavorNames() {
           // Rate limiting: wait 100ms between requests
           await new Promise(resolve => setTimeout(resolve, 100))
           
-        } catch (error) {
-          console.log(`Error processing ${card.name}:`, error.message)
+        } catch (error: unknown) {
+          console.log(`Error processing ${card.name}:`, (error as Error).message)
         }
       }
       
@@ -75,7 +75,7 @@ async function backfillFlavorNames() {
     console.log(`- Processed: ${processed} cards`)
     console.log(`- Updated: ${updated} cards with flavor names`)
     
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Backfill failed:', error)
   }
 }
