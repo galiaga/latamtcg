@@ -41,6 +41,7 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
       scryfallId: string
       oracleId: string
       name: string | null
+      flavorName: string | null
       setCode: string | null
       collectorNumber: string | null
       finishes: string[] | null
@@ -60,6 +61,7 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
           c."scryfallId",
           c."oracleId",
           c.name,
+          c."flavorName",
           c."setCode",
           c."collectorNumber",
           c.finishes,
@@ -104,6 +106,7 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
     const data = {
       id: row.scryfallId,
       name: (row.name ?? '(Unknown name)').replace(/\(Full Art\)/gi, '(Borderless)'),
+      flavorName: row.flavorName,
       setCode: String(row.setCode ?? ''),
       setName: (setName && String(setName).trim()) || null,
       collectorNumber: fmtCollector(row.collectorNumber) ?? '',

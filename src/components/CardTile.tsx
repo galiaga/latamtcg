@@ -104,7 +104,7 @@ export default function CardTile({
         <div className="flex h-full flex-col pb-3 px-4">
           {/* Title area with fixed height */}
           <div className="min-h-[68px]">
-            <h3 className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+            <h3 className="text-base font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
               {name}
             </h3>
             <div className="text-xs text-muted-foreground truncate mt-1">

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getScryfallNormalUrl } from '@/lib/images'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
+import { formatDisplayName } from '@/lib/cardNames'
 
 function normalizeForKeywords(input: string): string {
   if (!input) return ''
@@ -154,6 +155,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
         scryfallId: true,
         oracleId: true,
         name: true,
+        flavorName: true,
         setCode: true,
         // we no longer require set relation here; use join later if needed
         collectorNumber: true,
@@ -174,7 +176,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
     if (cards.length === 0) break
 
     const rows = cards.map((c) => {
-      const title = String(c.name || '').replace(/\(Full Art\)/gi, '(Borderless)')
+      const title = formatDisplayName(c.name || '', c.flavorName)
       const originalFinishLabel = pickFinishLabel(c.finishes || [], c.promoTypes || [])
       const finishLabel = getOverriddenFinishLabel(originalFinishLabel, c.priceUsdFoil ? Number(c.priceUsdFoil) : null)
       
