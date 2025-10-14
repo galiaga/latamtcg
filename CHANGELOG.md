@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.21.0 — 2025-01-16
+### Features
+- **Flavor Name Display**: Cards now show flavor names before their real names with dash separator
+  - Format: `{flavorName} - {realName}` (e.g., "Dwight, Assistant (to the) King - Baral, Chief of Compliance")
+  - Applied consistently across search results, individual card pages, and all UI components
+  - Cards without flavor names display normally (no change in behavior)
+  - Enhanced search index to include flavor names in card titles for better searchability
+
+### Technical Improvements
+- **Search Index Enhancement**: Updated search index construction to include flavor names
+  - Added `flavorName` field to card selection in search index rebuild process
+  - Updated title construction to use `formatDisplayName()` utility function
+  - Rebuilt search index with 90,132 cards including flavor names
+- **Utility Functions**: Created centralized card name formatting utilities
+  - `formatCardName()` - Formats card name with flavor name prefix
+  - `formatDisplayName()` - Applies flavor name formatting + existing transformations (Full Art → Borderless)
+- **Data Fetching Updates**: Enhanced data retrieval to include flavor names
+  - Updated `getPrintingById()` function to include `flavorName` field
+  - Modified search services to use flavor names in fallback searches
+  - Updated individual card printing pages to display formatted names
+
+### Performance
+- **Efficient Bulk Processing**: Used Scryfall bulk data for fast flavor name backfill
+  - Processed 90,131 cards and updated 432 cards with flavor names
+  - Leveraged bulk data download instead of individual API calls for better performance
+  - Maintained existing search performance with enhanced title formatting
+
+### Database Schema
+- **Schema Updates**: Added `flavorName` field to `MtgCard` model
+  - Applied schema changes using `npx prisma db push`
+  - Updated all ingestion scripts to include flavor name mapping
+  - Maintained backward compatibility with existing data
+
 ## v0.20.0 — 2025-10-14
 ### Features
 - **Daily Price Refresh System**: Automated daily price updates from Scryfall with minimal database churn
