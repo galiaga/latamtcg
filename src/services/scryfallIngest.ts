@@ -174,15 +174,17 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
 
   // Resume checkpoint if exists for this bulk
   let resumeIndex = -1
-  try {
-    const raw = await getKv(KV_KEY_CHECKPOINT)
-    if (raw) {
+  const raw = await getKv(KV_KEY_CHECKPOINT)
+  if (typeof raw === 'string' && raw.length > 0) {
+    try {
       const parsed = JSON.parse(raw) as { updatedAt?: string; index?: number }
       if (parsed?.updatedAt === bulkUpdatedAt && typeof parsed?.index === 'number') {
         resumeIndex = parsed.index
       }
+    } catch {
+      // ignore invalid JSON and continue without resumeIndex
     }
-  } catch {}
+  }
 
   const batchSize = DEFAULT_BATCH_SIZE
   const excludedSetTypes = new Set(
@@ -210,15 +212,17 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
 
     const partSize = Number(process.env.NDJSON_PART_SIZE ?? 100_000)
     let lastPart = -1
-    try {
-      const raw = await getKv('scryfall:default:ndjson')
-      if (raw) {
+    const raw = await getKv('scryfall:default:ndjson')
+    if (typeof raw === 'string' && raw.length > 0) {
+      try {
         const parsed = JSON.parse(raw) as { updatedAt?: string; etag?: string | null; lastPart?: number }
         if (parsed?.updatedAt === meta.updatedAt && parsed?.etag === meta.etag && typeof parsed?.lastPart === 'number') {
           lastPart = parsed.lastPart
         }
+      } catch {
+        // ignore invalid JSON and continue without lastPart
       }
-    } catch {}
+    }
 
     console.log('[scryfall] Transforming to NDJSON parts from', abs)
     const fileStream = fs.createReadStream(abs)
@@ -416,15 +420,17 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
       console.warn(`[scryfall] Ingest failed (attempt ${attempt}/${maxAttempts}), retrying in ${delay}ms...`)
       await new Promise((r) => setTimeout(r, delay))
       // On retry, resume from the last persisted index (refresh from KV)
-      try {
-        const raw = await getKv(KV_KEY_CHECKPOINT)
-        if (raw) {
+      const raw = await getKv(KV_KEY_CHECKPOINT)
+      if (typeof raw === 'string' && raw.length > 0) {
+        try {
           const parsed = JSON.parse(raw) as { updatedAt?: string; index?: number }
           if (parsed?.updatedAt === bulkUpdatedAt && typeof parsed?.index === 'number') {
             resumeIndex = parsed.index
           }
+        } catch {
+          // ignore invalid JSON and continue without resumeIndex
         }
-      } catch {}
+      }
       continue
     }
   }
