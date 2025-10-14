@@ -30,6 +30,7 @@ model MtgCard {
   priceUsdEtched    Decimal? @db.Decimal(10, 2)
   priceEur          Decimal? @db.Decimal(10, 2)
   priceTix          Decimal? @db.Decimal(10, 2)
+  priceUpdatedAt    DateTime?
   // filtering & debugging
   lang              String   @default("en")
   isPaper           Boolean  @default(false)
@@ -110,6 +111,20 @@ model Set {
   set_type     String?
 
   cards        MtgCard[]
+}
+
+model mtgcard_price_history {
+  id          BigInt    @id @default(autoincrement())
+  scryfall_id String    @db.Uuid
+  finish      String
+  price       Decimal   @db.Decimal(10, 2)
+  price_at    DateTime  @db.Timestamptz
+  price_day   DateTime? @db.Date
+  source      String    @default("scryfall")
+
+  @@unique([scryfall_id, finish, price_day], name: "uq_price_hist_per_day")
+  @@index([scryfall_id, price_at(sort: Desc)], name: "ix_price_hist_card_time")
+  @@map("mtgcard_price_history")
 }
 
 

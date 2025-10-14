@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: host,
       },
+      // Always allow the canonical Scryfall cards host, even if an env override is set
+      {
+        protocol: 'https',
+        hostname: 'cards.scryfall.io',
+      },
       {
         protocol: 'https',
         hostname: errorHost,

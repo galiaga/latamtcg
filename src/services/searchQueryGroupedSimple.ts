@@ -144,6 +144,8 @@ export async function groupedSearchOptimized(params: GroupedParams): Promise<Gro
       hasNonfoil: item.hasNonfoil,
       hasFoil: item.hasFoil,
       hasEtched: item.hasEtched,
+      priceSort: item.priceUsd || item.priceUsdFoil || item.priceUsdEtched || null,
+      rel: item.releasedAt || null,
     }))
 
     // Compute facets using optimized implementation
@@ -172,9 +174,14 @@ export async function groupedSearchOptimized(params: GroupedParams): Promise<Gro
     }))
 
     return {
-      primary: items,
+      query: params.q || '',
+      page,
+      pageSize,
       totalResults: searchResult.totalResults,
-      hasMore: searchResult.hasMore,
+      primary: items,
+      otherNameMatches: [],
+      broad: [],
+      nextPageToken: searchResult.hasMore ? String(page + 1) : null,
       facets
     }
   } catch (error) {
