@@ -13,13 +13,26 @@ type DailyUpdateSummary = {
 
 type ScryfallCard = {
   id: string
+  oracle_id: string
   name: string
+  set: string
+  collector_number: string
+  rarity?: string
+  finishes?: string[]
+  frame_effects?: string[]
+  promo_types?: string[]
+  border_color?: string
+  full_art?: boolean
+  legalities?: any
   prices: {
     usd?: string | null
     usd_foil?: string | null
     usd_etched?: string | null
   }
-  // Add other fields as needed
+  lang?: string
+  set_type?: string
+  released_at?: string
+  updated_at?: string
 }
 
 type SearchResponse = {
@@ -50,11 +63,26 @@ async function upsertCard(card: ScryfallCard): Promise<boolean> {
       await prisma.mtgCard.create({
         data: {
           scryfallId: String(card.id),
+          oracleId: card.oracle_id || "",
           name: card.name,
+          setCode: card.set || "",
+          collectorNumber: String(card.collector_number || ""),
+          rarity: card.rarity || null,
+          finishes: Array.isArray(card.finishes) ? card.finishes : [],
+          frameEffects: Array.isArray(card.frame_effects) ? card.frame_effects : [],
+          promoTypes: Array.isArray(card.promo_types) ? card.promo_types : [],
+          borderColor: card.border_color || null,
+          fullArt: Boolean(card.full_art || false),
+          legalitiesJson: card.legalities || {},
           priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
           priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,
           priceUsdEtched: priceUsdEtched ? new Prisma.Decimal(String(priceUsdEtched)) : null,
-          priceUpdatedAt: new Date()
+          priceUpdatedAt: new Date(),
+          lang: card.lang || "en",
+          isPaper: true,
+          setType: card.set_type || null,
+          releasedAt: card.released_at ? new Date(card.released_at) : null,
+          scryfallUpdatedAt: card.updated_at ? new Date(card.updated_at) : null
         }
       })
       return true
