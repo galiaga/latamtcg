@@ -28,6 +28,10 @@ const KV_KEY_UPDATED_AT = 'scryfall.default_cards.updated_at'
 const KV_KEY_CHECKPOINT = 'scryfall.default_cards.checkpoint'
 const DEFAULT_BATCH_SIZE = Number(process.env.SCRYFALL_BATCH_SIZE || 500)
 
+function isNonEmptyString(v: unknown): v is string {
+  return typeof v === 'string' && v.length > 0
+}
+
 // Serverless-compatible refresh that processes cards in smaller batches
 async function runServerlessRefresh(defaultCards: BulkMeta, bulkUpdatedAt: string, started: number): Promise<IngestSummary> {
   console.log('[scryfall] Downloading bulk default_cards from', defaultCards.download_uri)
@@ -176,17 +180,14 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
   let resumeIndex = -1
   const raw = await getKv(KV_KEY_CHECKPOINT)
 
-  // Narrow to a local string variable to avoid TS union issues on `.length`
-  const rawStr: string | null = typeof raw === 'string' ? raw : null
-
-  if (rawStr && rawStr.length > 0) {
+  if (isNonEmptyString(raw)) {
     try {
-      const parsed = JSON.parse(rawStr) as { updatedAt?: string; index?: number }
+      const parsed = JSON.parse(raw) as { updatedAt?: string; index?: number }
       if (parsed?.updatedAt === bulkUpdatedAt && typeof parsed?.index === 'number') {
         resumeIndex = parsed.index
       }
     } catch {
-      // invalid JSON: continue without resumeIndex
+      // ignore invalid JSON and continue without resumeIndex
     }
   }
 
