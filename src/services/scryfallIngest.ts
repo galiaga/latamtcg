@@ -169,7 +169,7 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
 
   // Support optional file-based transform/ingest when a file path is provided via CLI flag
   const fromFileArg = process.argv.find((a) => a === '--from-file')
-  const fromFileIndex = fromFileArg !== undefined ? process.argv.indexOf(fromFileArg) : -1
+  const fromFileIndex = fromFileArg ? process.argv.indexOf(fromFileArg as string) : -1
   const fromFilePath = fromFileIndex >= 0 && fromFileIndex + 1 < process.argv.length ? (process.argv[fromFileIndex + 1] || '') : ''
 
   // Resume checkpoint if exists for this bulk
