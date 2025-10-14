@@ -28,6 +28,119 @@ const KV_KEY_UPDATED_AT = 'scryfall.default_cards.updated_at'
 const KV_KEY_CHECKPOINT = 'scryfall.default_cards.checkpoint'
 const DEFAULT_BATCH_SIZE = Number(process.env.SCRYFALL_BATCH_SIZE || 500)
 
+// Serverless-compatible refresh that processes cards in smaller batches
+async function runServerlessRefresh(defaultCards: BulkMeta, bulkUpdatedAt: string, started: number): Promise<IngestSummary> {
+  console.log('[scryfall] Downloading bulk default_cards from', defaultCards.download_uri)
+  
+  const response = await fetch(defaultCards.download_uri, { cache: 'no-store' })
+  if (!response.ok) {
+    throw new Error(`Failed to download bulk data: ${response.status} ${response.statusText}`)
+  }
+
+  // Process in chunks to avoid memory issues
+  const batchSize = 1000 // Smaller batches for serverless
+  let processedCount = 0
+  let updatedCount = 0
+  
+  // Read the response as a stream and process JSON objects
+  const reader = response.body?.getReader()
+  if (!reader) {
+    throw new Error('No response body reader available')
+  }
+
+  let buffer = ''
+  let inArray = false
+  let braceCount = 0
+  let currentObject = ''
+  let objectCount = 0
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += new TextDecoder().decode(value)
+      
+      // Process complete JSON objects
+      for (let i = 0; i < buffer.length; i++) {
+        const char = buffer[i]
+        
+        if (char === '[' && !inArray) {
+          inArray = true
+          continue
+        }
+        
+        if (char === ']' && inArray && braceCount === 0) {
+          inArray = false
+          break
+        }
+        
+        if (inArray) {
+          if (char === '{') {
+            if (braceCount === 0) {
+              currentObject = '{'
+            } else {
+              currentObject += char
+            }
+            braceCount++
+          } else if (char === '}') {
+            currentObject += char
+            braceCount--
+            
+            if (braceCount === 0) {
+              // Complete object found
+              try {
+                const card = JSON.parse(currentObject)
+                if (card && card.id) {
+                  await upsertCard(card, bulkUpdatedAt)
+                  updatedCount++
+                  objectCount++
+                  
+                  if (objectCount % batchSize === 0) {
+                    console.log(`[scryfall] Processed ${objectCount} cards`)
+                  }
+                }
+              } catch (e) {
+                console.warn('[scryfall] Failed to parse card:', e)
+              }
+              
+              currentObject = ''
+            }
+          } else if (braceCount > 0) {
+            currentObject += char
+          }
+        }
+      }
+      
+      // Keep only the last incomplete object in buffer
+      if (currentObject) {
+        buffer = currentObject
+      } else {
+        buffer = ''
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  // Update the last seen timestamp
+  await setKv(KV_KEY_UPDATED_AT, bulkUpdatedAt)
+  
+  console.log(`[scryfall] Refresh completed: ${updatedCount} cards updated`)
+  return { updated: updatedCount, skipped: false, durationMs: Date.now() - started }
+}
+
+// Simple card upsert for serverless mode
+async function upsertCard(card: any, bulkUpdatedAt: string) {
+  try {
+    await prisma.$transaction(async (tx) => {
+      await upsertCardWithTx(tx, card, bulkUpdatedAt)
+    })
+  } catch (error) {
+    console.warn('[scryfall] Failed to upsert card:', card.id, error)
+  }
+}
+
 export async function runScryfallRefresh(): Promise<IngestSummary> {
   const started = Date.now()
   let updatedCount = 0
@@ -49,6 +162,10 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
     console.log('[scryfall] Bulk is unchanged; skipping work')
     return { updated: 0, skipped: true, durationMs: Date.now() - started }
   }
+
+  // For Vercel serverless, use a simpler approach that doesn't rely on streaming
+  console.log('[scryfall] Using serverless-compatible refresh mode')
+  return await runServerlessRefresh(defaultCards, bulkUpdatedAt, started)
 
   // Support optional file-based transform/ingest when a file path is provided via CLI flag
   const fromFileArg = process.argv.find((a) => a === '--from-file')
@@ -318,15 +435,18 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
 
 // removed: image URL is computed on the fly from scryfallId
 
-function upsertCardWithTx(tx: Prisma.TransactionClient, card: any, bulkUpdatedAt: string) {
+async function upsertCardWithTx(tx: Prisma.TransactionClient, card: any, bulkUpdatedAt: string) {
   const priceUsd = card?.prices?.usd
   const priceUsdFoil = card?.prices?.usd_foil
   const priceUsdEtched = card?.prices?.usd_etched
   const priceEur = card?.prices?.eur
   const priceTix = card?.prices?.tix
-  return tx.mtgCard.upsert({
-    where: { scryfallId: String(card.id) },
-    create: {
+  // Fetch existing to decide whether to update to minimize churn
+  const prev = await tx.mtgCard.findUnique({ where: { scryfallId: String(card.id) }, select: { priceUsd: true, priceUsdFoil: true, priceUsdEtched: true } })
+
+  if (!prev) {
+    const created = await tx.mtgCard.create({
+      data: {
       scryfallId: String(card.id),
       oracleId: String(card?.oracle_id ?? ''),
       name: String(card.name ?? ''),
@@ -351,32 +471,77 @@ function upsertCardWithTx(tx: Prisma.TransactionClient, card: any, bulkUpdatedAt
       setType: card?.set_type ? String(card.set_type) : null,
       releasedAt: card?.released_at ? new Date(card.released_at) : null,
       scryfallUpdatedAt: card?.released_at ? new Date(card.released_at) : new Date(bulkUpdatedAt),
-    },
-    update: {
-      oracleId: String(card?.oracle_id ?? ''),
-      name: String(card.name ?? ''),
-      setCode: String(card.set ?? ''),
-      // set name normalized into Set table
-      collectorNumber: String(card.collector_number ?? ''),
-      rarity: card?.rarity ? String(card.rarity) : null,
-      finishes: Array.isArray(card?.finishes) ? card.finishes.map((f: any) => String(f)) : [],
-      frameEffects: Array.isArray(card?.frame_effects) ? card.frame_effects.map((f: any) => String(f)) : [],
-      promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
-      borderColor: card?.border_color ? String(card.border_color) : null,
-      fullArt: Boolean(card?.full_art ?? false),
-      legalitiesJson: card?.legalities ?? undefined,
-      priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
-      priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,
-      priceUsdEtched: priceUsdEtched ? new Prisma.Decimal(String(priceUsdEtched)) : null,
-      priceEur: priceEur ? String(priceEur) : null,
-      priceTix: priceTix ? String(priceTix) : null,
-      lang: String(card?.lang ?? 'en'),
-      isPaper: true,
-      setType: card?.set_type ? String(card.set_type) : null,
-      releasedAt: card?.released_at ? new Date(card.released_at) : null,
-      scryfallUpdatedAt: card?.released_at ? new Date(card.released_at) : new Date(bulkUpdatedAt),
+        priceUpdatedAt: new Date(),
+      },
+    })
+
+    // Record history for any non-null prices on create
+    const now = new Date()
+    const initialPairs: Array<{ finish: 'normal' | 'foil' | 'etched'; value: number | null }>= [
+      { finish: 'normal', value: priceUsd ? Number(priceUsd) : null },
+      { finish: 'foil', value: priceUsdFoil ? Number(priceUsdFoil) : null },
+      { finish: 'etched', value: priceUsdEtched ? Number(priceUsdEtched) : null },
+    ]
+    for (const p of initialPairs) {
+      if (p.value == null) continue
+      await tx.$executeRawUnsafe(
+        'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
+        String(card.id), p.finish, p.value, now, now.toISOString().slice(0,10)
+      )
+    }
+    return created
+  }
+
+  // Compute changed fields for prices, avoid writing when unchanged
+  const newUsd = priceUsd != null ? Number(priceUsd) : null
+  const newFoil = priceUsdFoil != null ? Number(priceUsdFoil) : null
+  const newEtched = priceUsdEtched != null ? Number(priceUsdEtched) : null
+  const oldUsd = prev.priceUsd != null ? Number(prev.priceUsd as any) : null
+  const oldFoil = prev.priceUsdFoil != null ? Number(prev.priceUsdFoil as any) : null
+  const oldEtched = prev.priceUsdEtched != null ? Number(prev.priceUsdEtched as any) : null
+  const usdChanged = newUsd !== oldUsd
+  const foilChanged = newFoil !== oldFoil
+  const etchedChanged = newEtched !== oldEtched
+
+  if (!usdChanged && !foilChanged && !etchedChanged) {
+    // Nothing to update on price columns; return early
+    return prev as any
+  }
+
+  const updated = await tx.mtgCard.update({
+    where: { scryfallId: String(card.id) },
+    data: {
+      priceUsd: newUsd != null ? new Prisma.Decimal(String(newUsd)) : null,
+      priceUsdFoil: newFoil != null ? new Prisma.Decimal(String(newFoil)) : null,
+      priceUsdEtched: newEtched != null ? new Prisma.Decimal(String(newEtched)) : null,
+      priceUpdatedAt: new Date(),
     },
   })
+
+  // Record history rows for changed finishes
+  try {
+    const now = new Date()
+    if (usdChanged && newUsd != null) {
+      await tx.$executeRawUnsafe(
+        'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
+        String(card.id), 'normal', newUsd, now, now.toISOString().slice(0,10)
+      )
+    }
+    if (foilChanged && newFoil != null) {
+      await tx.$executeRawUnsafe(
+        'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
+        String(card.id), 'foil', newFoil, now, now.toISOString().slice(0,10)
+      )
+    }
+    if (etchedChanged && newEtched != null) {
+      await tx.$executeRawUnsafe(
+        'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
+        String(card.id), 'etched', newEtched, now, now.toISOString().slice(0,10)
+      )
+    }
+  } catch {}
+
+  return updated as any
 }
 
 async function getKv(key: string): Promise<string | null> {
