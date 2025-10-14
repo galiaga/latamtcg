@@ -113,6 +113,19 @@ model Set {
   cards        MtgCard[]
 }
 
+model MtgcardPriceHistory {
+  id          BigInt    @id @default(autoincrement())
+  scryfallId  String    @db.Uuid
+  finish      String
+  price       Decimal   @db.Decimal(10, 2)
+  priceAt     DateTime  @db.Timestamptz
+  priceDay    DateTime  @db.Date
+  source      String    @default("scryfall")
+
+  @@unique([scryfallId, finish, priceDay], name: "uq_price_hist_per_day")
+  @@index([scryfallId, priceAt(sort: Desc)])
+}
+
 
 /// Basic User Management (v0)
 /// Note: `User.id` mirrors Supabase Auth user id (UUID string).
