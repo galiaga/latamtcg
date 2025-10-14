@@ -191,7 +191,7 @@ export default function OtherPrintingsCarousel({
                 key={`${s.id}-${s.variant_group}-${s.finish_group}`}
                 href={`/mtg/printing/${s.id}`}
                 role="option"
-                className="snap-start flex min-w-[300px] items-center gap-3 rounded-2xl border px-3 py-2 transition focus:outline-none focus:ring-2 focus:ring-ring hover:bg-[color-mix(in_lab,var(--chip-hover)_12%,var(--card))]"
+                className="snap-start flex min-w-[300px] items-center gap-3 rounded-2xl border px-3 pt-2 transition focus:outline-none focus:ring-2 focus:ring-ring hover:bg-[color-mix(in_lab,var(--chip-hover)_12%,var(--card))]"
                 style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)' }}
               >
                 <img
@@ -207,13 +207,23 @@ export default function OtherPrintingsCarousel({
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium" style={{ color: 'var(--text)' }}>{s.name}{parts.length ? ` (${parts.join(', ')})` : ''}</div>
-                  <div className="truncate text-xs" style={{ color: 'var(--mutedText)' }}>{subtitle}</div>
+                  
+                  {/* Set info - compact styling directly under title */}
+                  <div className="text-xs leading-tight mb-1" style={{ color: 'var(--mutedText)' }}>
+                    {subtitle}
+                  </div>
+                  
+                  {/* Price section - compact */}
+                  <div className="mt-1">
+                    {/* Price - bolder and darker */}
+                    <div className="text-lg font-semibold text-[var(--fg-strong)] tracking-tight">
+                      {formatUsd(s.priceUsd)}
+                    </div>
+                  </div>
+                  
                   <div className="mt-1 flex flex-wrap gap-1">
                     {s.finish_group ? (<span className="rounded-full px-2 py-0.5 text-[11px]" style={{ background: 'var(--chip-active)', color: '#3A3350' }}>{s.finish_group}</span>) : null}
                   </div>
-                </div>
-                <div className="self-start text-xs font-medium" style={{ color: 'var(--primary)' }}>
-                  {formatUsd(s.priceUsd)}
                 </div>
               </Link>
             )
