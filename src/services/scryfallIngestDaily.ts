@@ -16,6 +16,7 @@ type ScryfallCard = {
   oracle_id: string
   name: string
   set: string
+  set_name?: string
   collector_number: string
   rarity?: string
   finishes?: string[]
@@ -59,7 +60,19 @@ async function upsertCard(card: ScryfallCard): Promise<boolean> {
     const etchedChanged = priceUsdEtched !== (prev?.priceUsdEtched ? Number(prev.priceUsdEtched) : null)
 
     if (!prev) {
-      // Card doesn't exist yet, create it
+      // Card doesn't exist yet, ensure Set exists first
+      await prisma.set.upsert({
+        where: { set_code: card.set },
+        create: {
+          set_code: card.set,
+          set_name: card.set_name || card.set,
+          set_type: card.set_type,
+          released_at: card.released_at ? new Date(card.released_at) : null
+        },
+        update: {} // Don't update if exists
+      })
+
+      // Now create the card
       await prisma.mtgCard.create({
         data: {
           scryfallId: String(card.id),
@@ -111,21 +124,21 @@ async function upsertCard(card: ScryfallCard): Promise<boolean> {
 
       if (usdChanged && priceUsd !== null) {
           await tx.$executeRawUnsafe(
-            'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1::uuid, $2, $3, $4, $5) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
+            'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1::uuid, $2, $3, $4, $5::date) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
             String(card.id), 'normal', priceUsd, now, priceDay
           )
       }
 
       if (foilChanged && priceUsdFoil !== null) {
         await tx.$executeRawUnsafe(
-          'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1::uuid, $2, $3, $4, $5) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
+          'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1::uuid, $2, $3, $4, $5::date) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
           String(card.id), 'foil', priceUsdFoil, now, priceDay
         )
       }
 
       if (etchedChanged && priceUsdEtched !== null) {
         await tx.$executeRawUnsafe(
-          'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1::uuid, $2, $3, $4, $5) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
+          'INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day) VALUES ($1::uuid, $2, $3, $4, $5::date) ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price',
           String(card.id), 'etched', priceUsdEtched, now, priceDay
         )
       }
