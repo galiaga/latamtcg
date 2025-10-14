@@ -176,7 +176,7 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
     const rows = cards.map((c) => {
       const title = String(c.name || '').replace(/\(Full Art\)/gi, '(Borderless)')
       const originalFinishLabel = pickFinishLabel(c.finishes || [], c.promoTypes || [])
-      const finishLabel = getOverriddenFinishLabel(originalFinishLabel, c.priceUsdFoil)
+      const finishLabel = getOverriddenFinishLabel(originalFinishLabel, c.priceUsdFoil ? Number(c.priceUsdFoil) : null)
       
       // Log reclassifications for observability
       if (originalFinishLabel && finishLabel !== originalFinishLabel) {

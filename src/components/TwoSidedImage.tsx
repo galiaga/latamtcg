@@ -46,31 +46,29 @@ export default function TwoSidedImage({ scryfallId, alt, mode = 'thumb', classNa
 
   return (
     <div
-      className={`relative ${mode === 'large' ? 'w-full' : ''} ${aspectClass} overflow-hidden rounded-xl group ${className ?? ''}`}
+      className={`card-mask relative ${mode === 'large' ? 'w-full' : ''} ${aspectClass} overflow-hidden rounded-xl group ${className ?? ''}`}
       style={mode === 'thumb' ? { width: `${widthPx}px` } : undefined}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
-      <div className="card-mask absolute inset-0">
+      <NextImage
+        src={frontUrl}
+        alt={alt}
+        fill
+        sizes={mode === 'large' ? '(min-width:1024px) 28vw, 86vw' : '160px'}
+        className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ${showBack ? 'opacity-0' : 'opacity-100'}`}
+        priority={mode === 'large'}
+      />
+      {hasBack && (
         <NextImage
-          src={frontUrl}
-          alt={alt}
+          src={backUrl}
+          alt={`${alt} (Back)`}
           fill
           sizes={mode === 'large' ? '(min-width:1024px) 28vw, 86vw' : '160px'}
-          className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ${showBack ? 'opacity-0' : 'opacity-100'}`}
+          className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ${showBack ? 'opacity-100' : 'opacity-0'}`}
           priority={mode === 'large'}
         />
-        {hasBack && (
-          <NextImage
-            src={backUrl}
-            alt={`${alt} (Back)`}
-            fill
-            sizes={mode === 'large' ? '(min-width:1024px) 28vw, 86vw' : '160px'}
-            className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-500 ${showBack ? 'opacity-100' : 'opacity-0'}`}
-            priority={mode === 'large'}
-          />
-        )}
-      </div>
+      )}
 
       {/* No overlay text per request; tap to toggle for mobile */}
     </div>

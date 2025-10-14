@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { groupedSearch } from '@/services/searchQueryGroupedSimple'
 import { cacheGetJSON, cacheSetJSON, buildCacheKey } from '@/lib/cache'
 import { parseSortParam } from '@/search/sort'
-import { recordMetric } from '@/app/api/health/route'
+import { recordMetric } from '@/lib/metrics'
 import type { SearchApiResponse } from '@/types/search'
 import { SearchParamsSchema, SearchResponseSchema } from '@/schemas/api'
 
@@ -10,6 +10,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  const t0 = Date.now()
   try {
     const { searchParams } = new URL(req.url)
     
@@ -65,7 +66,6 @@ export async function GET(req: NextRequest) {
 
     const key = buildCacheKey({ q, page, pageSize, exactOnly, printing, sets, rarity, groupIdOrNull, facetAllBool, sort, mode, showUnavailable })
     const ttl = 300
-    const t0 = Date.now()
     try {
       const cached = await cacheGetJSON<SearchApiResponse>(key)
       if (cached) {

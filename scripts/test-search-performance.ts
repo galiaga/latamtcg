@@ -7,7 +7,7 @@
  * It can be run to compare the original vs optimized search performance.
  */
 
-import { groupedSearchOriginal, groupedSearchOptimized } from './src/services/searchQueryGroupedSimple'
+import { groupedSearchOriginal, groupedSearchOptimized } from '../src/services/searchQueryGroupedSimple'
 
 async function testSearchPerformance() {
   const testQueries = [

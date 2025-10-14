@@ -1,5 +1,53 @@
 # Changelog
 
+## v0.20.0 — 2025-10-14
+### Features
+- **Daily Price Refresh System**: Automated daily price updates from Scryfall with minimal database churn
+  - Added `priceUpdatedAt` column to `MtgCard` for change timestamps
+  - Created `mtgcard_price_history` table to track price changes over time with daily deduplication
+  - Implemented smart ingest logic that only records history when prices actually change
+  - Added unique constraint `(scryfall_id, finish, price_day)` to prevent duplicate daily entries
+  - Created indexes for optimal query performance: `(scryfall_id, price_at DESC)`
+
+- **Price History API**: New endpoint for trend analysis and price tracking
+  - Added `GET /api/price/history?scryfallId=...&finish=...&days=...` endpoint
+  - Created `priceTrends` service with functions for simple moving averages and price deltas
+  - Supports 7-day, 30-day, and 90-day trend analysis
+
+- **Automated Cron Jobs**: Daily price updates via Vercel Cron
+  - Configured daily cron job at 4:00 AM UTC using Scryfall Search API
+  - Optimized for serverless environment with pagination and rate limiting
+  - Processes only cards updated in the last 24 hours for efficiency
+  - Automatic Set creation for new cards with foreign key constraint handling
+
+### Technical Improvements
+- **Database Optimization**: Efficient price change detection and history recording
+  - Only updates `MtgCard` prices when they actually change (distinct-only updates)
+  - Records price history for normal, foil, and etched finishes separately
+  - Uses raw SQL with `ON CONFLICT DO UPDATE` for optimal performance
+  - Maintains referential integrity with automatic Set upserts
+
+- **Prisma Schema Updates**: Added `mtgcard_price_history` model for database access
+  - Fixed schema to match actual database table structure
+  - Added proper field mappings and constraints
+  - Enabled Prisma Studio access to price history data
+
+### Performance
+- **Memory Optimization**: Replaced bulk data download with Search API for daily updates
+  - Reduced memory usage in Vercel serverless functions
+  - Eliminated timeout issues with large dataset processing
+  - Improved execution time from minutes to seconds
+
+## v0.19.1 — 2025-10-13
+### Fixes
+- Printing page images not visible due to zero‑height parent for `next/image` with `fill`.
+  - Made the sized aspect container the relative `card-mask` parent; removed extra absolute wrapper in `src/components/TwoSidedImage.tsx`.
+- Allow Scryfall images regardless of env override.
+  - Added explicit `cards.scryfall.io` to `images.remotePatterns` in `next.config.ts` so remote loader never blocks card images.
+
+### Chore
+- Bump app version to `0.19.1` and update `public/version.json`.
+
 ## v0.19.0 — 2025-01-15
 ### Performance & Reliability
 - **Facets Performance Optimization**: Complete overhaul of search facets computation
