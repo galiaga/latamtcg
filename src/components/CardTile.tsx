@@ -53,9 +53,9 @@ export const convertSearchItemToCardTile = (item: SearchItem, href: string): Car
     setCode: item.setCode || '',
     setName: item.setName || item.setCode || '',
     collectorNumber: String(item.collectorNumber || ''),
-    priceUsd: typeof item.priceUsd === 'string' ? parseFloat(item.priceUsd) : item.priceUsd,
-    priceUsdFoil: typeof item.priceUsdFoil === 'string' ? parseFloat(item.priceUsdFoil) : item.priceUsdFoil,
-    priceUsdEtched: typeof item.priceUsdEtched === 'string' ? parseFloat(item.priceUsdEtched) : item.priceUsdEtched,
+    priceUsd: typeof item.priceUsd === 'string' ? (parseFloat(item.priceUsd) || null) : (item.priceUsd ?? null),
+    priceUsdFoil: typeof item.priceUsdFoil === 'string' ? (parseFloat(item.priceUsdFoil) || null) : (item.priceUsdFoil ?? null),
+    priceUsdEtched: typeof item.priceUsdEtched === 'string' ? (parseFloat(item.priceUsdEtched) || null) : (item.priceUsdEtched ?? null),
     rarity: '', // Not available in SearchItem
     href,
     variantSuffix: item.variantSuffix

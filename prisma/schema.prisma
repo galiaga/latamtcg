@@ -30,6 +30,7 @@ model MtgCard {
   priceUsdEtched    Decimal? @db.Decimal(10, 2)
   priceEur          Decimal? @db.Decimal(10, 2)
   priceTix          Decimal? @db.Decimal(10, 2)
+  priceUpdatedAt    DateTime?
   // filtering & debugging
   lang              String   @default("en")
   isPaper           Boolean  @default(false)

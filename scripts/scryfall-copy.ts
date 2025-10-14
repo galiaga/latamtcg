@@ -102,6 +102,30 @@ async function copyPart(pg: Client, partPath: string) {
 }
 
 async function mergeIntoFinal(pg: Client) {
+  // Upsert price history for rows where prices changed (compare staging vs current)
+  await pg.query(`
+    INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day)
+    SELECT s.scryfall_id::uuid, 'normal', s.price_usd, NOW(), (NOW() AT TIME ZONE 'UTC')::date
+    FROM mtgcard_staging s
+    JOIN "MtgCard" m ON m."scryfallId" = s.scryfall_id
+    WHERE s.price_usd IS NOT NULL AND s.price_usd IS DISTINCT FROM m."priceUsd"
+    ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price;
+
+    INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day)
+    SELECT s.scryfall_id::uuid, 'foil', s.price_usd_foil, NOW(), (NOW() AT TIME ZONE 'UTC')::date
+    FROM mtgcard_staging s
+    JOIN "MtgCard" m ON m."scryfallId" = s.scryfall_id
+    WHERE s.price_usd_foil IS NOT NULL AND s.price_usd_foil IS DISTINCT FROM m."priceUsdFoil"
+    ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price;
+
+    INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day)
+    SELECT s.scryfall_id::uuid, 'etched', s.price_usd_etched, NOW(), (NOW() AT TIME ZONE 'UTC')::date
+    FROM mtgcard_staging s
+    JOIN "MtgCard" m ON m."scryfallId" = s.scryfall_id
+    WHERE s.price_usd_etched IS NOT NULL AND s.price_usd_etched IS DISTINCT FROM m."priceUsdEtched"
+    ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE SET price = EXCLUDED.price;
+  `)
+
   await pg.query(`
     INSERT INTO "MtgCard" (
       "scryfallId", "oracleId", "name", "setCode", "setName", "collectorNumber",
@@ -129,9 +153,13 @@ async function mergeIntoFinal(pg: Client) {
       "fullArt" = EXCLUDED."fullArt",
       -- image column removed
       "legalitiesJson" = EXCLUDED."legalitiesJson",
-      "priceUsd" = EXCLUDED."priceUsd",
-      "priceUsdFoil" = EXCLUDED."priceUsdFoil",
-      "priceUsdEtched" = EXCLUDED."priceUsdEtched",
+      "priceUsd" = CASE WHEN EXCLUDED."priceUsd" IS DISTINCT FROM "MtgCard"."priceUsd" THEN EXCLUDED."priceUsd" ELSE "MtgCard"."priceUsd" END,
+      "priceUsdFoil" = CASE WHEN EXCLUDED."priceUsdFoil" IS DISTINCT FROM "MtgCard"."priceUsdFoil" THEN EXCLUDED."priceUsdFoil" ELSE "MtgCard"."priceUsdFoil" END,
+      "priceUsdEtched" = CASE WHEN EXCLUDED."priceUsdEtched" IS DISTINCT FROM "MtgCard"."priceUsdEtched" THEN EXCLUDED."priceUsdEtched" ELSE "MtgCard"."priceUsdEtched" END,
+      "priceUpdatedAt" = CASE WHEN EXCLUDED."priceUsd" IS DISTINCT FROM "MtgCard"."priceUsd"
+                                OR EXCLUDED."priceUsdFoil" IS DISTINCT FROM "MtgCard"."priceUsdFoil"
+                                OR EXCLUDED."priceUsdEtched" IS DISTINCT FROM "MtgCard"."priceUsdEtched"
+                              THEN NOW() ELSE "MtgCard"."priceUpdatedAt" END,
       "priceEur" = EXCLUDED."priceEur",
       "priceTix" = EXCLUDED."priceTix",
       "lang" = EXCLUDED."lang",
@@ -140,6 +168,7 @@ async function mergeIntoFinal(pg: Client) {
       "releasedAt" = EXCLUDED."releasedAt",
       "scryfallUpdatedAt" = EXCLUDED."scryfallUpdatedAt";
   `)
+
   await pg.query('TRUNCATE mtgcard_staging')
   await pg.query('ANALYZE "MtgCard"')
 }

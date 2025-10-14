@@ -435,7 +435,7 @@ async function computeFacetsFromCandidates(candidates: FacetCandidate[], idType:
         phase: 'sanity_check',
         hint: 'check IN () subqueries are single-column',
         sqlPart: 'sanity check with cand_sample',
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       }))
       throw error
     }

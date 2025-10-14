@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { searchSuggestions } from '@/services/searchQuery'
 import { cacheGetJSON, cacheSetJSON, buildCacheKey } from '@/lib/cache'
-import { recordMetric } from '@/app/api/health/route'
+import { recordMetric } from '@/lib/metrics'
 import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
