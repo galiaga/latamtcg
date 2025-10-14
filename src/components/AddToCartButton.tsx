@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCart } from './CartProvider'
 import Spinner from './Spinner'
 
-export default function AddToCartButton({ printingId, size = 'md' }: { printingId: string; size?: 'sm' | 'md' | 'lg' | 'xs' }) {
+export default function AddToCartButton({ printingId, size = 'md', title }: { printingId: string; size?: 'sm' | 'md' | 'lg' | 'xs'; title?: string }) {
   const [adding, setAdding] = useState(false)
   const [ok, setOk] = useState(false)
   const { mutate, addOptimisticThenReconcile } = useCart()
@@ -54,14 +54,33 @@ export default function AddToCartButton({ printingId, size = 'md' }: { printingI
     }
   }, [printingId, addOptimisticThenReconcile, mutate])
 
-  const className = size === 'xs' ? 'inline-flex items-center justify-center text-xs leading-none px-2 py-1 h-5 btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
-                    size === 'sm' ? 'btn btn-sm btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
-                    size === 'lg' ? 'btn btn-lg btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
-                    'btn btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200'
+  // Use new styling for card tiles, fallback to old styling for other contexts
+  const isCardTile = size === 'md' && title
+  const className = isCardTile 
+    ? 'px-3 py-1.5 text-sm font-semibold bg-[#9b6bff] text-white transition-colors duration-150 hover:bg-[#8c5cff] active:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded-lg'
+    : size === 'xs' ? 'inline-flex items-center justify-center text-xs leading-none px-2 py-1 h-5 btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
+      size === 'sm' ? 'btn btn-sm btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
+      size === 'lg' ? 'btn btn-lg btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
+      'btn btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200'
+
+  const ariaLabel = title ? `Add to cart: ${title}` : 'Add to cart'
 
   return (
-    <button type="button" className={className} disabled={adding} aria-disabled={adding} onClick={add} aria-busy={adding}>
-      {adding ? <Spinner size="sm" /> : ok ? 'Added ✓' : 'Add to cart'}
+    <button 
+      type="button" 
+      className={className} 
+      disabled={adding} 
+      aria-disabled={adding} 
+      onClick={add} 
+      aria-busy={adding}
+      aria-label={ariaLabel}
+    >
+      {adding ? (
+        <span className="inline-flex items-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          Adding…
+        </span>
+      ) : ok ? 'Added ✓' : 'Add to cart'}
     </button>
   )
 }

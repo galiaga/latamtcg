@@ -81,36 +81,43 @@ export default function CardTile({
       href={href}
       className="group block animate-[fadeIn_0.2s_ease-out]"
     >
-      <div className="relative overflow-hidden rounded-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-primary/25 group-hover:-translate-y-1">
-        <div className="aspect-[63/88] relative">
-          <div className="card-mask h-full w-full">
-            <img
-              src={getScryfallNormalUrl(id)}
-              alt={`${name} — ${setName} #${collectorNumber}`}
-              className="w-full h-full object-contain transition-all duration-300 group-hover:opacity-90 group-hover:brightness-110"
-              loading="lazy"
-            />
+      <div className="relative overflow-hidden rounded-lg border border-gray-200 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-primary/25 group-hover:-translate-y-1 max-w-[312px]">
+        {/* Image wrapper with same x-padding as the body */}
+        <div className="px-4 pt-4">
+          <div className="aspect-[2.5/3.5] relative h-[300px]">
+            <div className="card-mask h-full w-full">
+              <img
+                src={getScryfallNormalUrl(id)}
+                alt={`${name} — ${setName} #${collectorNumber}`}
+                className="w-full h-full object-contain transition-all duration-300 group-hover:opacity-90 group-hover:brightness-110"
+                loading="lazy"
+              />
+            </div>
+            {/* Enhanced glow effect on hover */}
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            {/* Subtle border glow */}
+            <div className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-primary/20 transition-colors duration-300"></div>
           </div>
-          {/* Enhanced glow effect on hover */}
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          {/* Subtle border glow */}
-          <div className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-primary/20 transition-colors duration-300"></div>
         </div>
         
-        <div className="p-2 flex flex-col h-24">
-          <h3 className="font-medium text-sm leading-tight mb-1 line-clamp-2 group-hover:text-primary transition-colors flex-shrink-0">
-            {name}
-          </h3>
-          <div className="text-xs text-muted-foreground mb-1 line-clamp-2 flex-shrink-0">
-            {setName} • #{collectorNumber}
+        {/* Body uses the same x-padding */}
+        <div className="flex h-full flex-col pb-3 px-4">
+          {/* Title area with fixed height */}
+          <div className="min-h-[68px]">
+            <h3 className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+              {name}
+            </h3>
+            <div className="text-xs text-muted-foreground truncate mt-1">
+              {setName} • #{collectorNumber}
+            </div>
           </div>
-          <div className="flex items-center justify-between gap-2 mt-auto">
-            <span className="font-semibold text-primary text-sm leading-none whitespace-nowrap">
+
+          {/* Bottom-aligned price + CTA (identical vertical position for all cards) */}
+          <div className="mt-auto flex items-center justify-between gap-3">
+            <span className="text-lg md:text-xl font-semibold text-[var(--fg-strong)] tracking-tight">
               {displayPrice > 0 ? formatPrice(displayPrice) : 'N/A'}
             </span>
-            <div className="flex-shrink-0">
-              <AddToCartButton printingId={id} size="xs" />
-            </div>
+            <AddToCartButton printingId={id} title={name} />
           </div>
         </div>
       </div>
