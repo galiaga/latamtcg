@@ -215,15 +215,13 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
     const partSize = Number(process.env.NDJSON_PART_SIZE ?? 100_000)
     let lastPart = -1
     const raw = await getKv('scryfall:default:ndjson')
-    if (typeof raw === 'string' && raw.length > 0) {
+    if ((raw as string | null)?.length) {
       try {
-        const parsed = JSON.parse(raw) as { updatedAt?: string; etag?: string | null; lastPart?: number }
+        const parsed = JSON.parse(raw as string) as { updatedAt?: string; etag?: string | null; lastPart?: number }
         if (parsed?.updatedAt === meta.updatedAt && parsed?.etag === meta.etag && typeof parsed?.lastPart === 'number') {
-          lastPart = parsed.lastPart
+          lastPart = parsed.lastPart!
         }
-      } catch {
-        // ignore invalid JSON and continue without lastPart
-      }
+      } catch {}
     }
 
     console.log('[scryfall] Transforming to NDJSON parts from', abs)
@@ -423,15 +421,13 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
       await new Promise((r) => setTimeout(r, delay))
       // On retry, resume from the last persisted index (refresh from KV)
       const raw = await getKv(KV_KEY_CHECKPOINT)
-      if (typeof raw === 'string' && raw.length > 0) {
+      if ((raw as string | null)?.length) {
         try {
-          const parsed = JSON.parse(raw) as { updatedAt?: string; index?: number }
+          const parsed = JSON.parse(raw as string) as { updatedAt?: string; index?: number }
           if (parsed?.updatedAt === bulkUpdatedAt && typeof parsed?.index === 'number') {
-            resumeIndex = parsed.index
+            resumeIndex = parsed.index!
           }
-        } catch {
-          // ignore invalid JSON and continue without resumeIndex
-        }
+        } catch {}
       }
       continue
     }
