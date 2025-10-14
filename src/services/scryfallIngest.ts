@@ -179,16 +179,13 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
   // Resume checkpoint if exists for this bulk
   let resumeIndex = -1
   const raw = await getKv(KV_KEY_CHECKPOINT)
-
-  if (isNonEmptyString(raw)) {
+  if ((raw as string | null)?.length) {
     try {
-      const parsed = JSON.parse(raw) as { updatedAt?: string; index?: number }
+      const parsed = JSON.parse(raw as string) as { updatedAt?: string; index?: number }
       if (parsed?.updatedAt === bulkUpdatedAt && typeof parsed?.index === 'number') {
         resumeIndex = parsed.index
       }
-    } catch {
-      // ignore invalid JSON and continue without resumeIndex
-    }
+    } catch {}
   }
 
   const batchSize = DEFAULT_BATCH_SIZE
