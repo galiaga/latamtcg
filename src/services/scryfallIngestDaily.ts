@@ -15,6 +15,7 @@ type ScryfallCard = {
   id: string
   oracle_id: string
   name: string
+  flavor_name?: string
   set: string
   set_name?: string
   collector_number: string
@@ -78,6 +79,7 @@ async function upsertCard(card: ScryfallCard): Promise<boolean> {
           scryfallId: String(card.id),
           oracleId: card.oracle_id || "",
           name: card.name,
+          flavorName: card.flavor_name || null,
           setCode: card.set || "",
           collectorNumber: String(card.collector_number || ""),
           rarity: card.rarity || null,
@@ -170,11 +172,16 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
       ? new Date(lastUpdate.value).toISOString().split('T')[0]
       : yesterday.toISOString().split('T')[0]
 
-    const query = `date>=${searchDate} game:paper lang:en -is:digital -set:minigame -set:token -set:memorabilia -set:alchemy`
-    let url = `${SCRYFALL_SEARCH_URL}?q=${encodeURIComponent(query)}&order=updated`
+    // Base query for updated cards
+    const baseQuery = `game:paper lang:en -is:digital -set:minigame -set:token -set:memorabilia -set:alchemy`
+    
+    // Query 1: Cards updated in the last 24 hours
+    const updatedQuery = `date>=${searchDate} ${baseQuery}`
+    let url = `${SCRYFALL_SEARCH_URL}?q=${encodeURIComponent(updatedQuery)}&order=updated`
 
+    console.log('[scryfall] Phase 1: Processing updated cards')
     while (url) {
-      console.log('[scryfall] Fetching page:', url)
+      console.log('[scryfall] Fetching updated cards page:', url)
       const response = await fetch(url, { 
         headers: { 'Accept': 'application/json' },
         cache: 'no-store'
@@ -185,7 +192,7 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
       }
 
       const result = await response.json() as SearchResponse
-      console.log(`[scryfall] Processing ${result.data.length} cards`)
+      console.log(`[scryfall] Processing ${result.data.length} updated cards`)
 
       for (const card of result.data) {
         const updated = await upsertCard(card)
@@ -199,6 +206,60 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
       if (url) {
         await new Promise(resolve => setTimeout(resolve, 50))
       }
+    }
+
+    // Query 2: Recently released cards (last 7 days) that might have been missed
+    // This catches cards that were added to Scryfall but have null updated_at
+    // Only run this if we're not getting 404 errors (meaning there are recent releases)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const recentQuery = `released>=${sevenDaysAgo} ${baseQuery}`
+    url = `${SCRYFALL_SEARCH_URL}?q=${encodeURIComponent(recentQuery)}&order=released`
+
+    console.log('[scryfall] Phase 2: Processing recently released cards')
+    
+    try {
+      while (url) {
+        console.log('[scryfall] Fetching recent cards page:', url)
+        const response = await fetch(url, { 
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        })
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log('[scryfall] No recent releases found, skipping Phase 2')
+            break
+          }
+          throw new Error(`Failed to fetch recent cards: ${response.status} ${response.statusText}`)
+        }
+
+        const result = await response.json() as SearchResponse
+        console.log(`[scryfall] Processing ${result.data.length} recent cards`)
+
+        for (const card of result.data) {
+          // Only process cards that don't exist in our database yet
+          const exists = await prisma.mtgCard.findUnique({
+            where: { scryfallId: String(card.id) },
+            select: { scryfallId: true }
+          })
+          
+          if (!exists) {
+            const updated = await upsertCard(card)
+            if (updated) updatedCount++
+          }
+        }
+
+        // Get next page URL if any
+        url = result.has_more ? result.next_page! : ''
+
+        // Rate limiting: Sleep 50ms between pages to respect Scryfall's rate limits
+        if (url) {
+          await new Promise(resolve => setTimeout(resolve, 50))
+        }
+      }
+    } catch (error: unknown) {
+      console.log('[scryfall] Phase 2 failed (likely no recent releases):', (error as Error).message)
+      // Continue execution - Phase 2 is optional
     }
 
     // Update last run timestamp

@@ -1,11 +1,12 @@
 {
   "name": "latamtcg",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "private": true,
   "scripts": {
     "dev": "NEXT_FORCE_WEBPACK=1 next dev",
     "build": "NEXT_FORCE_WEBPACK=1 next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "perf:prod": "next build && node scripts/perf-prod.js",
     "lint": "eslint",
     "prisma:generate": "prisma generate",

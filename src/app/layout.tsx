@@ -71,6 +71,9 @@ export default function RootLayout({
                       <SearchBox />
                     </div>
                   </div>
+                  <Link href="/how-it-works" className="btn btn-ghost">
+                    How it works
+                  </Link>
                   <HeaderCart />
                   <HeaderUser />
                 </div>

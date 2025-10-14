@@ -1,116 +1,114 @@
-// Prisma schema for LatamTCG MTG catalog and pricing
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-
 model MtgCard {
-  id                String   @id @default(cuid())
-  scryfallId        String   @unique
-  oracleId          String   @default("")
+  id                String    @id @default(cuid())
+  scryfallId        String    @unique
   name              String
+  flavorName        String?
   setCode           String
   collectorNumber   String
   rarity            String?
   finishes          String[]
-  frameEffects      String[]
-  promoTypes        String[]
-  borderColor       String?
-  fullArt           Boolean? @default(false)
   legalitiesJson    Json?
-  priceUsd          Decimal? @db.Decimal(10, 2)
-  priceUsdFoil      Decimal? @db.Decimal(10, 2)
-  priceUsdEtched    Decimal? @db.Decimal(10, 2)
-  priceEur          Decimal? @db.Decimal(10, 2)
-  priceTix          Decimal? @db.Decimal(10, 2)
-  priceUpdatedAt    DateTime?
-  // filtering & debugging
-  lang              String   @default("en")
-  isPaper           Boolean  @default(false)
-  setType           String?
-  releasedAt        DateTime?
+  priceUsd          Decimal?  @db.Decimal(10, 2)
+  priceUsdFoil      Decimal?  @db.Decimal(10, 2)
+  priceEur          Decimal?  @db.Decimal(10, 2)
+  priceTix          Decimal?  @db.Decimal(10, 2)
   scryfallUpdatedAt DateTime?
-  updatedAt         DateTime @updatedAt
-  createdAt         DateTime @default(now())
-
-  // Optional relation to normalized Set table (backfilled), joined by setCode
-  set               Set?  @relation(fields: [setCode], references: [set_code])
+  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime  @default(now())
+  borderColor       String?
+  frameEffects      String[]
+  fullArt           Boolean?  @default(false)
+  isPaper           Boolean   @default(false)
+  lang              String    @default("en")
+  oracleId          String    @default("")
+  priceUsdEtched    Decimal?  @db.Decimal(10, 2)
+  promoTypes        String[]
+  releasedAt        DateTime?
+  setType           String?
+  priceUpdatedAt    DateTime?
+  set               Set       @relation(fields: [setCode], references: [set_code])
 
   @@index([oracleId])
   @@index([isPaper, lang])
   @@index([setCode])
   @@index([name])
+  @@index([oracleId], map: "idx_mtgcard_oracle")
+  @@index([setCode], map: "idx_mtgcard_set")
+  @@index([setCode], map: "idx_mtgcard_set_code")
+  @@index([setCode], map: "idx_mtgcard_setcode")
 }
 
 model KvMeta {
-  key       String  @id
+  key       String   @id
   value     String
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 }
 
-
 /// Denormalized search suggestions across games. For MTG, one row per physical printing.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model SearchIndex {
   /// Use underlying printing id where available (MTG uses scryfallId)
-  id               String   @id
+  id              String    @id
   /// Oracle or group id to link to grouped view (MTG uses oracleId)
-  groupId          String
+  groupId         String
   /// Game identifier, e.g., "mtg", "pokemon"
-  game             String
+  game            String
   /// Display title (normalized name; may include variant in UI rendering)
-  title            String
+  title           String
   /// Subtitle such as set code/name and collector number
-  subtitle         String
+  subtitle        String
   /// Free-form keywords blob for fuzzy/prefix search (normalized)
-  keywordsText     String
+  keywordsText    String
   /// Human label for finish preference (Nonfoil/Foil/Etched)
-  finishLabel      String?
+  finishLabel     String?
   /// Variant label such as Borderless/Showcase/Extended Art/Retro/JP Alt Art/etc.
-  variantLabel     String?
-  /// Complete variant suffix formatted by formatCardVariant (e.g., "(Showcase) (Extended Art) (Foil)")
-  variantSuffix    String?
+  variantLabel    String?
   /// Language code
-  lang             String
+  lang            String
   /// Physical availability
-  isPaper          Boolean  @default(true)
+  isPaper         Boolean   @default(true)
   /// Release date for tie-breakers
-  releasedAt       DateTime?
+  releasedAt      DateTime?
   /// Composite score for ranking tweaks
-  sortScore        Float?
+  sortScore       Float?
   /// For MTG suggestions
-  setCode          String
-  setName          String?
+  setCode         String
+  setName         String?
+  collectorNumber String
+  imageNormalUrl  String?
+  name            String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  /// Complete variant suffix formatted by formatCardVariant (e.g., "(Showcase) (Extended Art) (Foil)")
+  variantSuffix   String?
   /// Precomputed sort key for deterministic A-Z sorting (normalized title + variantSuffix)
-  nameSortKey      String?
+  nameSortKey     String?
   /// Precomputed sort key for deterministic Z-A sorting (same as nameSortKey, sorted DESC)
-  nameSortKeyDesc  String?
-  collectorNumber  String
-  imageNormalUrl   String?
-  name             String
-
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  nameSortKeyDesc String?
 
   @@index([game, lang, isPaper])
   @@index([releasedAt])
 }
 
 /// Normalized card set metadata (backfilled from MtgCard)
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Set {
-  set_code     String    @id
-  set_name     String
-  released_at  DateTime?
-  set_type     String?
-
-  cards        MtgCard[]
+  set_code    String    @id
+  set_name    String
+  released_at DateTime?
+  set_type    String?
+  cards       MtgCard[]
 }
 
 model mtgcard_price_history {
@@ -118,129 +116,118 @@ model mtgcard_price_history {
   scryfall_id String    @db.Uuid
   finish      String
   price       Decimal   @db.Decimal(10, 2)
-  price_at    DateTime  @db.Timestamptz
-  price_day   DateTime? @db.Date
+  price_at    DateTime  @db.Timestamptz(6)
   source      String    @default("scryfall")
+  price_day   DateTime? @db.Date
 
   @@unique([scryfall_id, finish, price_day], name: "uq_price_hist_per_day")
-  @@index([scryfall_id, price_at(sort: Desc)], name: "ix_price_hist_card_time")
+  @@index([scryfall_id, price_at(sort: Desc)], map: "ix_price_hist_card_time")
   @@map("mtgcard_price_history")
 }
-
 
 /// Basic User Management (v0)
 /// Note: `User.id` mirrors Supabase Auth user id (UUID string).
 model User {
-  id         String    @id
-  email      String?   @unique
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  profile    Profile?
-  carts      Cart[]
-  orders     Order[]
-  addresses  Address[]
+  id        String    @id
+  email     String?   @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  addresses Address[]
+  carts     Cart[]
+  orders    Order[]
+  profile   Profile?
 }
 
 model Profile {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  firstName  String?
-  lastName   String?
-  phone      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  user       User     @relation(fields: [userId], references: [id])
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  firstName String?
+  lastName  String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 /// A shopping cart which may be anonymous (cookie `cart_token`) or attached to a user
 model Cart {
-  id          String      @id @default(cuid())
-  userId      String?
-  token       String?     @unique
+  id           String     @id @default(cuid())
+  userId       String?
+  token        String?    @unique
   checkedOutAt DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  user        User?       @relation(fields: [userId], references: [id])
-  items       CartItem[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User?      @relation(fields: [userId], references: [id])
+  items        CartItem[]
 
   @@index([userId])
   @@index([checkedOutAt])
 }
 
 model CartItem {
-  id          String   @id @default(cuid())
-  cartId      String
-  printingId  String   // Scryfall UUID for MTG printing
-  quantity    Int      @default(1)
-  unitPrice   Decimal? @db.Decimal(10, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  cart        Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  cartId     String
+  printingId String
+  quantity   Int      @default(1)
+  unitPrice  Decimal? @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
 
   @@index([cartId])
   @@index([printingId])
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  userId       String?
-  email        String?
-  totalAmount  Decimal?    @db.Decimal(10, 2)
-  status       String      @default("created")
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  // Optional address snapshots (denormalized copy at time of order)
+  id                String      @id @default(cuid())
+  userId            String?
+  email             String?
+  totalAmount       Decimal?    @db.Decimal(10, 2)
+  status            String      @default("created")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
   shippingAddressId String?
   billingAddressId  String?
-
-  user         User?       @relation(fields: [userId], references: [id])
-  items        OrderItem[]
-  shippingAddress Address? @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
-  billingAddress  Address? @relation("OrderBillingAddress", fields: [billingAddressId], references: [id])
+  billingAddress    Address?    @relation("OrderBillingAddress", fields: [billingAddressId], references: [id])
+  shippingAddress   Address?    @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
+  user              User?       @relation(fields: [userId], references: [id])
+  items             OrderItem[]
 
   @@index([userId])
   @@index([createdAt])
 }
 
 model OrderItem {
-  id          String   @id @default(cuid())
-  orderId     String
-  printingId  String   // Scryfall UUID for MTG printing
-  quantity    Int      @default(1)
-  unitPrice   Decimal? @db.Decimal(10, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  orderId    String
+  printingId String
+  quantity   Int      @default(1)
+  unitPrice  Decimal? @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([printingId])
 }
 
 model Address {
-  id          String    @id @default(cuid())
-  userId      String
-  label       String?
-  fullName    String?
-  phone       String?
-  line1       String
-  line2       String?
-  city        String
-  state       String?
-  postalCode  String?
-  country     String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  user        User      @relation(fields: [userId], references: [id])
-  // Backrefs for optional order relations
-  shippingOrders Order[] @relation("OrderShippingAddress")
-  billingOrders  Order[] @relation("OrderBillingAddress")
+  id             String   @id @default(cuid())
+  userId         String
+  label          String?
+  fullName       String?
+  phone          String?
+  line1          String
+  line2          String?
+  city           String
+  state          String?
+  postalCode     String?
+  country        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id])
+  billingOrders  Order[]  @relation("OrderBillingAddress")
+  shippingOrders Order[]  @relation("OrderShippingAddress")
 
   @@index([userId])
 }
-
