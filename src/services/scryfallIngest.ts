@@ -124,7 +124,7 @@ async function runServerlessRefresh(defaultCards: BulkMeta, bulkUpdatedAt: strin
   }
 
   // Update the last seen timestamp
-  await setKv(KV_KEY_UPDATED_AT, bulkUpdatedAt)
+  await upsertKv(KV_KEY_UPDATED_AT, bulkUpdatedAt)
   
   console.log(`[scryfall] Refresh completed: ${updatedCount} cards updated`)
   return { updated: updatedCount, skipped: false, durationMs: Date.now() - started }
