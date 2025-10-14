@@ -160,7 +160,7 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
     throw new Error('Could not find default_cards entry in Scryfall bulk-data')
   }
 
-  const bulkUpdatedAt = defaultCards.updated_at
+  const bulkUpdatedAt = defaultCards!.updated_at
   const lastSeen = await getKv(KV_KEY_UPDATED_AT)
   if (lastSeen && lastSeen === bulkUpdatedAt) {
     console.log('[scryfall] Bulk is unchanged; skipping work')
@@ -343,8 +343,8 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
         const inputStream = isGz ? fileStream.pipe(zlib.createGunzip()) : fileStream
         pipeline = inputStream.pipe(parser()).pipe(streamArray())
       } else {
-        console.log('[scryfall] Downloading bulk default_cards from', defaultCards.download_uri)
-        const bulkResp = await fetch(defaultCards.download_uri, { cache: 'no-store' })
+        console.log('[scryfall] Downloading bulk default_cards from', defaultCards!.download_uri)
+        const bulkResp = await fetch(defaultCards!.download_uri, { cache: 'no-store' })
         if (!bulkResp.ok || !bulkResp.body) {
           throw new Error(`Failed to download bulk: ${bulkResp.status} ${bulkResp.statusText}`)
         }
