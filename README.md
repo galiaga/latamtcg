@@ -290,3 +290,4 @@ Notes:
 - You can tune memory: scripts run with `node --max-old-space-size=4096`.
 - After ingest completes, rebuild the search index: `npm run searchindex:rebuild`.
 # Trigger redeploy Tue Oct 14 10:34:45 -03 2025
+# Force redeploy with env vars Tue Oct 14 10:43:51 -03 2025
