@@ -204,3 +204,14 @@ body {
     transform: translateY(0); 
   }
 }
+
+/* Desktop-only visibility */
+.desktop-only {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktop-only {
+    display: block;
+  }
+}

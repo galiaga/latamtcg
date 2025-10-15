@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.22.0 — 2025-01-16
+### Features
+- **Mobile-First Responsive Design**: Comprehensive mobile UX improvements across Home, Search, and Product Detail pages
+  - Compact header layout with two-row structure for mobile (≤88px total height)
+  - Icon-only cart and user buttons on mobile with proper tap targets (≥44×44px)
+  - Search input with MTG badge prefix and magnifier icon submit button
+  - Sticky, horizontally scrollable filter chips with snap scrolling
+  - Responsive grid: 1 column <390px, 2 columns ≥390px
+  - Unified card styling with consistent aspect ratios, title clamping, and button alignment
+  - Mobile-optimized Product Detail Page with reduced padding and improved layout
+  - Enhanced cart page with mobile-specific layout for quantity controls and pricing
+
+### Technical Improvements
+- **Mobile-Only CSS Utilities**: Added `@layer utilities` with `mobile:` prefixed classes for mobile-specific styling
+  - All mobile changes guarded by `@media (max-width: 480px)` to preserve desktop experience
+  - Custom `.desktop-only` class for elements that should only appear on desktop
+- **Search Suggestions Enhancement**: Modified search suggestion functions to only show items with available prices
+  - Added price filtering to `searchExactMatches`, `searchStartsWithMatches`, `searchContainsMatches`, `searchFuzzyMatches`, and `fallbackSearchFromMtgCard`
+  - Ensures consistency between search suggestions and search results
+- **UI/UX Improvements**:
+  - Moved "How it works" button to user menu on mobile
+  - Replaced user email with user icon on mobile header
+  - Removed "Standard" pill from "See other printings" carousel
+  - Made total prices bold in cart for both mobile and desktop
+  - Increased desktop cart item height to show full card images
+  - Prevented search input auto-focus when navigating between pages
+
+### Fixes
+- **Search Input Behavior**: Added `tabIndex={-1}` to prevent unwanted auto-focus on search input
+- **Cart Layout**: Restructured cart items for mobile to show controls below main content
+- **Orders Page**: Removed "Continue shopping" button for cleaner interface
+- **Accessibility**: Maintained proper tap targets, font sizes, and contrast ratios for mobile
+
+### Performance
+- **Mobile Optimization**: Reduced padding and spacing on mobile for better content density
+- **Image Handling**: Optimized image sizing and aspect ratios for mobile devices
+- **Caching**: Search suggestions maintain 30-minute TTL with price-filtered results
+
 ## v0.21.0 — 2025-01-16
 ### Features
 - **Flavor Name Display**: Cards now show flavor names before their real names with dash separator

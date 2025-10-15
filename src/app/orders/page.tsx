@@ -35,9 +35,6 @@ export default async function OrdersPage() {
         ))}
         {orders.length === 0 && <li>No orders yet.</li>}
       </ul>
-      <div className="mt-6">
-        <Link href="/">Continue shopping</Link>
-      </div>
     </div>
   )
 }

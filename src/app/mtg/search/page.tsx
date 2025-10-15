@@ -46,7 +46,7 @@ export default async function MtgSearchPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="py-2">
-      <section className="px-4">
+      <section className="px-2 md:px-4">
         {/* mark hydration start for client measure */}
         <script dangerouslySetInnerHTML={{ __html: "try{performance.mark('mtg-search-hydrate-start')}catch(e){}" }} />
         <HydrationPerf />

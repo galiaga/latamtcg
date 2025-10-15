@@ -282,15 +282,16 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
     <div ref={boxRef} className="relative w-full">
       <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (process.env.NODE_ENV === 'development') console.debug('[search] onSubmit'); handleSearchSubmit('button') }}>
         <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>MTG</span>
-        <input
-          ref={inputRef}
-          className="input flex-1 transition-soft"
-          placeholder={placeholder}
-          role="combobox"
-          aria-controls={listboxId}
-          aria-expanded={open}
-          aria-autocomplete="list"
-          value={query}
+          <input
+            ref={inputRef}
+            className="input flex-1 transition-soft"
+            placeholder={placeholder}
+            role="combobox"
+            aria-controls={listboxId}
+            aria-expanded={open}
+            aria-autocomplete="list"
+            tabIndex={-1}
+            value={query}
           onChange={(e) => { 
             if (process.env.NODE_ENV === 'development') console.debug('[search] input', e.target.value); 
             setQuery(e.target.value); 
