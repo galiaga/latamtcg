@@ -83,8 +83,8 @@ export default function CardTile({
     >
       <div className="relative overflow-hidden rounded-lg border border-gray-200 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl group-hover:shadow-primary/25 group-hover:-translate-y-1 max-w-[312px]">
         {/* Image wrapper with same x-padding as the body */}
-        <div className="px-4 pt-4">
-          <div className="aspect-[2.5/3.5] relative h-[300px]">
+        <div className="px-2 md:px-4 pt-4">
+          <div className="aspect-[2.5/3.5] relative h-[200px] md:h-[300px]">
             <div className="card-mask h-full w-full">
               <img
                 src={getScryfallNormalUrl(id)}
@@ -101,7 +101,7 @@ export default function CardTile({
         </div>
         
         {/* Body uses the same x-padding */}
-        <div className="flex h-full flex-col pb-3 px-4">
+        <div className="flex h-full flex-col pb-3 px-2 md:px-4">
           {/* Title area with fixed height */}
           <div className="min-h-[68px]">
             <h3 className="text-base font-bold leading-snug line-clamp-2 group-hover:text-primary transition-colors">

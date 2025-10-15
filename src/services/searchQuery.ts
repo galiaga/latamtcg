@@ -151,15 +151,17 @@ async function searchExactMatches({ qClean, game, langPref, limit }: { qClean: s
   return await prisma.$queryRaw(
     Prisma.sql`
       SELECT
-        id, "groupId", game, title, subtitle, "finishLabel", "variantLabel", "variantSuffix",
-        lang, "isPaper", "releasedAt", "imageNormalUrl", "setCode", "setName", "collectorNumber", name,
+        si.id, si."groupId", si.game, si.title, si.subtitle, si."finishLabel", si."variantLabel", si."variantSuffix",
+        si.lang, si."isPaper", si."releasedAt", si."imageNormalUrl", si."setCode", si."setName", si."collectorNumber", si.name,
         1000 AS score
-      FROM "public"."SearchIndex"
-      WHERE game = ${game}
-        AND "isPaper" = true
-        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`lang = 'en'`})
-        AND unaccent(lower(title)) = ${qClean}
-      ORDER BY "releasedAt" DESC NULLS LAST
+      FROM "public"."SearchIndex" si
+      INNER JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      WHERE si.game = ${game}
+        AND si."isPaper" = true
+        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`si.lang = 'en'`})
+        AND unaccent(lower(si.title)) = ${qClean}
+        AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)
+      ORDER BY si."releasedAt" DESC NULLS LAST
       LIMIT ${limit}
     `
   )
@@ -180,18 +182,20 @@ async function searchStartsWithMatches({ tokens, game, langPref, limit }: { toke
   return await prisma.$queryRaw(
     Prisma.sql`
       SELECT
-        id, "groupId", game, title, subtitle, "finishLabel", "variantLabel", "variantSuffix",
-        lang, "isPaper", "releasedAt", "imageNormalUrl", "setCode", "setName", "collectorNumber", name,
+        si.id, si."groupId", si.game, si.title, si.subtitle, si."finishLabel", si."variantLabel", si."variantSuffix",
+        si.lang, si."isPaper", si."releasedAt", si."imageNormalUrl", si."setCode", si."setName", si."collectorNumber", si.name,
         -- Score based on how many tokens match as word prefixes
         (${tokens.length * 100} + 
-         CASE WHEN lang = 'en' THEN 1 ELSE 0 END +
-         CASE WHEN "isPaper" THEN 1 ELSE 0 END) AS score
-      FROM "public"."SearchIndex"
-      WHERE game = ${game}
-        AND "isPaper" = true
-        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`lang = 'en'`})
+         CASE WHEN si.lang = 'en' THEN 1 ELSE 0 END +
+         CASE WHEN si."isPaper" THEN 1 ELSE 0 END) AS score
+      FROM "public"."SearchIndex" si
+      INNER JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      WHERE si.game = ${game}
+        AND si."isPaper" = true
+        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`si.lang = 'en'`})
         AND (${Prisma.join(wordBoundaryConditions, ' AND ')})
-      ORDER BY score DESC, "releasedAt" DESC NULLS LAST
+        AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)
+      ORDER BY score DESC, si."releasedAt" DESC NULLS LAST
       LIMIT ${limit}
     `
   )
@@ -206,18 +210,20 @@ async function searchContainsMatches({ tokens, game, langPref, limit }: { tokens
   return await prisma.$queryRaw(
     Prisma.sql`
       SELECT
-        id, "groupId", game, title, subtitle, "finishLabel", "variantLabel", "variantSuffix",
-        lang, "isPaper", "releasedAt", "imageNormalUrl", "setCode", "setName", "collectorNumber", name,
+        si.id, si."groupId", si.game, si.title, si.subtitle, si."finishLabel", si."variantLabel", si."variantSuffix",
+        si.lang, si."isPaper", si."releasedAt", si."imageNormalUrl", si."setCode", si."setName", si."collectorNumber", si.name,
         -- Lower score for contains matches
         (${tokens.length * 50} + 
-         CASE WHEN lang = 'en' THEN 1 ELSE 0 END +
-         CASE WHEN "isPaper" THEN 1 ELSE 0 END) AS score
-      FROM "public"."SearchIndex"
-      WHERE game = ${game}
-        AND "isPaper" = true
-        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`lang = 'en'`})
+         CASE WHEN si.lang = 'en' THEN 1 ELSE 0 END +
+         CASE WHEN si."isPaper" THEN 1 ELSE 0 END) AS score
+      FROM "public"."SearchIndex" si
+      INNER JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      WHERE si.game = ${game}
+        AND si."isPaper" = true
+        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`si.lang = 'en'`})
         AND (${Prisma.join(containsConditions, ' AND ')})
-      ORDER BY score DESC, "releasedAt" DESC NULLS LAST
+        AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)
+      ORDER BY score DESC, si."releasedAt" DESC NULLS LAST
       LIMIT ${limit}
     `
   )
@@ -233,18 +239,20 @@ async function searchFuzzyMatches({ tokens, game, langPref, limit }: { tokens: s
   return await prisma.$queryRaw(
     Prisma.sql`
       SELECT
-        id, "groupId", game, title, subtitle, "finishLabel", "variantLabel", "variantSuffix",
-        lang, "isPaper", "releasedAt", "imageNormalUrl", "setCode", "setName", "collectorNumber", name,
+        si.id, si."groupId", si.game, si.title, si.subtitle, si."finishLabel", si."variantLabel", si."variantSuffix",
+        si.lang, si."isPaper", si."releasedAt", si."imageNormalUrl", si."setCode", si."setName", si."collectorNumber", si.name,
         -- Very low score for fuzzy matches
         (${tokens.length * 10} + 
-         CASE WHEN lang = 'en' THEN 1 ELSE 0 END +
-         CASE WHEN "isPaper" THEN 1 ELSE 0 END) AS score
-      FROM "public"."SearchIndex"
-      WHERE game = ${game}
-        AND "isPaper" = true
-        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`lang = 'en'`})
+         CASE WHEN si.lang = 'en' THEN 1 ELSE 0 END +
+         CASE WHEN si."isPaper" THEN 1 ELSE 0 END) AS score
+      FROM "public"."SearchIndex" si
+      INNER JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      WHERE si.game = ${game}
+        AND si."isPaper" = true
+        AND (${langPref === 'all' ? Prisma.sql`true` : Prisma.sql`si.lang = 'en'`})
         AND (${Prisma.join(similarityConditions, ' AND ')})
-      ORDER BY score DESC, "releasedAt" DESC NULLS LAST
+        AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)
+      ORDER BY score DESC, si."releasedAt" DESC NULLS LAST
       LIMIT ${limit}
     `
   )
@@ -266,6 +274,13 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
             { setCode: { contains: first, mode: 'insensitive' } },
             // set name now from relation or search index; omit direct column filter
             { collectorNumber: { contains: first, mode: 'insensitive' } },
+          ],
+        },
+        {
+          OR: [
+            { priceUsd: { not: null } },
+            { priceUsdFoil: { not: null } },
+            { priceUsdEtched: { not: null } },
           ],
         },
       ],

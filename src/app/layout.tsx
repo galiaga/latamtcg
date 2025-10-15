@@ -62,7 +62,8 @@ export default function RootLayout({
             {/* Global search section */}
             <header className="py-4">
               <div className="px-4">
-                <div className="flex items-center gap-4">
+                {/* Desktop layout */}
+                <div className="hidden md:flex items-center gap-4">
                   <h1 className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
                     <Link href="/">LatamTCG</Link>
                   </h1>
@@ -71,13 +72,34 @@ export default function RootLayout({
                       <SearchBox />
                     </div>
                   </div>
-                  <Link href="/how-it-works" className="btn btn-ghost">
+                  <Link 
+                    href="/how-it-works" 
+                    className="btn btn-ghost desktop-only"
+                  >
                     How it works
                   </Link>
                   <HeaderCart />
                   <HeaderUser />
                 </div>
                 
+                {/* Mobile layout */}
+                <div className="md:hidden">
+                  {/* Row 1: Title + Cart + User */}
+                  <div className="flex items-center justify-between mb-3">
+                    <h1 className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
+                      <Link href="/">LatamTCG</Link>
+                    </h1>
+                    <div className="flex items-center gap-2">
+                      <HeaderCart />
+                      <HeaderUser />
+                    </div>
+                  </div>
+                  
+                  {/* Row 2: Search */}
+                  <div className="w-full">
+                    <SearchBox />
+                  </div>
+                </div>
               </div>
             </header>
             <div style={{ borderTop: '1px solid var(--divider)' }} />

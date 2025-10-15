@@ -77,7 +77,12 @@ export default function HeaderUser() {
   return (
     <div className="ml-auto relative">
       <button type="button" className="btn" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen} aria-haspopup="menu">
-        {user.email || 'Account'}
+        {/* User icon for mobile */}
+        <svg className="md:hidden h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        {/* Email for desktop */}
+        <span className="hidden md:inline">{user.email || 'Account'}</span>
       </button>
       {menuOpen && (
         <div
@@ -99,6 +104,16 @@ export default function HeaderUser() {
             }}
           >
             Orders
+          </Link>
+          <Link
+            href="/how-it-works"
+            className="block px-4 py-2 md:hidden"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              borderBottom: '1px solid var(--divider)'
+            }}
+          >
+            How it works
           </Link>
           <button
             type="button"

@@ -157,7 +157,7 @@ export default function CartPage() {
 
   return (
     <SWRConfig value={{ revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0, dedupingInterval: 4000 }}>
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="mx-auto max-w-4xl p-2 md:p-6">
       <h1 className="text-xl font-semibold">Your Cart</h1>
       {loading && !hasLoadedOnce ? (
         <div className="mt-4 grid grid-cols-1 gap-4">
@@ -176,23 +176,53 @@ export default function CartPage() {
       {items.length > 0 && (
         <div className="mt-4 grid grid-cols-1 gap-4">
           {items.map((it) => (
-            <div key={it.printingId} className="flex items-center gap-4 border rounded p-3">
-              <div className="w-16 h-16 relative">
-                <Image src={it.imageUrl} alt={it.name} fill sizes="64px" className="object-cover rounded" />
+            <div key={it.printingId} className="border rounded p-3">
+              {/* Desktop layout */}
+              <div className="hidden md:flex items-center gap-4">
+                <div className="w-12 h-16 relative">
+                  <Image src={it.imageUrl} alt={it.name} fill sizes="48px" className="object-contain rounded" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{it.name}</div>
+                  <div className="text-xs" style={{ color: 'var(--mutedText)' }}>{(it.setName || it.setCode.toUpperCase())}{it.collectorNumber ? ` • #${it.collectorNumber}` : ''}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1)} aria-label="Decrease quantity">−</button>
+                  <div className="w-8 text-center tabular-nums">{it.quantity}</div>
+                  <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', 1)} aria-label="Increase quantity">+</button>
+                </div>
+                <div className="w-20 text-right tabular-nums">{formatUsd(it.unitPrice)}</div>
+                <div className="w-24 text-right tabular-nums font-bold">{formatUsd(it.lineTotal)}</div>
+                <div>
+                  <button className="btn btn-ghost" onClick={() => update(it.printingId, 'remove')}>Remove</button>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{it.name}</div>
-                <div className="text-xs" style={{ color: 'var(--mutedText)' }}>{(it.setName || it.setCode.toUpperCase())}{it.collectorNumber ? ` • #${it.collectorNumber}` : ''}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1)} aria-label="Decrease quantity">−</button>
-                <div className="w-8 text-center tabular-nums">{it.quantity}</div>
-                <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', 1)} aria-label="Increase quantity">+</button>
-              </div>
-              <div className="w-20 text-right tabular-nums">{formatUsd(it.unitPrice)}</div>
-              <div className="w-24 text-right tabular-nums font-medium">{formatUsd(it.lineTotal)}</div>
-              <div>
-                <button className="btn btn-ghost" onClick={() => update(it.printingId, 'remove')}>Remove</button>
+              
+              {/* Mobile layout */}
+              <div className="md:hidden">
+                <div className="flex items-start gap-3">
+                  <div className="w-16 h-16 relative">
+                    <Image src={it.imageUrl} alt={it.name} fill sizes="64px" className="object-cover rounded" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{it.name}</div>
+                    <div className="text-xs" style={{ color: 'var(--mutedText)' }}>{(it.setName || it.setCode.toUpperCase())}{it.collectorNumber ? ` • #${it.collectorNumber}` : ''}</div>
+                  </div>
+                </div>
+                
+                {/* Controls below content on mobile */}
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1)} aria-label="Decrease quantity">−</button>
+                    <div className="w-8 text-center tabular-nums">{it.quantity}</div>
+                    <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', 1)} aria-label="Increase quantity">+</button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm tabular-nums">{formatUsd(it.unitPrice)} each</div>
+                    <div className="text-lg font-bold tabular-nums">{formatUsd(it.lineTotal)}</div>
+                    <button className="btn btn-ghost btn-sm" onClick={() => update(it.printingId, 'remove')}>Remove</button>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
