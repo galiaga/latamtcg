@@ -441,7 +441,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                   </div>
                 )}
               </div>
-              <button type="button" className="btn btn-ghost" onClick={clearFilters} disabled={loading}>
+              <button type="button" className="chip" onClick={clearFilters} disabled={loading}>
                 {loading ? (
                   <>
                     <Spinner size="sm" />
@@ -456,7 +456,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                 const current = String(searchParams?.get('sort') || 'relevance')
                 return (
                   <div className="ml-auto flex items-center gap-2">
-                    <label htmlFor="sort-select" className="text-sm" style={{ color: 'var(--mutedText)' }}>Sort by:</label>
+                    <label htmlFor="sort-select" className="text-sm hidden md:block" style={{ color: 'var(--mutedText)' }}>Sort by:</label>
                     <select
                       id="sort-select"
                       className={`chip ${loading ? 'opacity-50' : ''}`}

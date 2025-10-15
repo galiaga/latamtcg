@@ -123,7 +123,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
 
   try { console.log(JSON.stringify({ event: 'printing.ms', id: printingId, ms: Date.now() - t0 })) } catch {}
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-2 md:p-6 space-y-3 md:space-y-6">
       <nav aria-label="breadcrumb" className="text-sm" style={{ color: 'var(--mutedText)' }}>
         <ol className="flex items-center gap-1 flex-wrap">
           <li><Link className="underline-offset-2 hover:underline" href="/">Home</Link></li>
@@ -160,7 +160,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
           </div>
         </div>
         {/* Right: details */}
-        <div className="flex-1 card card-2xl p-4">
+        <div className="flex-1 card card-2xl p-4 w-[min(86vw,420px)] md:w-auto md:max-w-none">
           {(() => {
             const variant = formatCardVariant({
               finishes: data.finishes,

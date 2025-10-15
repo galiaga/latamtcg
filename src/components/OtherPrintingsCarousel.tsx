@@ -221,9 +221,6 @@ export default function OtherPrintingsCarousel({
                     </div>
                   </div>
                   
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {s.finish_group ? (<span className="rounded-full px-2 py-0.5 text-[11px]" style={{ background: 'var(--chip-active)', color: '#3A3350' }}>{s.finish_group}</span>) : null}
-                  </div>
                 </div>
               </Link>
             )
