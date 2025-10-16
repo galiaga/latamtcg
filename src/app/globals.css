@@ -42,6 +42,18 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Brand color palette */
+  --color-brand-50: #f5f3ff;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #ddd6fe;
+  --color-brand-300: #c4b5fd;
+  --color-brand-400: #a78bfa;
+  --color-brand-500: #8b5cf6;
+  --color-brand-600: #7c3aed;
+  --color-brand-700: #6d28d9;
+  --color-brand-800: #5b21b6;
+  --color-brand-900: #4c1d95;
 }
 
 [data-theme="dark"] {
@@ -90,10 +102,10 @@ body {
 .btn:hover { background: var(--surface-2); }
 .btn:active { transform: scale(0.98); }
 .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
-.btn-primary { background: var(--primary); color: white; border-color: transparent; }
-.btn-primary:hover { background: var(--primaryHover); }
-.btn-gradient { background: linear-gradient(135deg, var(--primaryGradientFrom), var(--primaryGradientTo)); color: white; border: none; }
-.btn-gradient:hover { filter: brightness(0.95); }
+.btn-primary { background: var(--color-brand-600); color: white; border-color: transparent; }
+.btn-primary:hover { background: var(--color-brand-500); }
+.btn-gradient { background: var(--color-brand-600); color: white; border: none; }
+.btn-gradient:hover { background: var(--color-brand-500); }
 .btn-ghost { background: transparent; border-color: transparent; }
 .btn-ghost:hover { background: var(--surface-2); }
 

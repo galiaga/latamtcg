@@ -316,7 +316,7 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
             }, 100) 
           }}
         />
-        <button type="submit" className="btn btn-gradient transition-soft" aria-label="Search" disabled={!query.trim() || submitting} style={{ opacity: submitting ? 0.95 : undefined }}>
+        <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-colors" aria-label="Search" disabled={!query.trim() || submitting} style={{ opacity: submitting ? 0.95 : undefined }}>
           {submitting ? <Spinner size="sm" /> : 'Search'}
         </button>
       </form>

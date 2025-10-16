@@ -1,5 +1,66 @@
 # Changelog
 
+## v0.24.0 — 2025-01-16
+### Features
+- **Responsive Footer Component**: Complete footer redesign with dark lilac theme and three-column layout
+  - **Shop Section**: Magic: The Gathering and View all products links
+  - **Support Section**: Contact Us, FAQ, and Refunds & Returns links
+  - **About LatamTCG Section**: About Us, How it works, Terms & Conditions, and Privacy Policy links
+  - **Responsive Design**: Mobile (1 col), Tablet (2 cols), Desktop (3 cols) with proper dividers
+  - **Dark Lilac Theme**: Consistent brand colors with white text and proper contrast ratios
+  - **Accessibility**: Proper ARIA labels, focus states, and keyboard navigation
+
+- **New Static Pages**: Created comprehensive content pages for MVP launch
+  - **Contact Page** (`/contact`): Basic contact information with email link
+  - **FAQ Page** (`/help`): Comprehensive FAQ covering ordering, shipping, card quality, returns, and account security
+  - **Refunds & Returns Page** (`/returns`): Detailed Chile MVP policy with evidence requirements and timeframes
+  - **About Page** (`/about`): Company mission, values, and team information focused on Chile operations
+  - **Terms & Conditions Page** (`/terms`): Legal terms aligned with Chile MVP operations and fraud prevention
+  - **Privacy Policy Page** (`/privacy`): Privacy policy tailored for Chile-based operations
+
+- **Newsletter API Stub**: Basic newsletter subscription endpoint (`/api/subscribe`)
+  - Email validation and basic error handling
+  - Environment variable support for newsletter provider integration
+  - Graceful fallback when provider is not configured
+
+### UI/UX Improvements
+- **Consistent Button Theming**: Applied dark lilac theme to Search and Add to Cart buttons across the app
+  - **SearchBox Button**: Dark lilac background with white text and proper hover states
+  - **AddToCartButton**: Consistent styling across all size variants (xs, sm, lg, card tile)
+  - **Focus States**: Proper focus rings using brand colors for accessibility
+  - **Hover Effects**: Smooth transitions and visual feedback
+
+- **Header Navigation**: Moved "How it works" link from header to footer for better organization
+  - **Cleaner Header**: Simplified header layout with essential navigation only
+  - **Footer Integration**: "How it works" now appears in "About LatamTCG" section
+  - **Consistent Styling**: Maintains same dark lilac theme and accessibility standards
+
+### Content Updates
+- **Chile MVP Focus**: All pages updated to reflect current Chile operations with Latin America expansion plans
+- **Professional Tone**: Consistent, trustworthy messaging across all content pages
+- **Legal Compliance**: Terms and Privacy Policy aligned with Chilean consumer protection laws
+- **Fraud Prevention**: Enhanced policies with evidence requirements and verification processes
+- **Quality Standards**: Clear communication about card condition standards (LP or better only)
+
+### Technical Improvements
+- **Component Architecture**: Separated NewsletterForm as client component to prevent hydration issues
+- **CSS Variables**: Added complete brand color palette to globals.css for Tailwind integration
+- **SEO Optimization**: Proper metadata and structured content for all new pages
+- **Performance**: Optimized component structure and removed unused dependencies
+- **Code Quality**: Clean TypeScript, no linting errors, and proper error handling
+
+### Fixes
+- **Hydration Issues**: Resolved client-side hydration errors by separating interactive components
+- **Unused Imports**: Cleaned up unused NewsletterForm import after removing Follow Us section
+- **Build Stability**: Ensured all components compile without errors and warnings
+- **Responsive Design**: Fixed grid layout to properly accommodate three-column footer
+
+### Refactors / Chore
+- **Footer Simplification**: Removed "Follow Us" section and social media links for cleaner design
+- **Version Management**: Updated version numbers across package.json, VERSION file, and version.json
+- **Documentation**: Comprehensive changelog entry documenting all changes and improvements
+- **Code Organization**: Improved component structure and separation of concerns
+
 ## v0.23.0 — 2025-01-16
 ### Bug Fixes
 - **Price Update System Fix**: Resolved critical issue where cards with `updated_at: null` in Scryfall were not being updated
