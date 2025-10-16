@@ -262,6 +262,62 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
       // Continue execution - Phase 2 is optional
     }
 
+    // Query 3: Sample cards with null updated_at to catch price changes
+    // This addresses the core issue where many cards have null updated_at but still get price changes
+    console.log('[scryfall] Phase 3: Sampling cards with null updated_at for price changes')
+    
+    try {
+      // Get a random sample of cards from our database that haven't been updated recently
+      // This includes cards with null scryfallUpdatedAt OR cards that haven't been price-updated recently
+      const staleCards = await prisma.mtgCard.findMany({
+        where: {
+          OR: [
+            { scryfallUpdatedAt: null }, // Cards with null updated_at in Scryfall
+            { priceUpdatedAt: null }, // Cards that have never been price-updated
+            { 
+              AND: [
+                { scryfallUpdatedAt: { not: null } }, // Cards with non-null updated_at
+                { priceUpdatedAt: { not: null } }, // Cards with non-null priceUpdatedAt
+                { priceUpdatedAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } // But not price-updated recently
+              ]
+            }
+          ]
+        },
+        select: { scryfallId: true, name: true },
+        take: 50 // Sample 50 cards per day to avoid overwhelming Scryfall
+      })
+
+      console.log(`[scryfall] Found ${staleCards.length} stale cards to check for price updates`)
+
+      for (const card of staleCards) {
+        try {
+          // Fetch individual card data from Scryfall
+          const response = await fetch(`https://api.scryfall.com/cards/${card.scryfallId}`, {
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+          })
+
+          if (!response.ok) {
+            console.log(`[scryfall] Failed to fetch ${card.name}: ${response.status}`)
+            continue
+          }
+
+          const scryfallCard = await response.json() as ScryfallCard
+          const updated = await upsertCard(scryfallCard)
+          if (updated) updatedCount++
+
+          // Rate limiting: wait 100ms between individual card requests
+          await new Promise(resolve => setTimeout(resolve, 100))
+
+        } catch (error: unknown) {
+          console.log(`[scryfall] Error checking ${card.name}:`, (error as Error).message)
+        }
+      }
+    } catch (error: unknown) {
+      console.log('[scryfall] Phase 3 failed:', (error as Error).message)
+      // Continue execution - Phase 3 is optional
+    }
+
     // Update last run timestamp
     await prisma.kvMeta.upsert({
       where: { key: KV_KEY_LAST_UPDATE },
