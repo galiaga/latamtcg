@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.23.0 — 2025-01-16
+### Bug Fixes
+- **Price Update System Fix**: Resolved critical issue where cards with `updated_at: null` in Scryfall were not being updated
+  - Added Phase 3 to daily update process: samples cards with stale price data
+  - Now catches cards with `scryfallUpdatedAt: null`, `priceUpdatedAt: null`, or outdated prices
+  - Ensures comprehensive price tracking for all cards, not just those with recent Scryfall updates
+  - Fixes missing price changes like "The Soul Stone" ($1,059 → $1,723)
+
+### Technical Improvements
+- **Enhanced Daily Price Update**: Implemented 3-phase update strategy
+  - Phase 1: Cards with `updated_at >= yesterday` (existing)
+  - Phase 2: Recently released cards (existing)
+  - Phase 3: **NEW** - Sample of stale cards to catch missed price changes
+- **Improved Price History Tracking**: Ensures all price changes are properly recorded in `mtgcard_price_history`
+- **Rate Limiting**: Added 100ms delay between individual card requests in Phase 3 to respect Scryfall API limits
+
 ## v0.22.0 — 2025-01-16
 ### Features
 - **Mobile-First Responsive Design**: Comprehensive mobile UX improvements across Home, Search, and Product Detail pages
