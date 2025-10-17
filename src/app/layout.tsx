@@ -10,6 +10,7 @@ import Link from "next/link";
 import HeaderUser from "@/components/HeaderUser";
 import HeaderCart from "@/components/HeaderCart";
 import { CartProvider } from "@/components/CartProvider";
+import { PricingProvider } from "@/components/PricingProvider";
 import ProgressBar from "@/components/ProgressBar";
 import Footer from "@/components/Footer";
 
@@ -59,7 +60,8 @@ export default function RootLayout({
         {/* Global providers and client-only sections */}
         <SafeClient>
           <ProgressBar />
-          <CartProvider>
+          <PricingProvider>
+            <CartProvider>
             {/* Global search section */}
             <header className="py-4">
               <div className="px-4">
@@ -102,7 +104,8 @@ export default function RootLayout({
               {children}
             </main>
             <Footer />
-          </CartProvider>
+            </CartProvider>
+          </PricingProvider>
         </SafeClient>
       </body>
     </html>

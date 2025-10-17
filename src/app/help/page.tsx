@@ -12,6 +12,20 @@ export default function HelpPage() {
       <div className="mt-6 space-y-8 text-mutedText">
         
         <section>
+          <h2 className="text-lg font-medium text-text mb-3">Pricing & Currency</h2>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium text-text">Why are prices shown in Chilean Pesos (CLP)?</h3>
+              <p>Our prices are displayed in Chilean Pesos (CLP) and include consolidation and importation costs. Prices are rounded up to multiples of $500 CLP for simplicity. This ensures transparent pricing that reflects the true cost of bringing cards to Chile, including shipping, customs, and handling fees.</p>
+            </div>
+            <div>
+              <h3 className="font-medium text-text">How are prices calculated?</h3>
+              <p>Our pricing formula considers the TCGPlayer USD price, current exchange rates, tiered markup based on card value, and daily shipping costs. Cards under $5 USD have a 90% markup, cards between $5-20 USD have a 70% markup, and cards over $20 USD have a 50% markup. All prices include a minimum of $500 CLP per card.</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
           <h2 className="text-lg font-medium text-text mb-3">Ordering & Shipping</h2>
           <div className="space-y-4">
             <div>
