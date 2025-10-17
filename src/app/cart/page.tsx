@@ -5,10 +5,12 @@ import { SWRConfig } from 'swr'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/components/CartProvider'
 import { supabaseBrowser } from '@/lib/supabase-browser'
-import { formatUsd } from '@/lib/format'
+import { formatUsd, formatCLP } from '@/lib/format'
 import Image from 'next/image'
 import Link from 'next/link'
 import SkeletonCartRow from '@/components/SkeletonCartRow'
+import { usePricing } from '@/components/PricingProvider'
+import { calculateShipping, meetsMinimumOrder, amountToMinimum, amountToFreeShipping } from '@/lib/pricing'
 
 
 type CartItem = {
@@ -26,6 +28,7 @@ type CartItem = {
 export default function CartPage() {
   const router = useRouter()
   const { mutate: mutateCart, addOptimisticThenReconcile } = useCart() as any
+  const { config } = usePricing()
   const [items, setItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -33,6 +36,29 @@ export default function CartPage() {
   const [redirecting, setRedirecting] = useState(false)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.lineTotal, 0), [items])
+  
+  // Calculate shipping and totals
+  const shipping = useMemo(() => {
+    if (!config) return 0
+    return calculateShipping(subtotal, config.shippingFlatClp, config.freeShippingThresholdClp)
+  }, [subtotal, config])
+  
+  const total = useMemo(() => subtotal + shipping, [subtotal, shipping])
+  
+  const meetsMinimum = useMemo(() => {
+    if (!config) return true
+    return meetsMinimumOrder(subtotal, config.minOrderSubtotalClp)
+  }, [subtotal, config])
+  
+  const amountToMin = useMemo(() => {
+    if (!config) return 0
+    return amountToMinimum(subtotal, config.minOrderSubtotalClp)
+  }, [subtotal, config])
+  
+  const amountToFree = useMemo(() => {
+    if (!config) return 0
+    return amountToFreeShipping(subtotal, config.freeShippingThresholdClp)
+  }, [subtotal, config])
 
   const refresh = useCallback(async () => {
     setLoading(!hasLoadedOnce)
@@ -114,6 +140,11 @@ export default function CartPage() {
   }
 
   async function checkoutGuest() {
+    if (!meetsMinimum) {
+      alert(`Minimum order is ${config?.useCLP ? formatCLP(config.minOrderSubtotalClp) : formatUsd(config?.minOrderSubtotalClp || 0)}. Add ${config?.useCLP ? formatCLP(amountToMin) : formatUsd(amountToMin)} more to checkout.`)
+      return
+    }
+    
     const email = window.prompt('Enter your email to checkout as guest')
     if (!email) return
     const res = await fetch('/api/checkout/guest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
@@ -124,6 +155,11 @@ export default function CartPage() {
   }
 
   async function checkoutUser() {
+    if (!meetsMinimum) {
+      alert(`Minimum order is ${config?.useCLP ? formatCLP(config.minOrderSubtotalClp) : formatUsd(config?.minOrderSubtotalClp || 0)}. Add ${config?.useCLP ? formatCLP(amountToMin) : formatUsd(amountToMin)} more to checkout.`)
+      return
+    }
+    
     try {
       setRedirecting(true)
       const res = await fetch('/api/checkout/user', { method: 'POST', headers: { 'content-type': 'application/json' } })
@@ -191,8 +227,8 @@ export default function CartPage() {
                   <div className="w-8 text-center tabular-nums">{it.quantity}</div>
                   <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', 1)} aria-label="Increase quantity">+</button>
                 </div>
-                <div className="w-20 text-right tabular-nums">{formatUsd(it.unitPrice)}</div>
-                <div className="w-24 text-right tabular-nums font-bold">{formatUsd(it.lineTotal)}</div>
+                <div className="w-20 text-right tabular-nums">{config?.useCLP ? formatCLP(it.unitPrice) : formatUsd(it.unitPrice)}</div>
+                <div className="w-24 text-right tabular-nums font-bold">{config?.useCLP ? formatCLP(it.lineTotal) : formatUsd(it.lineTotal)}</div>
                 <div>
                   <button className="btn btn-ghost" onClick={() => update(it.printingId, 'remove')}>Remove</button>
                 </div>
@@ -218,8 +254,8 @@ export default function CartPage() {
                     <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', 1)} aria-label="Increase quantity">+</button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-sm tabular-nums">{formatUsd(it.unitPrice)} each</div>
-                    <div className="text-lg font-bold tabular-nums">{formatUsd(it.lineTotal)}</div>
+                    <div className="text-sm tabular-nums">{config?.useCLP ? formatCLP(it.unitPrice) : formatUsd(it.unitPrice)} each</div>
+                    <div className="text-lg font-bold tabular-nums">{config?.useCLP ? formatCLP(it.lineTotal) : formatUsd(it.lineTotal)}</div>
                     <button className="btn btn-ghost btn-sm" onClick={() => update(it.printingId, 'remove')}>Remove</button>
                   </div>
                 </div>
@@ -231,15 +267,57 @@ export default function CartPage() {
 
       {items.length > 0 && (
         <div className="mt-6 ml-auto max-w-sm border rounded p-4">
+          {/* Progress banners */}
+          {!meetsMinimum && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+              <div className="font-medium text-yellow-800">Minimum order required</div>
+              <div className="text-yellow-700">
+                Add {config?.useCLP ? formatCLP(amountToMin) : formatUsd(amountToMin)} to reach the minimum order of {config?.useCLP ? formatCLP(config?.minOrderSubtotalClp || 0) : formatUsd(config?.minOrderSubtotalClp || 0)}.
+              </div>
+            </div>
+          )}
+          
+          {config?.freeShippingThresholdClp && amountToFree > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+              <div className="font-medium text-blue-800">Free shipping available</div>
+              <div className="text-blue-700">
+                Add {config?.useCLP ? formatCLP(amountToFree) : formatUsd(amountToFree)} to get free shipping.
+              </div>
+            </div>
+          )}
+          
           <div className="flex justify-between">
             <span>Subtotal</span>
-            <span className="tabular-nums">{formatUsd(subtotal)}</span>
+            <span className="tabular-nums">{config?.useCLP ? formatCLP(subtotal) : formatUsd(subtotal)}</span>
+          </div>
+          {shipping > 0 && (
+            <div className="flex justify-between">
+              <span>Shipping</span>
+              <span className="tabular-nums">{config?.useCLP ? formatCLP(shipping) : formatUsd(shipping)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
+            <span>Total</span>
+            <span className="tabular-nums">{config?.useCLP ? formatCLP(total) : formatUsd(total)}</span>
           </div>
           <div className="mt-4">
             {authed ? (
-              <button className="btn btn-gradient w-full" onClick={checkoutUser} disabled={redirecting} aria-busy={redirecting}>{redirecting ? 'Processing…' : 'Checkout'}</button>
+              <button 
+                className="btn btn-gradient w-full" 
+                onClick={checkoutUser} 
+                disabled={redirecting || !meetsMinimum} 
+                aria-busy={redirecting}
+              >
+                {redirecting ? 'Processing…' : meetsMinimum ? 'Checkout' : 'Minimum order required'}
+              </button>
             ) : (
-              <button className="btn btn-gradient w-full" onClick={checkoutGuest}>Checkout as guest</button>
+              <button 
+                className="btn btn-gradient w-full" 
+                onClick={checkoutGuest}
+                disabled={!meetsMinimum}
+              >
+                {meetsMinimum ? 'Checkout as guest' : 'Minimum order required'}
+              </button>
             )}
           </div>
         </div>

@@ -284,7 +284,7 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
           ]
         },
         select: { scryfallId: true, name: true },
-        take: 50 // Sample 50 cards per day to avoid overwhelming Scryfall
+        take: 1000 // Sample 1000 cards per day to catch more stale prices
       })
 
       console.log(`[scryfall] Found ${staleCards.length} stale cards to check for price updates`)

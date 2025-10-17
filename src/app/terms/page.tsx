@@ -55,8 +55,11 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-text mb-3">Payment Terms</h2>
+          <h2 className="text-lg font-medium text-text mb-3">Pricing & Payment Terms</h2>
           <div className="space-y-4">
+            <p>
+              All prices are displayed in Chilean Pesos (CLP) and include consolidation and importation costs. Prices are rounded up to multiples of $500 CLP for simplicity and transparency. Our pricing formula considers TCGPlayer USD prices, current exchange rates, tiered markup based on card value, and daily shipping costs.
+            </p>
             <p>
               All payments must be made in full at the time of purchase. We accept major credit cards and PayPal. All payments are processed in Chilean Pesos (CLP). LatamTCG reserves the right to hold or cancel orders flagged by our payment processor for fraud review.
             </p>

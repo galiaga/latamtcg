@@ -179,6 +179,20 @@ export default function HowItWorksPage() {
               Yes. You'll receive email updates and can check your order status in your LatamTCG account.
             </p>
           </div>
+
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">Why are prices in Chilean Pesos (CLP)?</h3>
+            <p style={{ color: 'var(--mutedText)' }}>
+              Our prices are displayed in Chilean Pesos (CLP) and include consolidation and importation costs. Prices are rounded up to multiples of $500 CLP for simplicity. This ensures transparent pricing that reflects the true cost of bringing cards to Chile, including shipping, customs, and handling fees.
+            </p>
+          </div>
+
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">How are prices calculated?</h3>
+            <p style={{ color: 'var(--mutedText)' }}>
+              Our pricing formula considers the TCGPlayer USD price, current exchange rates, tiered markup based on card value, and daily shipping costs. Cards under $5 USD have a 90% markup, cards between $5-20 USD have a 70% markup, and cards over $20 USD have a 50% markup. All prices include a minimum of $500 CLP per card.
+            </p>
+          </div>
         </div>
       </section>
 
