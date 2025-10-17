@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { error: 'Invalid tcgUsd parameter', details: result.error.errors },
+        { error: 'Invalid tcgUsd parameter', details: result.error.issues },
         { status: 400 }
       )
     }
