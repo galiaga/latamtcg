@@ -11,6 +11,7 @@ import HeaderUser from "@/components/HeaderUser";
 import HeaderCart from "@/components/HeaderCart";
 import { CartProvider } from "@/components/CartProvider";
 import ProgressBar from "@/components/ProgressBar";
+import Footer from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,12 +73,6 @@ export default function RootLayout({
                       <SearchBox />
                     </div>
                   </div>
-                  <Link 
-                    href="/how-it-works" 
-                    className="btn btn-ghost desktop-only"
-                  >
-                    How it works
-                  </Link>
                   <HeaderCart />
                   <HeaderUser />
                 </div>
@@ -106,12 +101,7 @@ export default function RootLayout({
             <main className="px-4">
               {children}
             </main>
-            <footer className="mt-10 px-4 py-6">
-              <div className="flex items-center justify-between text-xs" style={{ color: 'var(--mutedText)' }}>
-                <span aria-label={`App version ${pkg.version}`}>v{pkg.version}</span>
-                <ThemeToggle />
-              </div>
-            </footer>
+            <Footer />
           </CartProvider>
         </SafeClient>
       </body>

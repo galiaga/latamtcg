@@ -57,11 +57,11 @@ export default function AddToCartButton({ printingId, size = 'md', title }: { pr
   // Use new styling for card tiles, fallback to old styling for other contexts
   const isCardTile = size === 'md' && title
   const className = isCardTile 
-    ? 'px-3 py-1.5 text-sm font-semibold bg-[#9b6bff] text-white transition-colors duration-150 hover:bg-[#8c5cff] active:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded-lg'
-    : size === 'xs' ? 'inline-flex items-center justify-center text-xs leading-none px-2 py-1 h-5 btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
-      size === 'sm' ? 'btn btn-sm btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
-      size === 'lg' ? 'btn btn-lg btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200' : 
-      'btn btn-gradient hover:-translate-y-[1px] hover:shadow-md transition-all duration-200'
+    ? 'px-3 py-1.5 text-sm font-semibold bg-brand-600 text-white transition-colors duration-150 hover:bg-brand-500 active:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 rounded-lg'
+    : size === 'xs' ? 'inline-flex items-center justify-center text-xs leading-none px-2 py-1 h-5 bg-brand-600 text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-all duration-200 rounded' : 
+      size === 'sm' ? 'px-3 py-1.5 text-sm font-medium bg-brand-600 text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-all duration-200 rounded-lg' : 
+      size === 'lg' ? 'px-4 py-2 text-base font-medium bg-brand-600 text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-all duration-200 rounded-lg' : 
+      'px-4 py-2 text-sm font-medium bg-brand-600 text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-all duration-200 rounded-lg'
 
   const ariaLabel = title ? `Add to cart: ${title}` : 'Add to cart'
 
