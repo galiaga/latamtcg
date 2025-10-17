@@ -36,6 +36,7 @@ model MtgCard {
   releasedAt        DateTime?
   setType           String?
   priceUpdatedAt    DateTime?
+  computedPriceClp  Int?      // cached CLP price (optional, recomputed nightly)
   set               Set       @relation(fields: [setCode], references: [set_code])
 
   @@index([oracleId])
@@ -230,4 +231,38 @@ model Address {
   shippingOrders Order[]  @relation("OrderShippingAddress")
 
   @@index([userId])
+}
+
+model PricingConfig {
+  id                     String   @id @default(cuid())
+  useCLP                 Boolean  @default(true)   // toggle CLP display/use
+  fxClp                  Decimal  @default(950)
+
+  // Price tiers and alphas
+  alphaTierLowUsd        Decimal  @default(5)
+  alphaTierMidUsd        Decimal  @default(20)
+  alphaLow               Decimal  @default(0.9)
+  alphaMid               Decimal  @default(0.7)
+  alphaHigh              Decimal  @default(0.5)
+
+  // Rounding & minimums
+  priceMinPerCardClp     Int      @default(500)    // NEW: per-card minimum
+  roundToStepClp         Int      @default(500)
+
+  // Checkout / shipping policy
+  minOrderSubtotalClp    Int      @default(10000)  // NEW: order minimum
+  shippingFlatClp        Int      @default(2500)   // NEW: flat shipping
+  freeShippingThresholdClp Int?                     // NEW: free shipping threshold (e.g., 25000). Null/0 disables.
+
+  updatedAt              DateTime @updatedAt
+  createdAt              DateTime @default(now())
+}
+
+model DailyShipping {
+  id                String   @id @default(cuid())
+  date              DateTime @unique
+  totalShippingUsd  Decimal
+  cardsCount        Int
+  notes             String?
+  createdAt         DateTime @default(now())
 }

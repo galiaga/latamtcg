@@ -135,7 +135,7 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
             COALESCE(si."setName", s.set_name) AS "setName", si."collectorNumber",
             si."variantLabel", si."finishLabel", si."variantSuffix",
             COALESCE(EXTRACT(EPOCH FROM si."releasedAt"), 0) AS releasedAt,
-            mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched", mc.rarity,
+            mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched", mc."computedPriceClp", mc.rarity,
             (CASE WHEN mc."priceUsd" IS NOT NULL THEN true ELSE false END) AS hasNonfoil,
             (CASE WHEN mc."priceUsdFoil" IS NOT NULL THEN true ELSE false END) AS hasFoil,
             (CASE WHEN mc."priceUsdEtched" IS NOT NULL THEN true ELSE false END) AS hasEtched,
@@ -206,6 +206,7 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
     priceUsd: number
     priceUsdFoil: number
     priceUsdEtched: number
+    computedPriceClp: number | null
     rarity: string
     hasNonfoil: boolean
     hasFoil: boolean
@@ -221,7 +222,7 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
           COALESCE(si."setName", s.set_name) AS "setName", si."collectorNumber",
           si."variantLabel", si."finishLabel", si."variantSuffix",
           COALESCE(EXTRACT(EPOCH FROM si."releasedAt"), 0) AS releasedAt,
-          mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched", mc.rarity,
+          mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched", mc."computedPriceClp", mc.rarity,
           (CASE WHEN mc."priceUsd" IS NOT NULL THEN true ELSE false END) AS hasNonfoil,
           (CASE WHEN mc."priceUsdFoil" IS NOT NULL THEN true ELSE false END) AS hasFoil,
           (CASE WHEN mc."priceUsdEtched" IS NOT NULL THEN true ELSE false END) AS hasEtched,

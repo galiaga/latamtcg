@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { getScryfallNormalUrl } from '@/lib/images'
 import AddToCartButton from './AddToCartButton'
+import { usePricing } from './PricingProvider'
+import { getDisplayPrice, formatPrice } from '@/lib/pricingClient'
 
 interface CardTileProps {
   id: string
@@ -13,6 +15,7 @@ interface CardTileProps {
   priceUsd: number | null
   priceUsdFoil: number | null
   priceUsdEtched: number | null
+  computedPriceClp?: number | null
   rarity: string
   href: string
   variantSuffix?: string | null
@@ -28,18 +31,8 @@ interface SearchItem {
   priceUsd?: number | string | null
   priceUsdFoil?: number | string | null
   priceUsdEtched?: number | string | null
+  computedPriceClp?: number | null
   variantSuffix?: string | null
-}
-
-const formatPrice = (price: number) => {
-  return `$${Math.ceil(price)}`
-}
-
-const getDisplayPrice = (card: CardTileProps) => {
-  if (card.priceUsd) return card.priceUsd
-  if (card.priceUsdFoil) return card.priceUsdFoil
-  if (card.priceUsdEtched) return card.priceUsdEtched
-  return 0
 }
 
 // Helper function to convert SearchItem to CardTileProps
@@ -56,6 +49,7 @@ export const convertSearchItemToCardTile = (item: SearchItem, href: string): Car
     priceUsd: typeof item.priceUsd === 'string' ? (parseFloat(item.priceUsd) || null) : (item.priceUsd ?? null),
     priceUsdFoil: typeof item.priceUsdFoil === 'string' ? (parseFloat(item.priceUsdFoil) || null) : (item.priceUsdFoil ?? null),
     priceUsdEtched: typeof item.priceUsdEtched === 'string' ? (parseFloat(item.priceUsdEtched) || null) : (item.priceUsdEtched ?? null),
+    computedPriceClp: item.computedPriceClp ?? null,
     rarity: '', // Not available in SearchItem
     href,
     variantSuffix: item.variantSuffix
@@ -71,10 +65,20 @@ export default function CardTile({
   priceUsd, 
   priceUsdFoil, 
   priceUsdEtched, 
+  computedPriceClp,
   rarity, 
   href 
 }: CardTileProps) {
-  const displayPrice = getDisplayPrice({ id, name, setCode, setName, collectorNumber, priceUsd, priceUsdFoil, priceUsdEtched, rarity, href })
+  const { config } = usePricing()
+  
+  const card = {
+    priceUsd,
+    priceUsdFoil,
+    priceUsdEtched,
+    computedPriceClp
+  }
+  
+  const displayPrice = getDisplayPrice(card, config)
   
   return (
     <Link
@@ -114,8 +118,8 @@ export default function CardTile({
 
           {/* Bottom-aligned price + CTA (identical vertical position for all cards) */}
           <div className="mt-auto flex items-center justify-between gap-3">
-            <span className="text-lg md:text-xl font-semibold text-[var(--fg-strong)] tracking-tight">
-              {displayPrice > 0 ? formatPrice(displayPrice) : 'N/A'}
+            <span className="text-sm md:text-base font-semibold text-[var(--fg-strong)] tracking-tight">
+              {displayPrice ? formatPrice(displayPrice, config) : 'N/A'}
             </span>
             <AddToCartButton printingId={id} title={name} />
           </div>

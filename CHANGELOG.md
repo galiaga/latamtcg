@@ -1,5 +1,72 @@
 # Changelog
 
+## v0.25.0 — 2025-01-16
+### Features
+- **Complete Pricing System Implementation**: Comprehensive CLP pricing system for Chile market
+  - **CLP Currency Support**: Switch display pricing from USD to Chilean Pesos (CLP)
+  - **Tiered Markup System**: Configurable alpha tiers based on USD price ranges
+    - < 5 USD → 90% markup (alpha = 0.9)
+    - 5–20 USD → 70% markup (alpha = 0.7)  
+    - > 20 USD → 50% markup (alpha = 0.5)
+  - **Pricing Formula**: `FinalPriceCLP = ceil_to_step(max(priceMinPerCardClp, (TCGPriceUSD * FX_CLP * (1 + alpha)) + betaClp), roundToStepClp)`
+  - **Per-Card Minimum**: 500 CLP minimum price per card
+  - **Rounding System**: Prices rounded up to nearest 500 CLP increments
+  - **Daily Shipping Integration**: Beta calculation from daily shipping records
+
+- **Checkout Rules & Validation**: Enhanced cart and checkout experience
+  - **Order Minimum**: 10,000 CLP minimum order requirement
+  - **Flat Shipping**: 2,500 CLP flat shipping cost
+  - **Free Shipping Threshold**: 25,000 CLP threshold for free shipping (configurable)
+  - **Progress Banners**: Real-time feedback for minimum order and free shipping progress
+  - **Checkout Validation**: Prevents checkout below minimum order with clear messaging
+
+- **Private Admin Interface**: Comprehensive pricing administration
+  - **Admin Dashboard** (`/admin/pricing`): Token-protected configuration interface
+  - **Configuration Management**: Live editing of all pricing parameters
+  - **Daily Shipping Input**: Add/edit daily shipping records for beta calculation
+  - **Pricing Preview Tool**: Real-time pricing calculation with detailed breakdown
+  - **Bulk Repricing**: Recalculate CLP prices for all cards
+  - **Overview Dashboard**: Current settings and system status
+
+- **Database Schema Updates**: New models for pricing system
+  - **PricingConfig Model**: Singleton configuration with all pricing parameters
+  - **DailyShipping Model**: Daily shipping records for beta calculation
+  - **MtgCard Extension**: Added `computedPriceClp` field for cached CLP prices
+
+- **API Routes**: Complete API for pricing operations
+  - **GET /api/pricing/preview**: Real-time pricing calculation with breakdown
+  - **GET/POST /api/admin/pricing/config**: Configuration management
+  - **GET/POST /api/admin/pricing/daily-shipping**: Daily shipping records
+  - **POST /api/admin/reprice**: Bulk repricing endpoint
+  - **Admin Authentication**: Token-based security for all admin routes
+
+- **Frontend Enhancements**: Updated components for CLP pricing
+  - **PricingProvider Context**: Global pricing configuration management
+  - **CardTile Updates**: CLP price display with tooltips and currency formatting
+  - **Cart Page Enhancements**: Minimum order validation, shipping calculation, progress banners
+  - **Currency Formatting**: Chilean peso formatting with es-CL locale
+  - **Search Integration**: Updated search services to include computedPriceClp field
+
+- **Developer Experience**: Comprehensive tooling and documentation
+  - **Setup Guide**: Step-by-step setup instructions (`SETUP_GUIDE.md`)
+  - **Technical Documentation**: Detailed system documentation (`PRICING_SYSTEM_README.md`)
+  - **Verification Script**: Automated setup verification (`scripts/verify-pricing-setup.ts`)
+  - **Test Suite**: Comprehensive pricing calculation tests (8 passing tests)
+  - **Migration Scripts**: Database migration and seeding automation
+
+### Technical Improvements
+- **Type Safety**: Full TypeScript support throughout pricing system
+- **Performance**: Cached CLP prices for optimal performance
+- **Backward Compatibility**: USD prices preserved, graceful fallback when CLP disabled
+- **Error Handling**: Comprehensive error handling and validation
+- **Logging**: Detailed pricing calculation logging for debugging
+
+### Configuration
+- **Environment Variables**: `ADMIN_TOKEN` for admin interface access
+- **Default Settings**: Sensible defaults for Chile market
+- **Configurable Parameters**: All pricing rules configurable through admin interface
+- **Real-time Updates**: Configuration changes apply immediately
+
 ## v0.24.0 — 2025-01-16
 ### Features
 - **Responsive Footer Component**: Complete footer redesign with dark lilac theme and three-column layout
@@ -76,6 +143,7 @@
   - Phase 3: **NEW** - Sample of stale cards to catch missed price changes
 - **Improved Price History Tracking**: Ensures all price changes are properly recorded in `mtgcard_price_history`
 - **Rate Limiting**: Added 100ms delay between individual card requests in Phase 3 to respect Scryfall API limits
+- **Increased Phase 3 Capacity**: Raised daily limit from 50 to 1000 cards for faster price update coverage
 
 ## v0.22.0 — 2025-01-16
 ### Features
