@@ -1,7 +1,13 @@
 import Link from 'next/link';
+import fs from 'fs';
+import path from 'path';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  
+  // Read version from VERSION file
+  const versionPath = path.join(process.cwd(), 'VERSION');
+  const version = fs.existsSync(versionPath) ? fs.readFileSync(versionPath, 'utf8').trim() : '0.25.0';
 
   return (
     <footer className="mt-16 bg-brand-900 text-gray-100 border-t border-brand-800">
@@ -107,6 +113,7 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="text-xs text-gray-300">
               <p>© {currentYear} LatamTCG. All rights reserved.</p>
+              <p className="mt-1">Version {version}</p>
             </div>
             <div className="text-xs text-gray-300">
               <p>

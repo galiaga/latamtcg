@@ -27,6 +27,7 @@ type Item = {
   priceUsd?: number | string | null
   priceUsdFoil?: number | string | null
   priceUsdEtched?: number | string | null
+  computedPriceClp?: number | null
 }
 
 type InitialData = {
