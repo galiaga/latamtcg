@@ -23,7 +23,7 @@ async function verifySetup() {
     
     console.log('✅ PricingConfig found')
     console.log(`   - CLP enabled: ${config.useCLP}`)
-    console.log(`   - FX rate: ${config.fxClp} CLP/USD`)
+    console.log(`   - FX rate: ${Number(config.fxClp)} CLP/USD`)
     console.log(`   - Min per card: ${config.priceMinPerCardClp} CLP`)
     console.log(`   - Order minimum: ${config.minOrderSubtotalClp} CLP`)
     console.log(`   - Shipping: ${config.shippingFlatClp} CLP`)
@@ -60,7 +60,7 @@ async function verifySetup() {
     })
 
     if (testCard) {
-      const expectedClp = Math.ceil(Number(testCard.priceUsd) * config.fxClp * 1.9) // Using alphaLow
+      const expectedClp = Math.ceil(Number(testCard.priceUsd) * Number(config.fxClp) * 1.9) // Using alphaLow
       const roundedExpected = Math.ceil(expectedClp / config.roundToStepClp) * config.roundToStepClp
       const minExpected = Math.max(roundedExpected, config.priceMinPerCardClp)
       
