@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { error: 'Invalid daily shipping data', details: result.error.errors },
+        { error: 'Invalid daily shipping data', details: result.error.issues },
         { status: 400 }
       )
     }
