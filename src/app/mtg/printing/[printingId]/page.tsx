@@ -9,6 +9,7 @@ import { formatCardVariant } from '@/lib/cards/formatVariant'
 import { formatCLP } from '@/lib/format'
 import { formatDisplayName } from '@/lib/cardNames'
 import PricingDisplay from '@/components/PricingDisplay'
+import PriceHistoryChart from '@/components/PriceHistoryChart'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -160,6 +161,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
           <div className="mt-2 text-xs" style={{ color: 'var(--mutedText)' }}>
             Data & Images © Scryfall
           </div>
+          
         </div>
         {/* Right: details */}
         <div className="flex-1 card card-2xl p-4 w-[min(86vw,420px)] md:w-auto md:max-w-none">
@@ -175,15 +177,6 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
                 <h1 className="text-2xl font-semibold" style={{ letterSpacing: '-0.01em' }}>
                   {formatDisplayName(data.name, data.flavorName)}{variant.suffix}
                 </h1>
-                {variant.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {variant.tags.map((tag, index) => (
-                      <span key={index} className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </>
             )
           })()}
@@ -209,7 +202,17 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             {/* Replace wishlist/track with add to cart for MVP */}
             <AddToCartButton printingId={data.id} size="lg" />
           </div>
+          
+          {/* Price History Chart - shown in right column on desktop only */}
+          <div className="mt-6 hidden lg:block">
+            <PriceHistoryChart printingId={data.id} days={30} />
+          </div>
         </div>
+      </div>
+
+      {/* Price History Chart - shown on mobile below pricing section */}
+      <div className="lg:hidden">
+        <PriceHistoryChart printingId={data.id} days={30} />
       </div>
 
       <OtherPrintingsCarousel
