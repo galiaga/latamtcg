@@ -49,9 +49,9 @@ export default async function OrdersPage() {
       
       if (card) {
         const cardPrice = {
-          priceUsd: card.priceUsd,
-          priceUsdFoil: card.priceUsdFoil,
-          priceUsdEtched: card.priceUsdEtched
+          priceUsd: card.priceUsd ? Number(card.priceUsd) : null,
+          priceUsdFoil: card.priceUsdFoil ? Number(card.priceUsdFoil) : null,
+          priceUsdEtched: card.priceUsdEtched ? Number(card.priceUsdEtched) : null
         }
         
         const displayPrice = getDisplayPriceServer(cardPrice, config)
