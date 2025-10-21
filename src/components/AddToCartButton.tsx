@@ -42,7 +42,15 @@ export default function AddToCartButton({ printingId, size = 'md', title }: { pr
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ printingId, quantity: 1, requestId }),
       }).then(async (r) => {
-        if (!r.ok) return {}
+        if (!r.ok) {
+          const errorData = await r.json().catch(() => ({}))
+          if (errorData.error === 'purchase_limit_exceeded') {
+            // Show user-friendly error message for purchase limits
+            alert(errorData.message || 'Purchase limit exceeded')
+            throw new Error('Purchase limit exceeded')
+          }
+          return {}
+        }
         setOk(true)
         const json = await r.json().catch(() => ({})) as any
         return { totalCount: Number(json?.totalCount), totalPrice: Number(json?.totalPrice) }

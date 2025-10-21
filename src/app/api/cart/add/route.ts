@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
     ? await getOrCreateUserCart(user.id)
     : await getOrCreateAnonymousCart()
 
+
   // Capture price snapshot (one query)
   const t1 = Date.now()
   const card = await prisma.mtgCard.findUnique({ where: { scryfallId: printingId }, select: { priceUsd: true, priceUsdFoil: true, priceUsdEtched: true } })
