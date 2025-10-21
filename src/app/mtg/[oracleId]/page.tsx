@@ -132,21 +132,33 @@ export default async function OraclePage(props: { params: Promise<{ oracleId: st
                   </td>
                   <td className="p-2 text-right tabular-nums">
                     {(() => {
-                      const card = { priceUsd: row.priceUsd, priceUsdFoil: row.priceUsdFoil, priceUsdEtched: row.priceUsdEtched }
+                      const card = { 
+                        priceUsd: row.priceUsd ? Number(row.priceUsd) : null, 
+                        priceUsdFoil: row.priceUsdFoil ? Number(row.priceUsdFoil) : null, 
+                        priceUsdEtched: row.priceUsdEtched ? Number(row.priceUsdEtched) : null 
+                      }
                       const displayPrice = getDisplayPriceServer(card, config, ['normal'])
                       return displayPrice ? formatPriceServer(displayPrice, config) : '—'
                     })()}
                   </td>
                   <td className="p-2 text-right tabular-nums">
                     {(() => {
-                      const card = { priceUsd: row.priceUsd, priceUsdFoil: row.priceUsdFoil, priceUsdEtched: row.priceUsdEtched }
+                      const card = { 
+                        priceUsd: row.priceUsd ? Number(row.priceUsd) : null, 
+                        priceUsdFoil: row.priceUsdFoil ? Number(row.priceUsdFoil) : null, 
+                        priceUsdEtched: row.priceUsdEtched ? Number(row.priceUsdEtched) : null 
+                      }
                       const displayPrice = getDisplayPriceServer(card, config, ['foil'])
                       return displayPrice ? formatPriceServer(displayPrice, config) : '—'
                     })()}
                   </td>
                   <td className="p-2 text-right tabular-nums">
                     {(() => {
-                      const card = { priceUsd: row.priceUsd, priceUsdFoil: row.priceUsdFoil, priceUsdEtched: row.priceUsdEtched }
+                      const card = { 
+                        priceUsd: row.priceUsd ? Number(row.priceUsd) : null, 
+                        priceUsdFoil: row.priceUsdFoil ? Number(row.priceUsdFoil) : null, 
+                        priceUsdEtched: row.priceUsdEtched ? Number(row.priceUsdEtched) : null 
+                      }
                       const displayPrice = getDisplayPriceServer(card, config, ['etched'])
                       return displayPrice ? formatPriceServer(displayPrice, config) : '—'
                     })()}

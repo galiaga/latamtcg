@@ -528,9 +528,9 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
             if (printingSel.length === 1) {
               const selected = printingSel[0]
               const card = {
-                priceUsd: item.priceUsd,
-                priceUsdFoil: item.priceUsdFoil,
-                priceUsdEtched: item.priceUsdEtched
+                priceUsd: item.priceUsd ? Number(item.priceUsd) : null,
+                priceUsdFoil: item.priceUsdFoil ? Number(item.priceUsdFoil) : null,
+                priceUsdEtched: item.priceUsdEtched ? Number(item.priceUsdEtched) : null
               }
               const displayPrice = getDisplayPrice(card, config, [selected])
               return displayPrice ? formatPrice(displayPrice, config) : 'N/A'
@@ -538,9 +538,9 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
             
             // Multiple or no printing filters: use best available price
             const card = {
-              priceUsd: item.priceUsd,
-              priceUsdFoil: item.priceUsdFoil,
-              priceUsdEtched: item.priceUsdEtched
+              priceUsd: item.priceUsd ? Number(item.priceUsd) : null,
+              priceUsdFoil: item.priceUsdFoil ? Number(item.priceUsdFoil) : null,
+              priceUsdEtched: item.priceUsdEtched ? Number(item.priceUsdEtched) : null
             }
             const displayPrice = getDisplayPrice(card, config)
             return displayPrice ? formatPrice(displayPrice, config) : 'N/A'
