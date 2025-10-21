@@ -15,7 +15,8 @@ export function formatCLP(value: unknown | null): string {
   if (value === null || value === undefined) return 'Not available'
   const num = Number(value)
   if (Number.isNaN(num)) return 'Not available'
-  return `$${num.toLocaleString("es-CL")}`
+  // Use consistent decimal formatting for CLP prices
+  return `$${num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`
 }
 
 

@@ -8,7 +8,7 @@ import zlib from 'zlib'
 import streamJson from 'stream-json'
 import streamArrayMod from 'stream-json/streamers/StreamArray'
 const { parser } = streamJson
-const { withParser: streamArray } = streamArrayMod
+const { streamArray } = streamArrayMod
 
 type IngestSummary = {
   updated: number

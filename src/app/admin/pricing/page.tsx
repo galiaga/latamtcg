@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { PricingConfig, DailyShipping } from '@/lib/pricingData'
 import { PurchasePolicy } from '@/lib/policy'
 import { formatCLP } from '@/lib/format'
@@ -27,19 +27,23 @@ export default function AdminPricingPage() {
     notes: ''
   })
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'x-admin-token': token
-  }
-
-  const authenticate = () => {
+  const authenticate = async () => {
     if (token.trim()) {
       setAuthenticated(true)
-      loadData()
     }
   }
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    if (!token.trim()) {
+      setError('No admin token provided')
+      return
+    }
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-admin-token': token
+    }
+    
     setLoading(true)
     setError(null)
     try {
@@ -67,12 +71,24 @@ export default function AdminPricingPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token])
+
+  // Prevent loading data on mount if not authenticated
+  useEffect(() => {
+    if (authenticated && token.trim()) {
+      loadData()
+    }
+  }, [authenticated, token, loadData])
 
   const saveConfig = async () => {
     setLoading(true)
     setError(null)
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-admin-token': token
+      }
+      
       const res = await fetch('/api/admin/pricing/config', {
         method: 'POST',
         headers,
@@ -97,6 +113,11 @@ export default function AdminPricingPage() {
     setLoading(true)
     setError(null)
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-admin-token': token
+      }
+      
       const res = await fetch('/api/admin/policy', {
         method: 'POST',
         headers,
@@ -121,6 +142,11 @@ export default function AdminPricingPage() {
     setLoading(true)
     setError(null)
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-admin-token': token
+      }
+      
       const res = await fetch('/api/admin/pricing/daily-shipping', {
         method: 'POST',
         headers,
@@ -168,6 +194,11 @@ export default function AdminPricingPage() {
     setLoading(true)
     setError(null)
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-admin-token': token
+      }
+      
       const res = await fetch('/api/admin/reprice', {
         method: 'POST',
         headers
