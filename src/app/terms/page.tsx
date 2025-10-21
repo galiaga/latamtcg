@@ -61,6 +61,9 @@ export default function TermsPage() {
               All prices are displayed in Chilean Pesos (CLP) and include consolidation and importation costs. Prices are rounded up to multiples of $500 CLP for simplicity and transparency. Our pricing formula considers TCGPlayer USD prices, current exchange rates, tiered markup based on card value, and daily shipping costs.
             </p>
             <p>
+              <strong>Purchase Limits:</strong> To ensure fair access to all players, each user may purchase up to 4 copies of the same card within a rolling 3-day window. This limit applies to each individual printing and includes copies in your cart plus any copies from orders placed in the last 3 days. Anonymous users have cart-level limits only, while signed-in users have cross-order limits enforced at checkout.
+            </p>
+            <p>
               All payments must be made in full at the time of purchase. We accept major credit cards and PayPal. All payments are processed in Chilean Pesos (CLP). LatamTCG reserves the right to hold or cancel orders flagged by our payment processor for fraud review.
             </p>
             <p>By providing payment information, you represent and warrant that:</p>

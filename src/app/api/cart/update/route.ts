@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
     const qRaw = Number(body.quantity)
     const delta = Number.isFinite(qRaw) ? Math.floor(qRaw) : 1
     const nextQty = action === 'inc' ? Math.max(1, line.quantity + delta) : Math.max(1, delta)
+    
+    
     const t2 = Date.now()
     await prisma.cartItem.update({ where: { id: line.id }, data: { quantity: nextQty } })
     dbMs += Date.now() - t2

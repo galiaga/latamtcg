@@ -6,11 +6,12 @@ import CardTile, { convertSearchItemToCardTile } from '@/components/CardTile'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
-import { formatUsd } from '@/lib/format'
 import { buildCacheKey } from '@/lib/cache'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import SkeletonCard from './SkeletonCard'
 import Spinner from './Spinner'
+import { usePricing } from './PricingProvider'
+import { getDisplayPrice, formatPrice } from '@/lib/pricingClient'
 
 type Item = {
   kind: 'printing' | 'group'
@@ -43,6 +44,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  const { config } = usePricing()
   const [q, setQ] = useState(initialQuery ?? '')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hydrate from SSR blob
   const [primary, setPrimary] = useState<Item[]>(Array.isArray(initialData?.primary) ? (initialData?.primary as any) : [])
@@ -525,16 +527,23 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
             // If only one printing type is selected, show that specific price
             if (printingSel.length === 1) {
               const selected = printingSel[0]
-              const v = selected === 'etched' ? item.priceUsdEtched : 
-                       selected === 'foil' ? item.priceUsdFoil : 
-                       item.priceUsd
-              return formatUsd(v)
+              const card = {
+                priceUsd: item.priceUsd ? Number(item.priceUsd) : null,
+                priceUsdFoil: item.priceUsdFoil ? Number(item.priceUsdFoil) : null,
+                priceUsdEtched: item.priceUsdEtched ? Number(item.priceUsdEtched) : null
+              }
+              const displayPrice = getDisplayPrice(card, config, [selected])
+              return displayPrice ? formatPrice(displayPrice, config) : 'N/A'
             }
             
-            // Multiple or no printing filters: use Normal → Foil → Etched priority
-            const order = [item.priceUsd, item.priceUsdFoil, item.priceUsdEtched]
-            const v = order.find((x) => typeof x === 'number' && !Number.isNaN(Number(x))) ?? null
-            return formatUsd(v)
+            // Multiple or no printing filters: use best available price
+            const card = {
+              priceUsd: item.priceUsd ? Number(item.priceUsd) : null,
+              priceUsdFoil: item.priceUsdFoil ? Number(item.priceUsdFoil) : null,
+              priceUsdEtched: item.priceUsdEtched ? Number(item.priceUsdEtched) : null
+            }
+            const displayPrice = getDisplayPrice(card, config)
+            return displayPrice ? formatPrice(displayPrice, config) : 'N/A'
           })()
           const chips = (() => {
             const out: Array<{ key: string; label: string }> = []

@@ -339,7 +339,7 @@ export async function groupedSearchOriginal(params: GroupedParams): Promise<Grou
             mc."priceUsd",
             mc."priceUsdFoil", 
             mc."priceUsdEtched",
-            mc."computedPriceClp",
+            NULL AS "computedPriceClp",
             mc.rarity,
             (CASE WHEN mc."priceUsd" IS NOT NULL THEN true ELSE false END) AS hasNonfoil,
             (CASE WHEN mc."priceUsdFoil" IS NOT NULL THEN true ELSE false END) AS hasFoil,

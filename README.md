@@ -250,6 +250,28 @@ The `SearchIndex` is game-agnostic. To add Pokémon, Yu-Gi-Oh!, One Piece, or ac
 - Ingest streams and processes in batches to keep memory stable; default batch size is 500.
 - Dual-faced or nonstandard cards without `image_uris` use the first face's `image_uris.normal` when present.
 
+### Generate prices CSV and import
+
+1) Ensure `data/scryfall-default-cards.json` exists (from bulk download/refresh)
+2) Generate CSV:
+
+```bash
+npx tsx scripts/generate-prices-csv.ts > prices.csv
+```
+
+3) Import via psql using a staging table and set-based updates:
+
+```bash
+psql "$DATABASE_URL" <<'SQL'
+BEGIN;
+\copy prices_staging (scryfall_id, price_usd, price_usd_foil, price_usd_etched, price_day) FROM './prices.csv' WITH (FORMAT csv, HEADER true);
+\i scripts/prices-import.sql
+COMMIT;
+SQL
+```
+
+This updates current prices in `MtgCard` where values changed and upserts one row per finish into `mtgcard_price_history` for the provided `price_day`.
+
 ### Scryfall ingest (resumable, multi-phase)
 
 The ingest now runs in three idempotent phases with checkpoints in `KvMeta`:

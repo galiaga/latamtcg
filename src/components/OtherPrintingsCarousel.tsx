@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { getScryfallNormalUrl, getScryfallSmallUrl } from '@/lib/images'
-import { formatUsd } from '@/lib/format'
+import { usePricing } from './PricingProvider'
+import { getDisplayPrice, formatPrice } from '@/lib/pricingClient'
 
 type PrintingItem = {
   id: string
@@ -14,6 +15,9 @@ type PrintingItem = {
   variant_group?: string | null
   finish_group?: string | null
   priceUsd?: number | string | null
+  priceUsdFoil?: number | string | null
+  priceUsdEtched?: number | string | null
+  computedPriceClp?: number | string | null
 }
 
 export default function OtherPrintingsCarousel({
@@ -27,6 +31,7 @@ export default function OtherPrintingsCarousel({
   currentId?: string
   oracleId: string
 }) {
+  const { config } = usePricing()
   const listRef = useRef<HTMLDivElement | null>(null)
   const filtered = (items || []).filter((s) => s && s.id && s.id !== currentId)
   const limited = filtered.slice(0, 16)
@@ -217,7 +222,16 @@ export default function OtherPrintingsCarousel({
                   <div className="mt-1">
                     {/* Price - bolder and darker */}
                     <div className="text-lg font-semibold text-[var(--fg-strong)] tracking-tight">
-                      {formatUsd(s.priceUsd)}
+                      {(() => {
+                        const card = {
+                          priceUsd: typeof s.priceUsd === 'number' ? s.priceUsd : null,
+                          priceUsdFoil: typeof s.priceUsdFoil === 'number' ? s.priceUsdFoil : null,
+                          priceUsdEtched: typeof s.priceUsdEtched === 'number' ? s.priceUsdEtched : null,
+                          computedPriceClp: typeof s.computedPriceClp === 'number' ? s.computedPriceClp : null
+                        }
+                        const displayPrice = getDisplayPrice(card, config)
+                        return displayPrice ? formatPrice(displayPrice, config) : 'N/A'
+                      })()}
                     </div>
                   </div>
                   

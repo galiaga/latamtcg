@@ -6,8 +6,9 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import OtherPrintingsCarousel from '@/components/OtherPrintingsCarousel'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
-import { formatUsd } from '@/lib/format'
+import { formatCLP } from '@/lib/format'
 import { formatDisplayName } from '@/lib/cardNames'
+import PricingDisplay from '@/components/PricingDisplay'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -79,6 +80,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
              c."priceUsd",
              c."priceUsdFoil",
              c."priceUsdEtched",
+             NULL AS "computedPriceClp",
              si."variantLabel" AS variant_label,
              si."finishLabel" AS finish_label
       FROM "public"."MtgCard" c
@@ -106,10 +108,10 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
       GROUP BY "oracleId", "setCode", "collectorNumber", variant_group, finish_group
     ), top AS (
       SELECT g.*, b.id, b."setCode", b."setName", b."collectorNumber"
-            , b."priceUsd", b."priceUsdFoil", b."priceUsdEtched"
+            , b."priceUsd", b."priceUsdFoil", b."priceUsdEtched", NULL AS "computedPriceClp"
       FROM groups g
       JOIN LATERAL (
-        SELECT id, "setCode", "setName", "collectorNumber", "priceUsd", "priceUsdFoil", "priceUsdEtched"
+        SELECT id, "setCode", "setName", "collectorNumber", "priceUsd", "priceUsdFoil", "priceUsdEtched", NULL AS "computedPriceClp"
         FROM base2 b
         WHERE b."oracleId" = g."oracleId" AND b."setCode" = g."setCode" AND b."collectorNumber" = g."collectorNumber" AND b.variant_group = g.variant_group AND b.finish_group = g.finish_group
         ORDER BY b."releasedAt" DESC
@@ -193,41 +195,17 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
           </div>
           
           {/* Pricing section */}
-          <div className="mt-4 space-y-2">
-            <h3 className="text-lg font-medium">Pricing</h3>
-            <div className="space-y-2">
-              {data.hasNonfoil && data.priceUsd && (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <span className="font-medium">Normal</span>
-                  <span className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>
-                    {formatUsd(data.priceUsd)}
-                  </span>
-                </div>
-              )}
-              {data.hasFoil && data.priceUsdFoil && (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <span className="font-medium">Foil</span>
-                  <span className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>
-                    {formatUsd(data.priceUsdFoil)}
-                  </span>
-                </div>
-              )}
-              {data.hasEtched && data.priceUsdEtched && (
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <span className="font-medium">Etched</span>
-                  <span className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>
-                    {formatUsd(data.priceUsdEtched)}
-                  </span>
-                </div>
-              )}
-              {!data.hasNonfoil && !data.hasFoil && !data.hasEtched && (
-                <div className="p-3 border rounded-lg text-center text-gray-500">
-                  No pricing available
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
+          <PricingDisplay
+            priceUsd={toNumberOrNull(data.priceUsd)}
+            priceUsdFoil={toNumberOrNull(data.priceUsdFoil)}
+            priceUsdEtched={toNumberOrNull(data.priceUsdEtched)}
+            computedPriceClp={toNumberOrNull(data.computedPriceClp)}
+            hasNonfoil={data.hasNonfoil}
+            hasFoil={data.hasFoil}
+            hasEtched={data.hasEtched}
+                />
+                
+                <div className="mt-4 flex gap-2">
             {/* Replace wishlist/track with add to cart for MVP */}
             <AddToCartButton printingId={data.id} size="lg" />
           </div>
@@ -245,6 +223,9 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             variant_group: s.variant_group,
             finish_group: s.finish_group,
             priceUsd: toNumberOrNull(s.priceUsd) ?? toNumberOrNull(s.priceUsdFoil) ?? toNumberOrNull(s.priceUsdEtched) ?? null,
+            priceUsdFoil: toNumberOrNull(s.priceUsdFoil),
+            priceUsdEtched: toNumberOrNull(s.priceUsdEtched),
+            computedPriceClp: toNumberOrNull(s.computedPriceClp),
           }))
           .filter(item => item.priceUsd !== null)}
         currentId={String(data.id)}
