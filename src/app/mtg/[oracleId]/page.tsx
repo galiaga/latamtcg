@@ -3,15 +3,10 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { fetchPrintsForOracle, tryWithOracleLock } from '@/lib/scryfallPrints'
 import { getScryfallNormalUrl } from '@/lib/images'
+import { getPricingConfig, getDisplayPriceServer } from '@/lib/pricingData'
+import { formatPriceServer } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
-
-function formatUsd(value: unknown | null): string {
-  if (value === null || value === undefined) return '—'
-  const num = Number(value)
-  if (Number.isNaN(num)) return '—'
-  return `$${num.toFixed(2)}`
-}
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
@@ -75,6 +70,9 @@ export default async function OraclePage(props: { params: Promise<{ oracleId: st
   }
 
   const title = rows[0].name
+  
+  // Get pricing configuration
+  const config = await getPricingConfig()
 
   return (
     <div className="p-6 space-y-4">
@@ -93,9 +91,9 @@ export default async function OraclePage(props: { params: Promise<{ oracleId: st
               <th className="p-2 text-left">Rarity</th>
               <th className="p-2 text-left">Tags</th>
               <th className="p-2 text-left">Finishes</th>
-              <th className="p-2 text-right">Normal USD</th>
-              <th className="p-2 text-right">Foil USD</th>
-              <th className="p-2 text-right">Etched USD</th>
+              <th className="p-2 text-right">Normal Price</th>
+              <th className="p-2 text-right">Foil Price</th>
+              <th className="p-2 text-right">Etched Price</th>
             </tr>
           </thead>
           <tbody>
@@ -132,9 +130,27 @@ export default async function OraclePage(props: { params: Promise<{ oracleId: st
                     {finishes.has('etched') && <Tag>Etched</Tag>}
                     {!finishes.size && '—'}
                   </td>
-                  <td className="p-2 text-right tabular-nums">{formatUsd(row.priceUsd)}</td>
-                  <td className="p-2 text-right tabular-nums">{formatUsd(row.priceUsdFoil)}</td>
-                  <td className="p-2 text-right tabular-nums">{formatUsd(row.priceUsdEtched)}</td>
+                  <td className="p-2 text-right tabular-nums">
+                    {(() => {
+                      const card = { priceUsd: row.priceUsd, priceUsdFoil: row.priceUsdFoil, priceUsdEtched: row.priceUsdEtched }
+                      const displayPrice = getDisplayPriceServer(card, config, ['normal'])
+                      return displayPrice ? formatPriceServer(displayPrice, config) : '—'
+                    })()}
+                  </td>
+                  <td className="p-2 text-right tabular-nums">
+                    {(() => {
+                      const card = { priceUsd: row.priceUsd, priceUsdFoil: row.priceUsdFoil, priceUsdEtched: row.priceUsdEtched }
+                      const displayPrice = getDisplayPriceServer(card, config, ['foil'])
+                      return displayPrice ? formatPriceServer(displayPrice, config) : '—'
+                    })()}
+                  </td>
+                  <td className="p-2 text-right tabular-nums">
+                    {(() => {
+                      const card = { priceUsd: row.priceUsd, priceUsdFoil: row.priceUsdFoil, priceUsdEtched: row.priceUsdEtched }
+                      const displayPrice = getDisplayPriceServer(card, config, ['etched'])
+                      return displayPrice ? formatPriceServer(displayPrice, config) : '—'
+                    })()}
+                  </td>
                 </tr>
               )
             })}

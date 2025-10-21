@@ -5,12 +5,13 @@ import { SWRConfig } from 'swr'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/components/CartProvider'
 import { supabaseBrowser } from '@/lib/supabase-browser'
-import { formatUsd, formatCLP } from '@/lib/format'
+import { formatCLP } from '@/lib/format'
 import Image from 'next/image'
 import Link from 'next/link'
 import SkeletonCartRow from '@/components/SkeletonCartRow'
 import { usePricing } from '@/components/PricingProvider'
 import { calculateShipping, meetsMinimumOrder, amountToMinimum, amountToFreeShipping } from '@/lib/pricing'
+import { getDisplayPrice, formatPrice } from '@/lib/pricingClient'
 
 
 type CartItem = {
@@ -130,7 +131,15 @@ export default function CartPage() {
 
       const postPromise = fetch('/api/cart/update', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, printingId, quantity }) })
         .then(async (r) => {
-          if (!r.ok) return {}
+          if (!r.ok) {
+            const errorData = await r.json().catch(() => ({}))
+            if (errorData.error === 'purchase_limit_exceeded') {
+              // Show user-friendly error message for purchase limits
+              alert(errorData.message || 'Purchase limit exceeded')
+              throw new Error('Purchase limit exceeded')
+            }
+            return {}
+          }
           const j = await r.json().catch(() => ({}))
           return { totalCount: Number(j?.totalCount), totalPrice: Number(j?.totalPrice) }
         })
@@ -141,22 +150,43 @@ export default function CartPage() {
 
   async function checkoutGuest() {
     if (!meetsMinimum) {
-      alert(`Minimum order is ${config?.useCLP ? formatCLP(config.minOrderSubtotalClp) : formatUsd(config?.minOrderSubtotalClp || 0)}. Add ${config?.useCLP ? formatCLP(amountToMin) : formatUsd(amountToMin)} more to checkout.`)
+      alert(`Minimum order is ${formatPrice(config?.minOrderSubtotalClp || 0, config)}. Add ${formatPrice(amountToMin, config)} more to checkout.`)
       return
     }
     
     const email = window.prompt('Enter your email to checkout as guest')
     if (!email) return
-    const res = await fetch('/api/checkout/guest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
-    const json = await res.json()
-    if (res.ok && json?.orderId) {
-      window.location.href = `/order/confirmation?orderId=${encodeURIComponent(json.orderId)}`
+    
+    try {
+      const res = await fetch('/api/checkout/guest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
+      const json = await res.json()
+      
+      if (res.ok && json?.orderId) {
+        window.location.href = `/order/confirmation?orderId=${encodeURIComponent(json.orderId)}`
+        return
+      }
+      
+      // Handle specific error cases
+      if (json?.error === 'purchase_limit_exceeded') {
+        const violations = json?.violations || []
+        if (violations.length > 0) {
+          const violation = violations[0] // Show first violation
+          const limitInfo = violation.limitInfo
+          alert(`Purchase limit exceeded: You can only add ${limitInfo.maxAllowed} copies of this item to your cart. Please sign in for full policy enforcement.`)
+        } else {
+          alert('Some items exceed purchase limits. Please reduce quantities and try again.')
+        }
+      } else {
+        alert(json?.error || 'Unable to checkout')
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Unable to checkout')
     }
   }
 
   async function checkoutUser() {
     if (!meetsMinimum) {
-      alert(`Minimum order is ${config?.useCLP ? formatCLP(config.minOrderSubtotalClp) : formatUsd(config?.minOrderSubtotalClp || 0)}. Add ${config?.useCLP ? formatCLP(amountToMin) : formatUsd(amountToMin)} more to checkout.`)
+      alert(`Minimum order is ${formatPrice(config?.minOrderSubtotalClp || 0, config)}. Add ${formatPrice(amountToMin, config)} more to checkout.`)
       return
     }
     
@@ -183,7 +213,20 @@ export default function CartPage() {
         }
         return
       }
-      alert(json?.error || 'Unable to checkout')
+      
+      // Handle specific error cases
+      if (json?.error === 'purchase_limit_exceeded') {
+        const violations = json?.violations || []
+        if (violations.length > 0) {
+          const violation = violations[0] // Show first violation
+          const limitInfo = violation.limitInfo
+          alert(`Purchase limit exceeded: You can only buy ${limitInfo.maxAllowed} copies of this item within ${limitInfo.windowDays} days. You already have ${limitInfo.alreadyCommitted} committed.`)
+        } else {
+          alert('Some items exceed purchase limits. Please reduce quantities and try again.')
+        }
+      } else {
+        alert(json?.error || 'Unable to checkout')
+      }
     } catch (e: any) {
       alert(e?.message || 'Unable to checkout')
     } finally {
@@ -225,10 +268,15 @@ export default function CartPage() {
                 <div className="flex items-center gap-2">
                   <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1)} aria-label="Decrease quantity">−</button>
                   <div className="w-8 text-center tabular-nums">{it.quantity}</div>
-                  <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', 1)} aria-label="Increase quantity">+</button>
+                  <button 
+                    className="btn btn-sm" 
+                    onClick={() => update(it.printingId, 'inc', 1)} 
+                    aria-label="Increase quantity"
+                    disabled={it.quantity >= 4}
+                  >+</button>
                 </div>
-                <div className="w-20 text-right tabular-nums">{config?.useCLP ? formatCLP(it.unitPrice) : formatUsd(it.unitPrice)}</div>
-                <div className="w-24 text-right tabular-nums font-bold">{config?.useCLP ? formatCLP(it.lineTotal) : formatUsd(it.lineTotal)}</div>
+                <div className="w-20 text-right tabular-nums">{formatPrice(it.unitPrice, config)}</div>
+                <div className="w-24 text-right tabular-nums font-bold">{formatPrice(it.lineTotal, config)}</div>
                 <div>
                   <button className="btn btn-ghost" onClick={() => update(it.printingId, 'remove')}>Remove</button>
                 </div>
@@ -251,11 +299,16 @@ export default function CartPage() {
                   <div className="flex items-center gap-2">
                     <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1)} aria-label="Decrease quantity">−</button>
                     <div className="w-8 text-center tabular-nums">{it.quantity}</div>
-                    <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', 1)} aria-label="Increase quantity">+</button>
+                    <button 
+                      className="btn btn-sm" 
+                      onClick={() => update(it.printingId, 'inc', 1)} 
+                      aria-label="Increase quantity"
+                      disabled={it.quantity >= 4}
+                    >+</button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-sm tabular-nums">{config?.useCLP ? formatCLP(it.unitPrice) : formatUsd(it.unitPrice)} each</div>
-                    <div className="text-lg font-bold tabular-nums">{config?.useCLP ? formatCLP(it.lineTotal) : formatUsd(it.lineTotal)}</div>
+                    <div className="text-sm tabular-nums">{formatPrice(it.unitPrice, config)} each</div>
+                    <div className="text-lg font-bold tabular-nums">{formatPrice(it.lineTotal, config)}</div>
                     <button className="btn btn-ghost btn-sm" onClick={() => update(it.printingId, 'remove')}>Remove</button>
                   </div>
                 </div>
@@ -272,7 +325,7 @@ export default function CartPage() {
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
               <div className="font-medium text-yellow-800">Minimum order required</div>
               <div className="text-yellow-700">
-                Add {config?.useCLP ? formatCLP(amountToMin) : formatUsd(amountToMin)} to reach the minimum order of {config?.useCLP ? formatCLP(config?.minOrderSubtotalClp || 0) : formatUsd(config?.minOrderSubtotalClp || 0)}.
+                Add {formatPrice(amountToMin, config)} to reach the minimum order of {formatPrice(config?.minOrderSubtotalClp || 0, config)}.
               </div>
             </div>
           )}
@@ -281,24 +334,24 @@ export default function CartPage() {
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
               <div className="font-medium text-blue-800">Free shipping available</div>
               <div className="text-blue-700">
-                Add {config?.useCLP ? formatCLP(amountToFree) : formatUsd(amountToFree)} to get free shipping.
+                Add {formatPrice(amountToFree, config)} to get free shipping.
               </div>
             </div>
           )}
           
           <div className="flex justify-between">
             <span>Subtotal</span>
-            <span className="tabular-nums">{config?.useCLP ? formatCLP(subtotal) : formatUsd(subtotal)}</span>
+            <span className="tabular-nums">{formatPrice(subtotal, config)}</span>
           </div>
           {shipping > 0 && (
             <div className="flex justify-between">
               <span>Shipping</span>
-              <span className="tabular-nums">{config?.useCLP ? formatCLP(shipping) : formatUsd(shipping)}</span>
+              <span className="tabular-nums">{formatPrice(shipping, config)}</span>
             </div>
           )}
           <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
             <span>Total</span>
-            <span className="tabular-nums">{config?.useCLP ? formatCLP(total) : formatUsd(total)}</span>
+            <span className="tabular-nums">{formatPrice(total, config)}</span>
           </div>
           <div className="mt-4">
             {authed ? (

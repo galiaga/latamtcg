@@ -51,6 +51,7 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
       priceUsd: unknown
       priceUsdFoil: unknown
       priceUsdEtched: unknown
+      computedPriceClp: unknown
       lang: string | null
       releasedAt: Date | null
       setName: string | null
@@ -71,6 +72,7 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
           c."priceUsd",
           c."priceUsdFoil",
           c."priceUsdEtched",
+          NULL AS "computedPriceClp",
           c.lang,
           c."releasedAt",
           c."borderColor",
@@ -114,6 +116,7 @@ export const getPrintingById = cache(async function getPrintingByIdCached(printi
       priceUsd: coalescedPrice,
       priceUsdFoil: row?.priceUsdFoil as any,
       priceUsdEtched: row?.priceUsdEtched as any,
+      computedPriceClp: row?.computedPriceClp as any,
       hasNonfoil,
       hasFoil,
       hasEtched,

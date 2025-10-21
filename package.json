@@ -1,6 +1,6 @@
 {
   "name": "latamtcg",
-  "version": "0.25.0",
+  "version": "0.25.1",
   "private": true,
   "scripts": {
     "dev": "NEXT_FORCE_WEBPACK=1 next dev",
@@ -24,7 +24,9 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:seed:pricing": "tsx scripts/seed-pricing-config.ts",
+    "db:seed:policy": "tsx scripts/seed-store-policy.ts",
     "db:verify:pricing": "tsx scripts/verify-pricing-setup.ts",
+    "db:check:limits": "tsx scripts/check-purchase-limits-migration.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
@@ -34,6 +36,7 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.58.0",
     "@types/nprogress": "^0.2.3",
+    "date-fns": "^4.1.0",
     "next": "15.5.3",
     "nprogress": "^0.2.0",
     "pg": "^8.12.0",

@@ -26,6 +26,28 @@ export default function HelpPage() {
         </section>
 
         <section>
+          <h2 className="text-lg font-medium text-text mb-3">Purchase Limits</h2>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium text-text">Why are there purchase limits?</h3>
+              <p>To protect availability for all players, each user may buy up to 4 copies of the same card within a rolling 3-day window. This ensures fair access to popular cards and prevents hoarding.</p>
+            </div>
+            <div>
+              <h3 className="font-medium text-text">How do purchase limits work?</h3>
+              <p>Purchase limits apply to each individual printing (exact card version). The limit counts all copies you have in your cart plus any copies from orders placed in the last 3 days. Anonymous users have cart-level limits only, while signed-in users have cross-order limits.</p>
+            </div>
+            <div>
+              <h3 className="font-medium text-text">Can I exceed the limit?</h3>
+              <p>No, the system will prevent you from adding more copies than allowed. If you try to exceed the limit, you'll see a clear message explaining how many copies you already have committed and how many more you can add.</p>
+            </div>
+            <div>
+              <h3 className="font-medium text-text">Do limits apply to different printings of the same card?</h3>
+              <p>Yes, limits apply to each specific printing (e.g., regular Lightning Bolt vs. foil Lightning Bolt are counted separately). This allows you to collect different versions while still preventing hoarding of any single printing.</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
           <h2 className="text-lg font-medium text-text mb-3">Ordering & Shipping</h2>
           <div className="space-y-4">
             <div>
