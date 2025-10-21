@@ -97,6 +97,8 @@ async function bulkUpdateAllPrices(startIndex: number = 0, endIndex?: number) {
               // Update current prices
               await tx.mtgCard.update({
                 where: { scryfallId: card.scryfallId },
+                // Return only a minimal field to avoid selecting any non-existent columns
+                select: { scryfallId: true },
                 data: {
                   priceUsd: newPriceUsd ? new Prisma.Decimal(String(newPriceUsd)) : null,
                   priceUsdFoil: newPriceUsdFoil ? new Prisma.Decimal(String(newPriceUsdFoil)) : null,

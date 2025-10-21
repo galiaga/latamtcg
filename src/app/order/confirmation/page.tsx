@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/supabase'
+import { getPricingConfig, getDisplayPriceServer } from '@/lib/pricingData'
+import { formatPriceServer } from '@/lib/pricing'
 
 export default async function OrderConfirmationPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const params = await searchParams
@@ -15,7 +17,22 @@ export default async function OrderConfirmationPage({ searchParams }: { searchPa
     )
   }
 
-  const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, totalAmount: true, createdAt: true, userId: true } })
+  const order = await prisma.order.findUnique({ 
+    where: { id: orderId }, 
+    select: { 
+      id: true, 
+      totalAmount: true, 
+      createdAt: true, 
+      userId: true,
+      items: {
+        select: {
+          printingId: true,
+          quantity: true,
+          unitPrice: true
+        }
+      }
+    } 
+  })
   if (!order) {
     return (
       <div className="mx-auto max-w-3xl p-6">
@@ -24,6 +41,32 @@ export default async function OrderConfirmationPage({ searchParams }: { searchPa
         <div className="mt-4"><Link href="/">Go home</Link></div>
       </div>
     )
+  }
+
+  // Get pricing configuration
+  const config = await getPricingConfig()
+
+  // Calculate CLP total for the order
+  let clpTotal = 0
+  for (const item of order.items) {
+    // Get the card details to determine which price to use
+    const card = await prisma.mtgCard.findUnique({
+      where: { scryfallId: item.printingId },
+      select: { priceUsd: true, priceUsdFoil: true, priceUsdEtched: true }
+    })
+    
+    if (card) {
+      const cardPrice = {
+        priceUsd: card.priceUsd ? Number(card.priceUsd) : null,
+        priceUsdFoil: card.priceUsdFoil ? Number(card.priceUsdFoil) : null,
+        priceUsdEtched: card.priceUsdEtched ? Number(card.priceUsdEtched) : null
+      }
+      
+      const displayPrice = getDisplayPriceServer(cardPrice, config)
+      if (displayPrice) {
+        clpTotal += displayPrice * item.quantity
+      }
+    }
   }
 
   const user = await getSessionUser()
@@ -43,7 +86,7 @@ export default async function OrderConfirmationPage({ searchParams }: { searchPa
         </div>
         <div className="flex justify-between mt-2">
           <span>Total</span>
-          <span className="tabular-nums">${String(order.totalAmount ?? 0)}</span>
+          <span className="tabular-nums">{formatPriceServer(clpTotal, config)}</span>
         </div>
       </div>
 

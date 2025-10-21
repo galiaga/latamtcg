@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.25.1 — 2025-01-16
+### Bug Fixes
+- **Build Process**: Fixed TypeScript compilation errors preventing deployment
+  - Excluded `scripts/` directory from TypeScript compilation to prevent build failures
+  - Fixed Decimal to number type conversions in server components
+  - Resolved type mismatches in pricing display functions across all pages
+- **Admin Page Authentication**: Fixed "Failed to load data" error in admin interface
+  - Added consistent authentication requirement to `/api/admin/policy` GET route
+  - All admin API routes now properly require `x-admin-token` header
+  - Admin dashboard now loads successfully with proper error handling
+
+### Improvements
+- **Admin Interface**: Enhanced admin page with comprehensive parameter documentation
+  - Added collapsible "Parameter Documentation" section explaining all pricing parameters
+  - Detailed explanations of currency settings, alpha tiers, pricing rules, and order rules
+  - Pricing formula documentation with examples
+  - Improved user experience for admin configuration management
+
 ## v0.25.0 — 2025-01-16
 ### Features
 - **Complete Pricing System Implementation**: Comprehensive CLP pricing system for Chile market

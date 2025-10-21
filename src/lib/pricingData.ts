@@ -304,3 +304,50 @@ export async function getRecentDailyShipping(limit: number = 7): Promise<DailySh
     createdAt: record.createdAt
   }))
 }
+
+/**
+ * Server-side version of getDisplayPrice for use in server components
+ */
+export function getDisplayPriceServer(
+  card: { priceUsd?: number | null; priceUsdFoil?: number | null; priceUsdEtched?: number | null },
+  config: PricingConfig | null,
+  printingSelection?: string[]
+): number | null {
+  if (!config) return null
+  
+  // Get the best USD price first
+  let usdPrice: number | null = null
+  
+  if (printingSelection && printingSelection.length === 1) {
+    const selected = printingSelection[0]
+    if (selected === 'etched' && card.priceUsdEtched) usdPrice = card.priceUsdEtched
+    else if (selected === 'foil' && card.priceUsdFoil) usdPrice = card.priceUsdFoil
+    else if (selected === 'normal' && card.priceUsd) usdPrice = card.priceUsd
+  } else {
+    // Fallback to best available USD price
+    if (card.priceUsd) usdPrice = card.priceUsd
+    else if (card.priceUsdFoil) usdPrice = card.priceUsdFoil
+    else if (card.priceUsdEtched) usdPrice = card.priceUsdEtched
+  }
+  
+  if (!usdPrice) return null
+  
+  // If CLP is enabled, compute CLP price
+  if (config.useCLP) {
+    return computePriceCLP(usdPrice, {
+      tcgPriceUsd: usdPrice,
+      fxClp: config.fxClp,
+      alphaLow: config.alphaLow,
+      alphaMid: config.alphaMid,
+      alphaHigh: config.alphaHigh,
+      alphaTierLowUsd: config.alphaTierLowUsd,
+      alphaTierMidUsd: config.alphaTierMidUsd,
+      betaClp: 0, // Default to 0 for now
+      priceMinPerCardClp: config.priceMinPerCardClp,
+      roundToStepClp: config.roundToStepClp
+    })
+  }
+  
+  // Return USD price if CLP is disabled
+  return usdPrice
+}

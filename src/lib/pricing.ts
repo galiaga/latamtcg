@@ -99,3 +99,19 @@ export function amountToFreeShipping(
   if (!freeShippingThresholdClp) return 0
   return Math.max(0, freeShippingThresholdClp - subtotalClp)
 }
+
+/**
+ * Server-side price formatting function
+ * Formats a price number according to the pricing configuration
+ */
+export function formatPriceServer(price: number | null, config: { useCLP: boolean } | null): string {
+  if (price === null || price === undefined) return 'Not available'
+  const num = Number(price)
+  if (Number.isNaN(num)) return 'Not available'
+  
+  if (config?.useCLP) {
+    return `$${num.toLocaleString("es-CL")}`
+  }
+  
+  return `$${num.toFixed(2)}`
+}

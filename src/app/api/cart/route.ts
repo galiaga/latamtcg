@@ -7,6 +7,8 @@ import { getOrCreateUserCart } from '@/lib/cart'
 import { getScryfallNormalUrl } from '@/lib/images'
 import type { CartApiResponse } from '@/types/search'
 import { CartResponseSchema } from '@/schemas/api'
+import { getPricingConfig } from '@/lib/pricingData'
+import { computePriceCLP } from '@/lib/pricing'
 
 export async function GET(req: Request) {
   try {
@@ -34,11 +36,62 @@ export async function GET(req: Request) {
     const ids = Array.from(new Set(rows.map(r => r.printingId)))
     const cards = await prisma.mtgCard.findMany({ where: { scryfallId: { in: ids } }, select: { scryfallId: true, name: true, setCode: true, set: { select: { set_name: true } }, collectorNumber: true, priceUsd: true, priceUsdFoil: true, priceUsdEtched: true } })
     const map = new Map(cards.map((c) => [c.scryfallId, c]))
+    
+    // Get pricing configuration with fallback
+    let pricingConfig = null
+    try {
+      pricingConfig = await getPricingConfig()
+    } catch (error) {
+      console.warn('Failed to fetch pricing config, using fallback:', error)
+      // Fallback configuration if database is not migrated yet
+      pricingConfig = {
+        id: 'fallback',
+        useCLP: true,
+        fxClp: 950,
+        alphaTierLowUsd: 5,
+        alphaTierMidUsd: 20,
+        alphaLow: 0.9,
+        alphaMid: 0.7,
+        alphaHigh: 0.5,
+        priceMinPerCardClp: 500,
+        roundToStepClp: 500,
+        minOrderSubtotalClp: 10000,
+        shippingFlatClp: 2500,
+        freeShippingThresholdClp: 25000,
+        updatedAt: new Date(),
+        createdAt: new Date()
+      }
+    }
 
     const items = rows.map((it) => {
       const c = map.get(it.printingId)
-      const coalesced = (it.unitPrice != null) ? Number(it.unitPrice) : Number((c?.priceUsdEtched ?? c?.priceUsdFoil ?? c?.priceUsd) ?? 0)
-      const lineTotal = coalesced * it.quantity
+      
+      // Use server-side pricing system
+      let unitPrice = it.unitPrice != null ? Number(it.unitPrice) : 0
+      
+      if (pricingConfig && pricingConfig.useCLP) {
+        // Get the best USD price
+        const usdPrice = c?.priceUsdEtched ?? c?.priceUsdFoil ?? c?.priceUsd
+        if (usdPrice) {
+          // Compute CLP price using server-side function
+          const clpPrice = computePriceCLP(Number(usdPrice), {
+            tcgPriceUsd: Number(usdPrice),
+            fxClp: pricingConfig.fxClp,
+            alphaLow: pricingConfig.alphaLow,
+            alphaMid: pricingConfig.alphaMid,
+            alphaHigh: pricingConfig.alphaHigh,
+            alphaTierLowUsd: pricingConfig.alphaTierLowUsd,
+            alphaTierMidUsd: pricingConfig.alphaTierMidUsd,
+            betaClp: 0, // Default to 0 for now
+            priceMinPerCardClp: pricingConfig.priceMinPerCardClp,
+            roundToStepClp: pricingConfig.roundToStepClp
+          })
+          unitPrice = clpPrice
+        }
+      }
+      
+      const lineTotal = unitPrice * it.quantity
+      
       const name = String(c?.name || '(Unknown)')
       const setCode = String(c?.setCode || '')
       // Access set relation safely
@@ -47,7 +100,7 @@ export async function GET(req: Request) {
       return {
         printingId: it.printingId,
         quantity: it.quantity,
-        unitPrice: coalesced,
+        unitPrice,
         lineTotal,
         name,
         setCode,
