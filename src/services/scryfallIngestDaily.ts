@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client'
 import fs from 'node:fs'
 import path from 'node:path'
 import https from 'node:https'
+import { Transform } from 'node:stream'
 
 const KV_KEY_LAST_UPDATE = 'scryfall.daily_update.last_run'
 
@@ -109,11 +110,10 @@ async function generatePricesCsv(bulkDataPath: string): Promise<string> {
   // Write CSV header
   writeStream.write('scryfall_id,price_usd,price_usd_foil,price_usd_etched,price_day\n')
   
-  const streamPipeline = chain([
-    fs.createReadStream(bulkDataPath),
-    parser(),
-    streamArray(),
-    async (data: any) => {
+  // Create a Transform stream for data processing
+  const dataProcessor = new Transform({
+    objectMode: true,
+    transform(data: any, encoding, callback) {
       const card = data.value
       const usd = card.prices?.usd || ''
       const usdFoil = card.prices?.usd_foil || ''
@@ -123,7 +123,16 @@ async function generatePricesCsv(bulkDataPath: string): Promise<string> {
       if (usd || usdFoil || usdEtched) {
         writeStream.write(`${card.id},${usd},${usdFoil},${usdEtched},${priceDay}\n`)
       }
+      
+      callback()
     }
+  })
+
+  const streamPipeline = chain([
+    fs.createReadStream(bulkDataPath),
+    parser(),
+    streamArray(),
+    dataProcessor
   ])
   
   return new Promise((resolve, reject) => {
