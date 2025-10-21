@@ -1,6 +1,6 @@
 declare module 'stream-chain' {
-  import { Transform } from 'stream'
-  export function chain(transforms: Transform[]): Transform
+  import { Transform, Readable, Writable } from 'stream'
+  export function chain(transforms: (Transform | Readable | Writable)[]): Transform
   const _default: { chain: typeof chain }
   export default _default
 }
