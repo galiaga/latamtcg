@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.26.0 — 2025-01-17
+### Price History Chart Enhancements
+- **Dual Price Lines**: Added support for displaying both normal and foil price trends simultaneously
+  - Blue line for normal prices, amber line for foil prices
+  - Automatic scaling to accommodate both price ranges
+  - Conditional display based on available price data
+- **Enhanced Trend Analysis**: Added separate 30-day trend calculations for normal and foil prices
+  - Independent trend percentages and direction indicators
+  - Color-coded trends (green for up, red for down, purple for stable)
+  - Clean format without cluttering text labels
+- **Improved Tooltips**: Enhanced hover tooltips to show both price types when available
+  - Displays normal and foil prices separately in tooltips
+  - Proper CLP conversion using app's pricing policy
+  - Clean formatting without decimals
+- **Chart Optimizations**: Multiple UI/UX improvements
+  - Removed legend for cleaner interface
+  - Reduced chart height for better space utilization
+  - Removed price range display to focus on trends
+  - Fixed React key prop warnings for better console cleanliness
+
+### UI/UX Improvements
+- **Item Details Pages**: Removed variant pills (e.g., "Borderless") for cleaner interface
+  - Variant information still included in card name suffix
+  - Simplified layout without cluttering badges
+  - Maintained all functionality while improving visual clarity
+
+### Technical Fixes
+- **React Compliance**: Fixed React key prop spreading warnings in chart components
+  - Proper key prop handling in CustomDot components
+  - Clean console output without React warnings
+- **Price Conversion**: Fixed double conversion issues in chart display
+  - Corrected Y-axis values to show actual CLP prices
+  - Fixed tooltip display showing proper prices instead of $0
+  - Ensured consistent pricing across all chart elements
+
 ## v0.25.1 — 2025-01-16
 ### Bug Fixes
 - **Build Process**: Fixed TypeScript compilation errors preventing deployment

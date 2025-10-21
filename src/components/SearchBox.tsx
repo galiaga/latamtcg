@@ -223,6 +223,13 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
+  // Prevent focus on page load and navigation
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.blur()
+    }
+  }, [pathname])
+
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       // If a suggestion is highlighted AND the user has navigated through suggestions, submit that title.
@@ -290,7 +297,6 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
             aria-controls={listboxId}
             aria-expanded={open}
             aria-autocomplete="list"
-            tabIndex={-1}
             value={query}
           onChange={(e) => { 
             if (process.env.NODE_ENV === 'development') console.debug('[search] input', e.target.value); 
