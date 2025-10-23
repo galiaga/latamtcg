@@ -66,8 +66,16 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
     if (!q) return
     const target = `/mtg/search?q=${encodeURIComponent(q)}`
     if (process.env.NODE_ENV === 'development') console.debug('[search] submit', { src, q, route: target })
+    
+    // Close suggestions and reset state when submitting
     setOpen(false)
+    setItems([])
+    setLoading(false)
     setIsFocused(false)
+    setIsUserTyping(false)
+    setHighlight(0)
+    openRef.current = false
+    
     inputRef.current?.blur()
     aborter?.abort()
     setSubmitting(true)
@@ -215,20 +223,124 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
     return () => { window.removeEventListener('resize', onResize); window.removeEventListener('scroll', onScroll) }
   }, [open, items.length])
 
-  // Global ESC close to handle focus in panel
+  // Global ESC close and click outside handler
   useEffect(() => {
     if (!open) return
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    
+    function onKey(e: KeyboardEvent) { 
+      if (e.key === 'Escape') {
+        setOpen(false)
+        setItems([])
+        setLoading(false)
+        setIsFocused(false)
+        setIsUserTyping(false)
+        setHighlight(0)
+        openRef.current = false
+        if (inputRef.current) {
+          inputRef.current.blur()
+        }
+      }
+    }
+    
+    function onClickOutside(e: MouseEvent) {
+      const target = e.target as Element
+      if (boxRef.current && !boxRef.current.contains(target)) {
+        setOpen(false)
+        setItems([])
+        setLoading(false)
+        setIsFocused(false)
+        setIsUserTyping(false)
+        setHighlight(0)
+        openRef.current = false
+        if (inputRef.current) {
+          inputRef.current.blur()
+        }
+      }
+    }
+    
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    document.addEventListener('mousedown', onClickOutside)
+    
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousedown', onClickOutside)
+    }
   }, [open])
 
-  // Prevent focus on page load and navigation
+  // Prevent focus on page load and navigation, and close suggestions
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.blur()
     }
-  }, [pathname])
+    // Close suggestions panel when navigating to a new page
+    setOpen(false)
+    setItems([])
+    setLoading(false)
+    setIsFocused(false)
+    setIsUserTyping(false)
+    setHighlight(0)
+    openRef.current = false
+    
+    // Also clear any pending fetch timeouts
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current)
+      fetchTimeoutRef.current = null
+    }
+    
+    // Abort any pending requests
+    if (aborter) {
+      aborter.abort()
+      setAborter(null)
+    }
+  }, [pathname, aborter])
+
+  // Global navigation event listener to close suggestions
+  useEffect(() => {
+    const handleNavigation = () => {
+      setOpen(false)
+      setItems([])
+      setLoading(false)
+      setIsFocused(false)
+      setIsUserTyping(false)
+      setHighlight(0)
+      openRef.current = false
+      
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current)
+        fetchTimeoutRef.current = null
+      }
+    }
+
+    // Listen for navigation events
+    window.addEventListener('popstate', handleNavigation)
+    
+    // Also listen for custom navigation events (Next.js router events)
+    const handleRouteChange = () => handleNavigation()
+    
+    // Use a MutationObserver to detect DOM changes that might indicate navigation
+    const observer = new MutationObserver((mutations) => {
+      // Check if the main content area has changed significantly
+      const hasSignificantChange = mutations.some(mutation => 
+        mutation.type === 'childList' && 
+        mutation.target.nodeType === Node.ELEMENT_NODE &&
+        (mutation.target as Element).tagName === 'MAIN'
+      )
+      if (hasSignificantChange) {
+        handleNavigation()
+      }
+    })
+    
+    // Observe the main content area
+    const mainElement = document.querySelector('main')
+    if (mainElement) {
+      observer.observe(mainElement, { childList: true, subtree: true })
+    }
+    
+    return () => {
+      window.removeEventListener('popstate', handleNavigation)
+      observer.disconnect()
+    }
+  }, [])
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
@@ -255,7 +367,30 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
   }
 
   async function select(item: ApiItem) {
+    // Close suggestions immediately when an item is selected
     setOpen(false)
+    setItems([])
+    setLoading(false)
+    setIsFocused(false)
+    setIsUserTyping(false)
+    setHighlight(0)
+    openRef.current = false
+    
+    // Clear any pending timeouts and abort requests
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current)
+      fetchTimeoutRef.current = null
+    }
+    if (aborter) {
+      aborter.abort()
+      setAborter(null)
+    }
+    
+    // Force blur the input to ensure focus is removed
+    if (inputRef.current) {
+      inputRef.current.blur()
+    }
+    
     if (item.kind === 'group') {
       router.push(cardHref(encodeURIComponent(item.title.replace(/\s+/g, '-').toLowerCase())))
     } else {
@@ -315,11 +450,16 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
           }}
           onBlur={() => { 
             setTimeout(() => {
-              // Only set isFocused to false if the dropdown is not open
+              // Close suggestions when input loses focus
               if (!openRef.current) {
                 setIsFocused(false)
+                setOpen(false)
+                setItems([])
+                setLoading(false)
+                setIsUserTyping(false)
+                setHighlight(0)
               }
-            }, 100) 
+            }, 150) 
           }}
         />
         <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-colors" aria-label="Search" disabled={!query.trim() || submitting} style={{ opacity: submitting ? 0.95 : undefined }}>
