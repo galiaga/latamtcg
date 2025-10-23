@@ -1,5 +1,4 @@
 import TwoSidedImage from '@/components/TwoSidedImage'
-import AddToCartButton from '@/components/AddToCartButton'
 import Link from 'next/link'
 import { getPrintingById } from '@/lib/printings'
 import { prisma } from '@/lib/prisma'
@@ -8,8 +7,9 @@ import OtherPrintingsCarousel from '@/components/OtherPrintingsCarousel'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
 import { formatCLP } from '@/lib/format'
 import { formatDisplayName } from '@/lib/cardNames'
-import PricingDisplay from '@/components/PricingDisplay'
 import PriceHistoryChart from '@/components/PriceHistoryChart'
+import { getVariantsForCard, resolveInitialVariant } from '@/helpers/pdpVariants'
+import { VariantSectionClient } from './VariantSectionClient'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -76,6 +76,10 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
   if (process.env.NODE_ENV !== 'production') console.debug('[printing-page] rendering', printingId)
   const data = await getPrintingById(printingId)
 
+  // Compute variants and resolve initial variant for PriceBlock
+  const variants = await getVariantsForCard(data);
+  const initialVariant = resolveInitialVariant(variants);
+
   // Group siblings by (variant, finishGroup) where finishGroup collapses Standard (nonfoil+foil)
   const siblings = await prisma.$queryRaw<any[]>(Prisma.sql`
     WITH base AS (
@@ -136,11 +140,42 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
   return (
     <div className="p-2 md:p-6 space-y-3 md:space-y-6">
       <nav aria-label="breadcrumb" className="text-sm" style={{ color: 'var(--mutedText)' }}>
-        <ol className="flex items-center gap-1 flex-wrap">
+        {/* Mobile: Compact breadcrumb with ellipsis */}
+        <div className="md:hidden">
+          <ol className="flex items-center gap-1 text-xs">
+            <li><Link className="underline-offset-2 hover:underline" href="/">Home</Link></li>
+            <li>›</li>
+            <li><Link className="underline-offset-2 hover:underline" href="/mtg/search">MTG</Link></li>
+            <li>›</li>
+            <li className="truncate">
+              <Link 
+                className="underline-offset-2 hover:underline" 
+                href={`/mtg/search?set=${encodeURIComponent((data.setCode || '').toUpperCase())}`}
+                title={data.setName ?? (data.setCode || '').toUpperCase()}
+              >
+                {data.setName ?? (data.setCode || '').toUpperCase()}
+              </Link>
+            </li>
+            <li>›</li>
+            <li aria-current="page" className="truncate font-medium">
+              {(() => {
+                const variant = formatCardVariant({
+                  finishes: data.finishes,
+                  promoTypes: data.promoTypes,
+                  frameEffects: data.frameEffects,
+                  borderColor: data.borderColor
+                })
+                return `${data.name}${variant.suffix}`
+              })()}
+            </li>
+          </ol>
+        </div>
+        
+        {/* Desktop: Full breadcrumb trail */}
+        <ol className="hidden md:flex items-center gap-1">
           <li><Link className="underline-offset-2 hover:underline" href="/">Home</Link></li>
           <li>›</li>
           <li><Link className="underline-offset-2 hover:underline" href="/mtg/search">Magic: The Gathering</Link></li>
-          
           <li>›</li>
           <li><Link className="underline-offset-2 hover:underline" href={`/mtg/search?set=${encodeURIComponent((data.setCode || '').toUpperCase())}`}>{data.setName ?? (data.setCode || '').toUpperCase()}</Link></li>
           <li>›</li>
@@ -188,27 +223,20 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
               </>
             )
           })()}
+          
+          {/* Variant Section - PriceBlock + VariantSelector + Add to Cart */}
+          <div className="mt-2">
+            <VariantSectionClient
+              initialVariantId={initialVariant.id}
+              variants={variants}
+              printingId={data.id}
+            />
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="badge">{(data.setCode || '').toUpperCase()}</span>
             {data.setName ? <span className="badge">{data.setName}</span> : null}
             {data.collectorNumber ? <span className="badge">#{data.collectorNumber}</span> : null}
             {data.language && data.language !== 'EN' ? <span className="badge">{data.language.toUpperCase()}</span> : null}
-          </div>
-          
-          {/* Pricing section */}
-          <PricingDisplay
-            priceUsd={toNumberOrNull(data.priceUsd)}
-            priceUsdFoil={toNumberOrNull(data.priceUsdFoil)}
-            priceUsdEtched={toNumberOrNull(data.priceUsdEtched)}
-            computedPriceClp={toNumberOrNull(data.computedPriceClp)}
-            hasNonfoil={data.hasNonfoil}
-            hasFoil={data.hasFoil}
-            hasEtched={data.hasEtched}
-                />
-                
-                <div className="mt-4 flex gap-2">
-            {/* Replace wishlist/track with add to cart for MVP */}
-            <AddToCartButton printingId={data.id} size="lg" />
           </div>
           
           {/* Price History Chart - shown in right column on desktop only */}

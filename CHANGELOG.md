@@ -1,5 +1,59 @@
 # Changelog
 
+## v0.29.0 — 2025-01-23
+### Product Detail Page (PDP) UX Enhancements
+- **Prominent Price Display**: Added PriceBlock component for prominent CLP price display under card title
+  - **Visual Hierarchy**: Large 3xl font size makes price the visual focal point
+  - **Chilean Formatting**: Uses `es-CL` locale for proper CLP number formatting
+  - **Variant Badge**: Shows current variant (Normal, Foil, Etched) with badge styling
+  - **Graceful Fallbacks**: Shows "—" when price is not available
+
+- **Interactive Variant Selector**: Implemented radio-card UI for variant selection
+  - **Clear Visual Cards**: Radio buttons with inline price display for each variant
+  - **Immediate Feedback**: Price updates instantly when switching variants
+  - **Mobile-Friendly**: Large tap targets (44px+) for easy mobile interaction
+  - **Accessibility**: Proper ARIA labels and keyboard navigation support
+
+- **Smart Add to Cart Integration**: Enhanced cart functionality with policy awareness
+  - **Unified Experience**: Add to Cart button integrated directly under variant selector
+  - **Clean Layout**: Removed legacy pricing display to eliminate redundancy
+  - **Consistent Spacing**: Balanced vertical rhythm throughout the page
+
+- **Persistent Variant Memory**: User preferences saved across sessions
+  - **localStorage Integration**: Remembers variant choice per card (`variant-${printingId}`)
+  - **Smart Fallback**: Uses saved preference if available, otherwise defaults to server-recommended variant
+  - **Cross-Session Persistence**: Choice persists when user leaves and returns to the page
+
+- **Micro-Animations**: Smooth transitions for enhanced user experience
+  - **Price Updates**: 200ms fade animation when switching variants
+  - **Visual Feedback**: Price and badge fade to 50% opacity during transition
+  - **Polished Feel**: Eliminates jarring instant price changes
+
+- **Mobile Breadcrumb Optimization**: Improved navigation for mobile devices
+  - **Compact Design**: Smaller text and spacing for mobile screens
+  - **Same Functionality**: Maintains exact same navigation structure as desktop
+  - **Smart Truncation**: Long names truncate gracefully with tooltips
+  - **Space Efficient**: Takes minimal vertical space while preserving all navigation links
+
+### Technical Improvements
+- **Server-Side Variant Resolution**: Smart selection of best available variant and price
+  - **Pricing Integration**: Uses existing `getDisplayPriceServer()` for accurate CLP pricing
+  - **Availability Checking**: Only includes variants that are actually available
+  - **Fallback Logic**: Graceful handling when no prices are available
+
+- **Component Architecture**: Clean separation of concerns
+  - **PriceBlock**: Reusable component for prominent price display
+  - **VariantSelector**: Interactive variant selection with radio cards
+  - **VariantSectionClient**: Client wrapper managing state and interactions
+  - **Helper Functions**: Server-side variant computation and resolution
+
+### User Experience Enhancements
+- **Reduced Cognitive Load**: Cleaner interface focuses on essential elements
+- **Faster Decision Making**: Prominent pricing and clear variant selection
+- **Consistent Behavior**: Same functionality across desktop and mobile
+- **Improved Accessibility**: Proper ARIA labels and keyboard navigation
+- **Mobile Optimization**: Touch-friendly interface with appropriate sizing
+
 ## v0.28.0 — 2025-01-17
 ### Authentication Fixes
 - **Production Authentication**: Fixed authentication configuration issues in production environment
@@ -8,10 +62,26 @@
   - **Supabase Configuration**: Updated Site URL and Redirect URLs in Supabase dashboard for proper production OAuth flow
   - **Error Handling**: Improved authentication error messages and debugging capabilities
 
+### Search UX Improvements
+- **Search Suggestions**: Fixed search suggestions remaining visible after navigation
+  - **State Management**: Properly reset suggestions state when navigating to item details pages
+  - **Navigation Cleanup**: Clear suggestions panel when clicking on search results
+  - **Page Navigation**: Suggestions now only appear when actively typing in search bar
+  - **User Experience**: Improved search flow by ensuring suggestions don't persist across page changes
+  - **Enhanced Detection**: Added multiple navigation detection methods including MutationObserver and click-outside handlers
+  - **Robust Cleanup**: Comprehensive state reset including timeouts, abort controllers, and focus management
+
+- **User Menu**: Fixed user menu (Orders and Sign Out) remaining open after navigation
+  - **Navigation Detection**: Close user menu when navigating between pages using pathname changes
+  - **Click Outside Handler**: Close menu when clicking anywhere outside the user menu
+  - **Keyboard Support**: Close menu when pressing Escape key
+  - **Consistent Behavior**: User menu now behaves consistently across all navigation scenarios
+
 ### Technical Improvements
 - **Environment Configuration**: Enhanced environment variable validation and error reporting
 - **OAuth Flow**: Fixed Google OAuth authentication flow for production deployment
 - **Debug Tools**: Improved authentication debugging with better error messages and environment variable visibility
+- **Search Component**: Enhanced SearchBox component state management for better UX
 
 ### Deployment & Configuration
 - **Production Ready**: Authentication now works correctly in production environment
