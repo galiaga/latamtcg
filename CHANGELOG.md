@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.28.0 — 2025-01-17
+### Authentication Fixes
+- **Production Authentication**: Fixed authentication configuration issues in production environment
+  - **Environment Variables**: Resolved missing `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` configuration
+  - **OAuth Redirect URLs**: Fixed Google OAuth redirect URL mismatch between development and production
+  - **Supabase Configuration**: Updated Site URL and Redirect URLs in Supabase dashboard for proper production OAuth flow
+  - **Error Handling**: Improved authentication error messages and debugging capabilities
+
+### Technical Improvements
+- **Environment Configuration**: Enhanced environment variable validation and error reporting
+- **OAuth Flow**: Fixed Google OAuth authentication flow for production deployment
+- **Debug Tools**: Improved authentication debugging with better error messages and environment variable visibility
+
+### Deployment & Configuration
+- **Production Ready**: Authentication now works correctly in production environment
+- **Environment Variables**: Proper configuration of Supabase environment variables in Vercel deployment
+- **OAuth Setup**: Corrected Google OAuth configuration for production domain
+
 ## v0.27.0 — 2025-01-17
 ### Bot Control & Image Optimization
 - **Bot Blocking System**: Implemented comprehensive bot traffic control to reduce unwanted crawler consumption of Vercel Image Transformations
