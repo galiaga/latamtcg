@@ -56,9 +56,17 @@ export async function generateMetadata(props: { params: Promise<{ printingId: st
     const setPart = `${(data.setCode || '').toUpperCase()}${col}`
     const title = `${data.name}${variant.suffix} — ${setPart} | LatamTCG`
     const canonical = `/mtg/printing/${printingId}`
-    return { title, alternates: { canonical } }
+    return { 
+      title, 
+      alternates: { canonical },
+      robots: { index: false, follow: false }
+    }
   } catch {
-    return { title: 'Card', alternates: { canonical: `/mtg/printing/${printingId}` } }
+    return { 
+      title: 'Card', 
+      alternates: { canonical: `/mtg/printing/${printingId}` },
+      robots: { index: false, follow: false }
+    }
   }
 }
 

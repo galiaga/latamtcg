@@ -90,6 +90,16 @@ Models:
 - Optional: `SEARCH_SUGGESTION_LIMIT` (default 15)
 - Optional: `SCRYFALL_IMAGE_HOST` (default `cards.scryfall.io`)
 
+### Bot Control & Image Optimization
+
+- `ALLOW_BOTS`: Set to `true` to bypass bot blocking in production (default: `false`)
+- `NEXT_IMAGE_UNOPTIMIZED`: Set to `true` to disable Next.js image optimization globally (default: `false`)
+- `NEXT_PUBLIC_IMAGE_UNOPTIMIZED`: Set to `true` for component-level image optimization control (default: `false`)
+
+**Bot Blocking**: The middleware blocks GPTBot and AhrefsBot with HTTP 403 responses in production unless `ALLOW_BOTS=true`. This reduces unwanted crawler traffic that consumes Vercel Image Transformations.
+
+**Image Optimization**: When `NEXT_IMAGE_UNOPTIMIZED=true`, Next.js serves images without Vercel optimization, reducing transformation counts to near zero. Use this flag during testing or when you want to bypass image optimization costs.
+
 ### Horizontal Scaling Configuration
 
 - `CACHE_DRIVER`: `memory` (dev) | `redis` (prod) - Cache adapter selection

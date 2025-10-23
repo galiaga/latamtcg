@@ -7,7 +7,7 @@ import { buildCacheKey } from '@/lib/cache'
 import HydrationPerf from '@/components/HydrationPerf'
 
 export const metadata = {
-  robots: { index: false, follow: true },
+  robots: { index: false, follow: false },
   title: 'Search MTG',
 }
 
