@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.27.0 — 2025-01-17
+### Bot Control & Image Optimization
+- **Bot Blocking System**: Implemented comprehensive bot traffic control to reduce unwanted crawler consumption of Vercel Image Transformations
+  - **robots.txt**: Created `/public/robots.txt` that blocks GPTBot and AhrefsBot while allowing other agents
+  - **Edge Middleware**: Hard blocks abusive bots with HTTP 403 responses in production (unless `ALLOW_BOTS=true`)
+  - **Feature Flag**: `ALLOW_BOTS` environment variable for easy rollback and testing
+  - **Static Asset Bypass**: Middleware excludes internal assets (`/_next/*`, `/favicon.ico`, `/robots.txt`, etc.) to avoid overhead
+
+- **Image Optimization Controls**: Added feature flags to control Next.js image optimization globally
+  - **Global Flag**: `NEXT_IMAGE_UNOPTIMIZED=true` disables Next.js image optimization to bypass Vercel transformations
+  - **Reduced Breakpoints**: Tightened `deviceSizes` to `[640, 768, 1024]` and `imageSizes` to `[16, 32, 64, 128]` to limit generated variants
+  - **SmartImage Component**: Optional wrapper component for component-level image optimization control
+  - **Backward Compatibility**: All existing `next/image` imports continue to work without changes
+
+- **SEO Control**: Added noindex metadata to crawl-heavy pages to reduce bot traffic
+  - **Search Page**: `/mtg/search` now sends `x-robots-tag: noindex, nofollow`
+  - **Printing Pages**: `/mtg/printing/[printingId]` pages now send `x-robots-tag: noindex, nofollow`
+  - **Metadata Integration**: Uses Next.js App Router metadata API for proper SEO control
+
+### Technical Improvements
+- **Environment Variables**: Added comprehensive bot control and image optimization configuration
+  - `ALLOW_BOTS`: Set to `true` to bypass bot blocking in production (default: `false`)
+  - `NEXT_IMAGE_UNOPTIMIZED`: Set to `true` to disable Next.js image optimization globally (default: `false`)
+  - `NEXT_PUBLIC_IMAGE_UNOPTIMIZED`: Set to `true` for component-level image optimization control (default: `false`)
+- **Documentation**: Updated README.md with detailed environment variable documentation and usage examples
+- **Middleware Enhancement**: Extended existing middleware to include bot blocking while preserving user context functionality
+
+### Performance & Cost Optimization
+- **Vercel Image Transformations**: Significantly reduced transformation usage through bot blocking and image optimization controls
+- **Crawler Traffic Reduction**: Blocks high-volume crawlers (GPTBot, AhrefsBot) that consume resources without providing value
+- **Image Variant Reduction**: Fewer responsive image sizes reduce storage and processing costs
+- **Feature Flag Architecture**: Idempotent implementation allows quick rollback if needed
+
+### Deployment & Configuration
+- **Production Ready**: All changes are production-safe with proper environment variable controls
+- **Vercel Integration**: Optimized for Vercel deployment with proper middleware configuration
+- **Monitoring Ready**: Bot blocking responses can be monitored via Vercel Runtime Logs
+- **Validation**: Comprehensive acceptance criteria for post-deployment verification
+
 ## v0.26.0 — 2025-01-17
 ### Price History Chart Enhancements
 - **Dual Price Lines**: Added support for displaying both normal and foil price trends simultaneously
