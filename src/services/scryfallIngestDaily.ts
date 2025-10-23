@@ -5,6 +5,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import https from 'node:https'
 import { Transform } from 'node:stream'
+import { chain } from 'stream-chain'
+import { parser } from 'stream-json'
+import { streamArray } from 'stream-json/streamers/StreamArray'
 
 const KV_KEY_LAST_UPDATE = 'scryfall.daily_update.last_run'
 
@@ -100,10 +103,6 @@ async function generatePricesCsv(bulkDataPath: string): Promise<string> {
   const priceDay = now.toISOString().slice(0, 10)
   
   console.log('[scryfall] Generating CSV from bulk data...')
-  
-  const { chain } = await import('stream-chain')
-  const { parser } = await import('stream-json')
-  const { streamArray } = await import('stream-json/streamers/StreamArray')
   
   const writeStream = fs.createWriteStream(csvPath)
   
