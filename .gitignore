@@ -42,4 +42,7 @@ next-env.d.ts
 
 scryfall-refresh.log
 data/scryfall-default-cards.json
-data/scryfall-default-cards.json
+data/scryfall-default.etag
+data/scryfall-download.meta.json
+data/daily-bulk-data.json
+data/daily-prices.csv
