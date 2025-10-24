@@ -252,23 +252,10 @@ async function importPricesFromCsv(csvPath: string): Promise<number> {
 }
 
 export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
-  const mode = process.env.CRON_PIPELINE ?? 'legacy'
-  const dryRun = process.argv.includes('--dry-run')
-  
-  console.log(`[scryfall] Pipeline mode: ${mode}, Dry run: ${dryRun}`)
-  
-  if (mode === 'legacy') {
-    return runLegacyPipeline(dryRun)
-  } else {
-    return runNewPipeline(dryRun)
-  }
-}
-
-async function runLegacyPipeline(dryRun: boolean): Promise<DailyUpdateSummary> {
   const startTime = Date.now()
   
   try {
-    console.log('[scryfall] Starting daily bulk price update (legacy pipeline)...')
+    console.log('[scryfall] Starting daily bulk price update...')
     
     // Ensure data directory exists
     const dataDir = path.join(process.cwd(), 'data')
@@ -289,22 +276,14 @@ async function runLegacyPipeline(dryRun: boolean): Promise<DailyUpdateSummary> {
     const csvPath = await generatePricesCsv(bulkDataPath)
     
     // 4. Import prices from CSV
-    let updatedCount = 0
-    if (dryRun) {
-      console.log('[scryfall] DRY RUN: Would import prices from CSV (skipping database writes)')
-      // Count lines in CSV for dry run
-      const csvContent = fs.readFileSync(csvPath, 'utf8')
-      updatedCount = csvContent.split('\n').length - 1 // Subtract header
-    } else {
-      updatedCount = await importPricesFromCsv(csvPath)
-    }
+    const updatedCount = await importPricesFromCsv(csvPath)
     
     // 5. Cleanup temporary files
     fs.unlinkSync(bulkDataPath)
     fs.unlinkSync(csvPath)
     
     const durationMs = Date.now() - startTime
-    console.log(`[scryfall] Daily bulk update completed: ${updatedCount} cards ${dryRun ? 'would be' : ''} updated in ${durationMs}ms`)
+    console.log(`[scryfall] Daily bulk update completed: ${updatedCount} cards updated in ${durationMs}ms`)
     
     return {
       updated: updatedCount,
@@ -322,22 +301,4 @@ async function runLegacyPipeline(dryRun: boolean): Promise<DailyUpdateSummary> {
       durationMs
     }
   }
-}
-
-async function runNewPipeline(dryRun: boolean): Promise<DailyUpdateSummary> {
-  // Import the new implementation from the backup file
-  const { runDailyPriceUpdate: runNewDailyPriceUpdate } = await import('./scryfallIngestDaily.new')
-  
-  console.log('[scryfall] Starting daily bulk price update (new pipeline)...')
-  
-  if (dryRun) {
-    console.log('[scryfall] DRY RUN: New pipeline dry run not yet implemented')
-    return {
-      updated: 0,
-      skipped: true,
-      durationMs: 0
-    }
-  }
-  
-  return runNewDailyPriceUpdate()
 }

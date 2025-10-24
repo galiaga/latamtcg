@@ -41,8 +41,21 @@ async function handle(req: NextRequest) {
     }
 
     console.log('[cron] Starting daily price update...')
-    const { runDailyPriceUpdate } = await import('@/services/scryfallIngestDaily')
-    const result = await runDailyPriceUpdate()
+    
+    // Feature flag for cron pipeline
+    const mode = process.env.CRON_PIPELINE ?? 'legacy'
+    console.log(`[cron] Using pipeline mode: ${mode}`)
+    
+    let result
+    if (mode === 'legacy') {
+      const { runDailyPriceUpdate } = await import('@/services/scryfallIngestDaily')
+      result = await runDailyPriceUpdate()
+    } else {
+      // New pipeline (current implementation)
+      const { runDailyPriceUpdate } = await import('@/services/scryfallIngestDaily')
+      result = await runDailyPriceUpdate()
+    }
+    
     console.log('[cron] Daily price update completed:', result)
     return NextResponse.json(result)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- logging path, not critical to type precisely
