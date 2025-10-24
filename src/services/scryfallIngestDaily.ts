@@ -139,10 +139,8 @@ async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise
       console.error('[scryfall] Stream pipeline error:', error)
       console.error('[scryfall] Error details:', {
         message: error.message,
-        code: error.code,
-        errno: error.errno,
-        syscall: error.syscall,
-        path: error.path
+        name: error.name,
+        stack: error.stack
       })
       reject(error)
     })
@@ -290,7 +288,8 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
     console.log(`[scryfall] File size: ${fileStats.size} bytes`)
     
     // Check if file starts with '[' (JSON array)
-    const fileStart = fs.readFileSync(bulkDataPath, 'utf8', { start: 0, end: 10 })
+    const fileContent = fs.readFileSync(bulkDataPath, 'utf8')
+    const fileStart = fileContent.substring(0, 10)
     console.log(`[scryfall] File starts with: "${fileStart}"`)
     
     if (!fileStart.startsWith('[')) {
