@@ -114,6 +114,7 @@ async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise
     objectMode: true,
     transform(data: any, encoding, callback) {
       processedCount++
+      lastProcessedTime = Date.now() // Update last processed time
       const card = data.value
       const usd = card.prices?.usd || ''
       const usdFoil = card.prices?.usd_foil || ''
@@ -128,10 +129,22 @@ async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise
     }
   })
   
-  // Add progress tracking
+  // Add progress tracking with timeout detection
   let processedCount = 0
+  let lastLoggedCount = 0
+  let lastProcessedTime = Date.now()
+  
   const progressInterval = setInterval(() => {
-    console.log(`[scryfall] Processed ${processedCount} cards so far...`)
+    const now = Date.now()
+    const timeSinceLastProcess = now - lastProcessedTime
+    
+    if (processedCount > lastLoggedCount) {
+      console.log(`[scryfall] Processed ${processedCount} cards so far...`)
+      lastLoggedCount = processedCount
+      lastProcessedTime = now
+    } else if (timeSinceLastProcess > 30000) { // 30 seconds without progress
+      console.log(`[scryfall] WARNING: No progress for ${Math.round(timeSinceLastProcess/1000)}s. Stream may be stuck.`)
+    }
   }, 10000) // Log every 10 seconds
 
   const streamPipeline = chain([
