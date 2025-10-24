@@ -257,8 +257,10 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
   try {
     console.log('[scryfall] Starting daily bulk price update...')
     
-    // Ensure data directory exists
-    const dataDir = path.join(process.cwd(), 'data')
+    // Use Vercel's temporary directory for serverless environments
+    const dataDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data')
+    console.log(`[scryfall] Using data directory: ${dataDir}`)
+    console.log(`[scryfall] Vercel environment: ${process.env.VERCEL ? 'true' : 'false'}`)
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true })
     }
