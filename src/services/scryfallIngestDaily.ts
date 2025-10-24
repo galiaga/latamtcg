@@ -135,7 +135,17 @@ async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise
   ])
   
   return new Promise((resolve, reject) => {
-    streamPipeline.on('error', reject)
+    streamPipeline.on('error', (error) => {
+      console.error('[scryfall] Stream pipeline error:', error)
+      console.error('[scryfall] Error details:', {
+        message: error.message,
+        code: error.code,
+        errno: error.errno,
+        syscall: error.syscall,
+        path: error.path
+      })
+      reject(error)
+    })
     streamPipeline.on('end', () => {
       writeStream.end()
       writeStream.on('finish', () => resolve(csvPath))
@@ -273,6 +283,19 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
     // 2. Download bulk data
     const bulkDataPath = path.join(dataDir, 'daily-bulk-data.json')
     await downloadBulkData(bulkInfo.download_uri, bulkDataPath)
+    
+    // Validate the downloaded file
+    console.log(`[scryfall] Validating downloaded file: ${bulkDataPath}`)
+    const fileStats = fs.statSync(bulkDataPath)
+    console.log(`[scryfall] File size: ${fileStats.size} bytes`)
+    
+    // Check if file starts with '[' (JSON array)
+    const fileStart = fs.readFileSync(bulkDataPath, 'utf8', { start: 0, end: 10 })
+    console.log(`[scryfall] File starts with: "${fileStart}"`)
+    
+    if (!fileStart.startsWith('[')) {
+      throw new Error(`Invalid JSON file format. Expected array starting with '[', got: "${fileStart}"`)
+    }
     
     // 3. Generate CSV from bulk data
     const csvPath = await generatePricesCsv(bulkDataPath, dataDir)
