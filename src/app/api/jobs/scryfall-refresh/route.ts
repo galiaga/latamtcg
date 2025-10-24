@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-export const maxDuration = 900 // 15 minutes
 
 async function handle(req: NextRequest) {
   try {
