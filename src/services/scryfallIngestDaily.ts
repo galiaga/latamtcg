@@ -97,8 +97,8 @@ async function downloadBulkData(downloadUri: string, outputPath: string): Promis
   })
 }
 
-async function generatePricesCsv(bulkDataPath: string): Promise<string> {
-  const csvPath = path.join(process.cwd(), 'data', 'daily-prices.csv')
+async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise<string> {
+  const csvPath = path.join(dataDir, 'daily-prices.csv')
   const now = new Date()
   const priceDay = now.toISOString().slice(0, 10)
   
@@ -275,7 +275,7 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
     await downloadBulkData(bulkInfo.download_uri, bulkDataPath)
     
     // 3. Generate CSV from bulk data
-    const csvPath = await generatePricesCsv(bulkDataPath)
+    const csvPath = await generatePricesCsv(bulkDataPath, dataDir)
     
     // 4. Import prices from CSV
     const updatedCount = await importPricesFromCsv(csvPath)
