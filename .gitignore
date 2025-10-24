@@ -46,3 +46,4 @@ data/scryfall-default.etag
 data/scryfall-download.meta.json
 data/daily-bulk-data.json
 data/daily-prices.csv
+.env*.local

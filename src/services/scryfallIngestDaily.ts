@@ -99,9 +99,9 @@ async function downloadBulkData(downloadUri: string, outputPath: string): Promis
 
 async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise<string> {
   const csvPath = path.join(dataDir, 'daily-prices.csv')
-  const now = new Date()
-  const priceDay = now.toISOString().slice(0, 10)
-  
+      const now = new Date()
+      const priceDay = now.toISOString().slice(0, 10)
+
   console.log('[scryfall] Generating CSV from bulk data...')
   
   const writeStream = fs.createWriteStream(csvPath)
@@ -113,6 +113,7 @@ async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise
   const dataProcessor = new Transform({
     objectMode: true,
     transform(data: any, encoding, callback) {
+      processedCount++
       const card = data.value
       const usd = card.prices?.usd || ''
       const usdFoil = card.prices?.usd_foil || ''
@@ -126,6 +127,12 @@ async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise
       callback()
     }
   })
+  
+  // Add progress tracking
+  let processedCount = 0
+  const progressInterval = setInterval(() => {
+    console.log(`[scryfall] Processed ${processedCount} cards so far...`)
+  }, 10000) // Log every 10 seconds
 
   const streamPipeline = chain([
     fs.createReadStream(bulkDataPath),
@@ -136,6 +143,7 @@ async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise
   
   return new Promise((resolve, reject) => {
     streamPipeline.on('error', (error) => {
+      clearInterval(progressInterval)
       console.error('[scryfall] Stream pipeline error:', error)
       console.error('[scryfall] Error details:', {
         message: error.message,
@@ -145,6 +153,8 @@ async function generatePricesCsv(bulkDataPath: string, dataDir: string): Promise
       reject(error)
     })
     streamPipeline.on('end', () => {
+      clearInterval(progressInterval)
+      console.log(`[scryfall] CSV generation completed. Processed ${processedCount} cards total.`)
       writeStream.end()
       writeStream.on('finish', () => resolve(csvPath))
     })
@@ -287,9 +297,12 @@ export async function runDailyPriceUpdate(): Promise<DailyUpdateSummary> {
     const fileStats = fs.statSync(bulkDataPath)
     console.log(`[scryfall] File size: ${fileStats.size} bytes`)
     
-    // Check if file starts with '[' (JSON array)
-    const fileContent = fs.readFileSync(bulkDataPath, 'utf8')
-    const fileStart = fileContent.substring(0, 10)
+    // Check if file starts with '[' (JSON array) - read only first 10 bytes
+    const fileBuffer = Buffer.alloc(10)
+    const fd = fs.openSync(bulkDataPath, 'r')
+    fs.readSync(fd, fileBuffer, 0, 10, 0)
+    fs.closeSync(fd)
+    const fileStart = fileBuffer.toString('utf8')
     console.log(`[scryfall] File starts with: "${fileStart}"`)
     
     if (!fileStart.startsWith('[')) {
