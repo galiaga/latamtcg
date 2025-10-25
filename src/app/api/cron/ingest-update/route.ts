@@ -39,15 +39,41 @@ async function handle(req: NextRequest) {
       console.log('[cron] Detected Vercel cron job, proceeding without manual auth')
     }
 
-    console.log('[cron] Starting Vercel Update...')
+    console.log('[cron] Starting Vercel Update + History + Retention...')
     
+    // Step 1: Update cards
     const { VercelUpdatePipeline } = await import('@/scripts/vercel-ingest-update')
-    const pipeline = new VercelUpdatePipeline()
+    const updatePipeline = new VercelUpdatePipeline()
+    const updateResult = await updatePipeline.ingest()
     
-    const result = await pipeline.ingest()
+    // Step 2: Upsert history (only if update succeeded)
+    let historyResult = null
+    if (updateResult.ok) {
+      console.log('[cron] Running history upsert...')
+      const { VercelHistoryUpsertPipeline } = await import('@/scripts/vercel-ingest-upsert-history')
+      const historyPipeline = new VercelHistoryUpsertPipeline()
+      historyResult = await historyPipeline.ingest()
+    }
     
-    console.log('[cron] Vercel Update completed:', result)
-    return NextResponse.json(result)
+    // Step 3: Run retention cleanup (only if both previous steps succeeded)
+    let retentionResult = null
+    if (updateResult.ok && historyResult?.ok) {
+      console.log('[cron] Running retention cleanup...')
+      const { VercelRetentionPipeline } = await import('@/scripts/vercel-retention-30d')
+      const retentionPipeline = new VercelRetentionPipeline()
+      retentionResult = await retentionPipeline.ingest()
+    }
+    
+    const combinedResult = {
+      ok: updateResult.ok && historyResult?.ok && retentionResult?.ok,
+      update: updateResult,
+      history: historyResult,
+      retention: retentionResult,
+      totalDurationMs: (updateResult.durationMs || 0) + (historyResult?.durationMs || 0) + (retentionResult?.durationMs || 0)
+    }
+    
+    console.log('[cron] Vercel Update + History + Retention completed:', combinedResult)
+    return NextResponse.json(combinedResult)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- logging path, not critical to type precisely
   } catch (err: any) {
     console.error('[cron] Update job failed', err)
