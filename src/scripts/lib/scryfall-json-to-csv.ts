@@ -313,7 +313,7 @@ export async function jsonToPriceCsv(
       // Collect all data from stream
       const chunks: Buffer[] = []
       for await (const chunk of stream) {
-        chunks.push(chunk)
+        chunks.push(Buffer.from(chunk))
       }
       const fullData = Buffer.concat(chunks)
       
@@ -379,7 +379,7 @@ export async function jsonToPriceCsv(
         // Collect all data from the original stream and parse with buffer
         const chunks: Buffer[] = []
         for await (const chunk of inputStream) {
-          chunks.push(chunk)
+          chunks.push(Buffer.from(chunk))
         }
         const fullData = Buffer.concat(chunks)
         
