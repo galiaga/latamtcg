@@ -41,7 +41,7 @@ async function handle(req: NextRequest) {
 
     console.log('[cron] Starting Vercel Update...')
     
-    const { VercelUpdatePipeline } = await import('../../../../scripts/vercel-ingest-update')
+    const { VercelUpdatePipeline } = await import('@/scripts/vercel-ingest-update')
     const pipeline = new VercelUpdatePipeline()
     
     const result = await pipeline.ingest()

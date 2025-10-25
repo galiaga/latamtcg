@@ -41,7 +41,7 @@ async function handle(req: NextRequest) {
 
     console.log('[cron] Starting Vercel Stage...')
     
-    const { VercelStagePipeline } = await import('../../../../scripts/vercel-ingest-stage')
+    const { VercelStagePipeline } = await import('@/scripts/vercel-ingest-stage')
     const pipeline = new VercelStagePipeline()
     
     // Use URL mode to download CSV directly from Scryfall
