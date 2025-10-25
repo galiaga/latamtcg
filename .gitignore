@@ -40,10 +40,31 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# logs
 scryfall-refresh.log
+*.log
+
+# large data files
 data/scryfall-default-cards.json
 data/scryfall-default.etag
 data/scryfall-download.meta.json
 data/daily-bulk-data.json
 data/daily-prices.csv
+data/*.json
+data/*.csv
+data/*.gz
+data/*.zip
+
+# large files (>10MB)
+*.large
+*.big
+*.huge
+
+# temporary files
+*.tmp
+*.temp
+/tmp/
+/temp/
+
+# environment files
 .env*.local

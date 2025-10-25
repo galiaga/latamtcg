@@ -1,7 +1,9 @@
 {
   "crons": [
-    { "path": "/api/jobs/scryfall-refresh", "schedule": "0 4 * * *" },
-    { "path": "/api/jobs/searchindex-refresh", "schedule": "15 4 * * *" }
+    { "path": "/api/cron/ingest-stage?token=$CRON_SECRET", "schedule": "30 6 * * *" },
+    { "path": "/api/cron/ingest-update?token=$CRON_SECRET", "schedule": "33 6 * * *" },
+    { "path": "/api/cron/ingest-history?token=$CRON_SECRET", "schedule": "36 6 * * *" },
+    { "path": "/api/cron/retention-30d?token=$CRON_SECRET", "schedule": "0 3 * * *" }
   ]
 }
 
