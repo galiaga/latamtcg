@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-// Defer import to server handler to avoid edge bundling of server-only module
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -9,7 +8,7 @@ async function handle(req: NextRequest) {
     const expected = process.env.CRON_SECRET
     
     // Log request details for debugging
-    console.log('[cron] Request details:', {
+    console.log('[cron] History Upsert request details:', {
       userAgent: req.headers.get('user-agent'),
       method: req.method,
       url: req.url,
@@ -40,24 +39,21 @@ async function handle(req: NextRequest) {
       console.log('[cron] Detected Vercel cron job, proceeding without manual auth')
     }
 
-    console.log('[cron] Starting daily price update...')
+    console.log('[cron] Starting Vercel History Upsert...')
     
-    // Use the optimized secure pipeline for Vercel Hobby tier compatibility
-    console.log('[cron] Using optimized secure pipeline (Hobby tier compatible)')
+    const { VercelHistoryUpsertPipeline } = await import('@/scripts/vercel-ingest-upsert-history')
+    const pipeline = new VercelHistoryUpsertPipeline()
     
-    const { runSecurePriceUpdate } = await import('@/services/securePriceIngestion')
-    const result = await runSecurePriceUpdate()
+    const result = await pipeline.ingest()
     
-    console.log('[cron] Daily price update completed:', result)
+    console.log('[cron] Vercel History Upsert completed:', result)
     return NextResponse.json(result)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- logging path, not critical to type precisely
   } catch (err: any) {
-    console.error('[scryfall] Job failed', err)
+    console.error('[cron] History Upsert job failed', err)
     return NextResponse.json({ error: 'Job failed' }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest) { return handle(req) }
 export async function GET(req: NextRequest) { return handle(req) }
-
-

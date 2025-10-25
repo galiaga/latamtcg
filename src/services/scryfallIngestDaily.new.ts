@@ -5,9 +5,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import https from 'node:https'
 import { Transform } from 'node:stream'
-import { chain as streamChain } from 'stream-chain'
-import { parser as jsonParser } from 'stream-json'
-import { streamArray as jsonStreamArray } from 'stream-json/streamers/StreamArray'
+import { chain } from 'stream-chain'
+import { parser } from 'stream-json'
+import { streamArray } from 'stream-json/streamers/StreamArray'
 
 const KV_KEY_LAST_UPDATE = 'scryfall.daily_update.last_run'
 
@@ -104,10 +104,6 @@ async function generatePricesCsv(bulkDataPath: string): Promise<string> {
   
   console.log('[scryfall] Generating CSV from bulk data...')
   
-  const { chain } = await import('stream-chain')
-  const { parser } = await import('stream-json')
-  const { streamArray } = await import('stream-json/streamers/StreamArray')
-  
   const writeStream = fs.createWriteStream(csvPath)
   
   // Write CSV header
@@ -122,17 +118,19 @@ async function generatePricesCsv(bulkDataPath: string): Promise<string> {
       const usdFoil = card.prices?.usd_foil || ''
       const usdEtched = card.prices?.usd_etched || ''
       
-      // Emit ALL cards (with or without prices) for complete daily statistics
-      writeStream.write(`${card.id},${usd},${usdFoil},${usdEtched},${priceDay}\n`)
+      // Only emit if at least one price exists
+      if (usd || usdFoil || usdEtched) {
+        writeStream.write(`${card.id},${usd},${usdFoil},${usdEtched},${priceDay}\n`)
+      }
       
       callback()
     }
   })
 
-  const streamPipeline = streamChain([
+  const streamPipeline = chain([
     fs.createReadStream(bulkDataPath),
-    jsonParser(),
-    jsonStreamArray(),
+    parser(),
+    streamArray(),
     dataProcessor
   ])
   
@@ -168,14 +166,9 @@ async function importPricesFromCsv(csvPath: string): Promise<number> {
     if (line.trim()) {
       const [scryfall_id, price_usd, price_usd_foil, price_usd_etched, price_day] = line.split(',')
       if (scryfall_id) {
-        // Convert empty strings to null for proper database handling
-        const normalizedUsd = price_usd && price_usd.trim() ? price_usd : null
-        const normalizedFoil = price_usd_foil && price_usd_foil.trim() ? price_usd_foil : null
-        const normalizedEtched = price_usd_etched && price_usd_etched.trim() ? price_usd_etched : null
-        
         await prisma.$executeRaw`
           INSERT INTO prices_staging (scryfall_id, price_usd, price_usd_foil, price_usd_etched, price_day)
-          VALUES (${scryfall_id}, ${normalizedUsd}::numeric, ${normalizedFoil}::numeric, ${normalizedEtched}::numeric, ${price_day}::date)
+          VALUES (${scryfall_id}, ${price_usd || null}, ${price_usd_foil || null}, ${price_usd_etched || null}, ${price_day})
           ON CONFLICT (scryfall_id) DO UPDATE SET
             price_usd = EXCLUDED.price_usd,
             price_usd_foil = EXCLUDED.price_usd_foil,
@@ -222,25 +215,32 @@ async function importPricesFromCsv(csvPath: string): Promise<number> {
   
   console.log(`[scryfall] Updated ${usdUpdates} USD prices, ${foilUpdates} foil prices, ${etchedUpdates} etched prices`)
   
-  // Insert price history for ALL cards from bulk data (complete daily snapshot)
-  console.log('[scryfall] Inserting complete daily price history for ALL cards...')
-  
+  // Insert price history
   const normalHistory = await prisma.$executeRaw`
     INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day)
-    SELECT ps.scryfall_id::uuid, 'normal', ps.price_usd::numeric, now(), ps.price_day::date
+    SELECT ps.scryfall_id::uuid, 'normal', ps.price_usd, now(), ps.price_day
     FROM prices_staging ps
+    WHERE ps.price_usd IS NOT NULL
+    ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE
+    SET price = EXCLUDED.price
   `
   
   const foilHistory = await prisma.$executeRaw`
     INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day)
-    SELECT ps.scryfall_id::uuid, 'foil', ps.price_usd_foil::numeric, now(), ps.price_day::date
+    SELECT ps.scryfall_id::uuid, 'foil', ps.price_usd_foil, now(), ps.price_day
     FROM prices_staging ps
+    WHERE ps.price_usd_foil IS NOT NULL
+    ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE
+    SET price = EXCLUDED.price
   `
   
   const etchedHistory = await prisma.$executeRaw`
     INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, price_day)
-    SELECT ps.scryfall_id::uuid, 'etched', ps.price_usd_etched::numeric, now(), ps.price_day::date
+    SELECT ps.scryfall_id::uuid, 'etched', ps.price_usd_etched, now(), ps.price_day
     FROM prices_staging ps
+    WHERE ps.price_usd_etched IS NOT NULL
+    ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE
+    SET price = EXCLUDED.price
   `
   
   console.log(`[scryfall] Added ${normalHistory} normal, ${foilHistory} foil, ${etchedHistory} etched price history records`)

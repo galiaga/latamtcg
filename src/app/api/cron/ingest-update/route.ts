@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-// Defer import to server handler to avoid edge bundling of server-only module
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -9,7 +8,7 @@ async function handle(req: NextRequest) {
     const expected = process.env.CRON_SECRET
     
     // Log request details for debugging
-    console.log('[cron] Request details:', {
+    console.log('[cron] Update request details:', {
       userAgent: req.headers.get('user-agent'),
       method: req.method,
       url: req.url,
@@ -40,24 +39,47 @@ async function handle(req: NextRequest) {
       console.log('[cron] Detected Vercel cron job, proceeding without manual auth')
     }
 
-    console.log('[cron] Starting daily price update...')
+    console.log('[cron] Starting Vercel Update + History + Retention...')
     
-    // Use the optimized secure pipeline for Vercel Hobby tier compatibility
-    console.log('[cron] Using optimized secure pipeline (Hobby tier compatible)')
+    // Step 1: Update cards
+    const { VercelUpdatePipeline } = await import('@/scripts/vercel-ingest-update')
+    const updatePipeline = new VercelUpdatePipeline()
+    const updateResult = await updatePipeline.ingest()
     
-    const { runSecurePriceUpdate } = await import('@/services/securePriceIngestion')
-    const result = await runSecurePriceUpdate()
+    // Step 2: Upsert history (only if update succeeded)
+    let historyResult = null
+    if (updateResult.ok) {
+      console.log('[cron] Running history upsert...')
+      const { VercelHistoryUpsertPipeline } = await import('@/scripts/vercel-ingest-upsert-history')
+      const historyPipeline = new VercelHistoryUpsertPipeline()
+      historyResult = await historyPipeline.ingest()
+    }
     
-    console.log('[cron] Daily price update completed:', result)
-    return NextResponse.json(result)
+    // Step 3: Run retention cleanup (only if both previous steps succeeded)
+    let retentionResult = null
+    if (updateResult.ok && historyResult?.ok) {
+      console.log('[cron] Running retention cleanup...')
+      const { VercelRetentionPipeline } = await import('@/scripts/vercel-retention-30d')
+      const retentionPipeline = new VercelRetentionPipeline()
+      retentionResult = await retentionPipeline.ingest()
+    }
+    
+    const combinedResult = {
+      ok: updateResult.ok && historyResult?.ok && retentionResult?.ok,
+      update: updateResult,
+      history: historyResult,
+      retention: retentionResult,
+      totalDurationMs: (updateResult.durationMs || 0) + (historyResult?.durationMs || 0) + (retentionResult?.durationMs || 0)
+    }
+    
+    console.log('[cron] Vercel Update + History + Retention completed:', combinedResult)
+    return NextResponse.json(combinedResult)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- logging path, not critical to type precisely
   } catch (err: any) {
-    console.error('[scryfall] Job failed', err)
+    console.error('[cron] Update job failed', err)
     return NextResponse.json({ error: 'Job failed' }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest) { return handle(req) }
 export async function GET(req: NextRequest) { return handle(req) }
-
-

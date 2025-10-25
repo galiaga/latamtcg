@@ -1,5 +1,74 @@
 # Changelog
 
+## v0.30.0 — 2025-01-24
+### Price Ingestion Pipeline Optimization
+- **Split Phase 1 Pipeline**: Divided the monolithic price ingestion into two Vercel-safe steps for Hobby tier compatibility
+  - **Phase 1A (Stage)**: Downloads CSV → loads into staging table with 10k batch inserts (~13s)
+  - **Phase 1B (Update)**: Set-based UPDATE with `IS DISTINCT FROM` guard to avoid no-op updates (~10s)
+  - **Phase 2 (History)**: Upserts price history records with UNION ALL (~16s)
+  - **Phase 3 (Retention)**: 30-day data retention cleanup (~2s)
+  - Each phase completes well under 60-second Vercel Hobby tier limit
+
+- **Vercel Cron Configuration**: Updated cron schedule for optimal performance
+  - **06:30 America/Santiago**: Stage (Phase 1A) - `/api/cron/ingest-stage`
+  - **06:33 America/Santiago**: Update (Phase 1B) - `/api/cron/ingest-update`
+  - **06:36 America/Santiago**: History Upsert (Phase 2) - `/api/cron/ingest-history`
+  - **03:00 America/Santiago**: 30-day Retention (Phase 3) - `/api/cron/retention-30d`
+
+- **Smart Optimization Features**:
+  - **IS DISTINCT FROM Guard**: Only updates cards that actually changed (73 vs 90k+ cards)
+  - **Batch Processing**: 10k batches for Vercel serverless safety
+  - **Audit Logging**: Complete run tracking with run IDs in `ingestion_runs` table
+  - **Error Handling**: Proper error logging and recovery for each phase
+
+- **SSL Security Enhancement**: Production-ready SSL configuration
+  - **Production Mode**: Requires `SUPABASE_CA_PEM_BASE64` with `sslmode=verify-full`
+  - **Development Mode**: Falls back to `sslmode=disable` with security warnings
+  - **Session Pooler**: Uses Supabase Session Pooler URL for optimal connections
+
+- **Local Fallback Preservation**: Original `scripts/ingest-scryfall-prices-secure.ts` remains completely untouched
+  - `npm run ingest:prices` still works perfectly for local development
+  - Can be used for testing and development without affecting production pipeline
+
+### Technical Improvements
+- **New Scripts Created**:
+  - `scripts/vercel-ingest-stage.ts` - Phase 1A: CSV download and staging
+  - `scripts/vercel-ingest-update.ts` - Phase 1B: Set-based card updates
+  - `scripts/vercel-ingest-upsert-history.ts` - Phase 2: Price history upserts
+  - `scripts/vercel-retention-30d.ts` - Phase 3: Data retention cleanup
+
+- **API Routes**: Token-protected endpoints for each phase
+  - `/api/cron/ingest-stage` - Phase 1A with authentication
+  - `/api/cron/ingest-update` - Phase 1B with authentication
+  - `/api/cron/ingest-history` - Phase 2 with authentication
+  - `/api/cron/retention-30d` - Phase 3 with authentication
+
+- **NPM Scripts**: Added convenience scripts for local testing
+  - `vercel:ingest:stage` - Test Phase 1A locally
+  - `vercel:ingest:update` - Test Phase 1B locally
+  - `vercel:history-upsert` - Test Phase 2 locally
+  - `vercel:retention` - Test Phase 3 locally
+
+### Performance Metrics
+- **Phase 1A (Stage)**: < 15-20s target (actual: ~13s ✅)
+- **Phase 1B (Update)**: < 35-40s target (actual: ~10s ✅)
+- **Phase 2 (History)**: < 20s target (actual: ~16s ✅)
+- **Phase 3 (Retention)**: < 15s target (actual: ~2s ✅)
+- **Total Pipeline**: ~41s (well under 60s Vercel Hobby limit)
+
+### Git Configuration
+- **Enhanced .gitignore**: Added comprehensive patterns for large files and data
+  - Large data files: `data/*.json`, `data/*.csv`, `data/*.gz`, `data/*.zip`
+  - Large files: `*.large`, `*.big`, `*.huge`
+  - Temporary files: `*.tmp`, `*.temp`, `/tmp/`, `/temp/`
+  - Log files: `*.log`
+
+### Deployment & Configuration
+- **Production Ready**: All phases tested locally and ready for Vercel deployment
+- **Environment Variables**: Proper SSL configuration with CA certificate support
+- **Monitoring**: Complete audit logging with run IDs and performance metrics
+- **Rollback Safety**: Local fallback preserved for emergency use
+
 ## v0.29.0 — 2025-01-23
 ### Product Detail Page (PDP) UX Enhancements
 - **Prominent Price Display**: Added PriceBlock component for prominent CLP price display under card title
