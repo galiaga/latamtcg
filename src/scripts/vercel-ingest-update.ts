@@ -329,6 +329,7 @@ export class VercelUpdatePipeline {
         durationMs: totalMs,
         runId: runId || 0,
         cardsUpdated: 0,
+        cardsMatched: 0,
         updateMs: 0,
         errorMessage: error instanceof Error ? error.message : String(error)
       }
