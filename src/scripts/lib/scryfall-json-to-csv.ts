@@ -283,23 +283,26 @@ export async function jsonToPriceCsv(
   try {
     // Handle gzipped input
     let stream = inputStream
-    if (inputStream.readable && inputStream.readableObjectMode === false) {
+    
+    // Check if it's a Node.js stream with readableObjectMode property
+    if ('readable' in inputStream && 'readableObjectMode' in inputStream && 
+        (inputStream as any).readable && (inputStream as any).readableObjectMode === false) {
       // Check if it's gzipped by looking at the first few bytes
       const firstChunk = await new Promise<Buffer>((resolve, reject) => {
         const chunks: Buffer[] = []
-        inputStream.on('data', (chunk: Buffer) => {
+        ;(inputStream as any).on('data', (chunk: Buffer) => {
           chunks.push(chunk)
           if (chunks.length === 1) {
             resolve(Buffer.concat(chunks))
           }
         })
-        inputStream.on('error', reject)
-        inputStream.on('end', () => resolve(Buffer.concat(chunks)))
+        ;(inputStream as any).on('error', reject)
+        ;(inputStream as any).on('end', () => resolve(Buffer.concat(chunks)))
       })
 
       // Check for gzip magic number (0x1f 0x8b)
       if (firstChunk.length >= 2 && firstChunk[0] === 0x1f && firstChunk[1] === 0x8b) {
-        stream = inputStream.pipe(createGunzip())
+        stream = (inputStream as any).pipe(createGunzip())
       }
     }
 
