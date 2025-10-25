@@ -11,7 +11,9 @@ interface UpdateResult {
   durationMs: number
   runId: number
   cardsUpdated: number
+  cardsMatched: number
   updateMs: number
+  skipReason?: string
   errorMessage?: string
 }
 
@@ -21,6 +23,7 @@ interface AuditRun {
   priceDay: string
   updateMs?: number
   cardsUpdated?: number
+  cardsMatched?: number
   errorMessage?: string
 }
 
@@ -103,6 +106,52 @@ export class VercelUpdatePipeline {
     await this.client.end()
   }
 
+  private async checkGatingState(): Promise<{ allowed: boolean; reason?: string }> {
+    console.log(`[update] Checking gating state...`)
+    
+    try {
+      // Get today's date in America/Santiago
+      const today = new Date()
+      const todayStr = format(today, 'yyyy-MM-dd', { timeZone: 'America/Santiago' })
+      
+      // Check if stage was allowed today
+      const result = await this.client.query(`
+        SELECT value_boolean, value_date, updated_at
+        FROM kv_state 
+        WHERE key = 'last_stage_allowed'
+      `)
+      
+      if (result.rows.length === 0) {
+        return { allowed: false, reason: 'No gating state found - Stage may not have run' }
+      }
+      
+      const gatingState = result.rows[0]
+      const stageAllowed = gatingState.value_boolean
+      const stageDate = gatingState.value_date
+      
+      // Convert stageDate to string format for comparison
+      const stageDateStr = stageDate instanceof Date 
+        ? format(stageDate, 'yyyy-MM-dd', { timeZone: 'America/Santiago' })
+        : stageDate
+      
+      // Check if the date matches today
+      if (stageDateStr !== todayStr) {
+        return { allowed: false, reason: `Gating state is from ${stageDateStr}, expected ${todayStr}` }
+      }
+      
+      if (!stageAllowed) {
+        return { allowed: false, reason: 'Stage gating failed - consistency ratio outside acceptable range' }
+      }
+      
+      console.log(`[update] ✅ Gating check passed - Stage allowed for ${todayStr}`)
+      return { allowed: true }
+      
+    } catch (error) {
+      console.error(`[update] Error checking gating state:`, error)
+      return { allowed: false, reason: `Gating check failed: ${error instanceof Error ? error.message : String(error)}` }
+    }
+  }
+
   private async getPriceDay(): Promise<string> {
     // Get the price_day from the staging table
     const result = await this.client.query('SELECT DISTINCT price_day FROM scryfall_daily_prices_stage LIMIT 1')
@@ -118,10 +167,19 @@ export class VercelUpdatePipeline {
     return priceDay
   }
 
-  private async updateCards(): Promise<number> {
+  private async updateCards(): Promise<{ updateMs: number; cardsMatched: number }> {
     const startTime = Date.now()
     
     console.log(`[update] Running set-based UPDATE with IS DISTINCT FROM guard...`)
+    
+    // First, count how many cards would be matched (for consistency check)
+    const matchCountResult = await this.client.query(`
+      SELECT COUNT(*) FROM "MtgCard" m
+      JOIN scryfall_daily_prices_stage s ON m."scryfallId" = s.scryfall_id::text
+    `)
+    const cardsMatched = parseInt(matchCountResult.rows[0].count)
+    
+    console.log(`[update] Cards matched for update: ${cardsMatched.toLocaleString()}`)
     
     // Update cards with new prices using IS DISTINCT FROM to avoid no-op updates
     const result = await this.client.query(`
@@ -143,7 +201,18 @@ export class VercelUpdatePipeline {
     const duration = Date.now() - startTime
     console.log(`[update] ✅ Updated ${result.rowCount} cards in ${duration}ms`)
     
-    return duration
+    // Log consistency ratio
+    const stagedCountResult = await this.client.query('SELECT COUNT(*) FROM scryfall_daily_prices_stage')
+    const rowsStaged = parseInt(stagedCountResult.rows[0].count)
+    const matchRatio = cardsMatched / rowsStaged
+    
+    console.log(`[update] Consistency ratio: ${cardsMatched.toLocaleString()}/${rowsStaged.toLocaleString()} = ${(matchRatio * 100).toFixed(1)}%`)
+    
+    if (matchRatio < 0.95) {
+      console.warn(`[update] ⚠️  Low match ratio: ${(matchRatio * 100).toFixed(1)}% (expected ≥95%)`)
+    }
+    
+    return { updateMs: duration, cardsMatched }
   }
 
   private async logAuditRun(auditRun: AuditRun): Promise<number> {
@@ -177,6 +246,24 @@ export class VercelUpdatePipeline {
       
       console.log(`[update] Starting Vercel Update...`)
       
+      // Check gating state first
+      const gatingCheck = await this.checkGatingState()
+      if (!gatingCheck.allowed) {
+        console.log(`[update] ⏭️  Skipping Update: ${gatingCheck.reason}`)
+        // Verification log for easy reading
+        console.log(`[ok] dataset=update, paperOnly=N/A, ratio=N/A, allowed=false, skipped=true`)
+        return {
+          ok: true,
+          skipped: true,
+          durationMs: Date.now() - totalStartTime,
+          runId: 0,
+          cardsUpdated: 0,
+          cardsMatched: 0,
+          updateMs: 0,
+          skipReason: gatingCheck.reason
+        }
+      }
+      
       // Get price day from staging table
       await this.getPriceDay()
       
@@ -185,7 +272,9 @@ export class VercelUpdatePipeline {
       console.log(`[update] Started Vercel Update run #${runId}`)
       
       // Update cards
-      const updateMs = await this.updateCards()
+      const updateResult = await this.updateCards()
+      const updateMs = updateResult.updateMs
+      const cardsMatched = updateResult.cardsMatched
       
       // Get final count
       const cardsCountResult = await this.client.query('SELECT COUNT(*) FROM "MtgCard" WHERE "priceUpdatedAt" >= NOW() - INTERVAL \'1 minute\'')
@@ -195,6 +284,7 @@ export class VercelUpdatePipeline {
       this.auditRun.status = 'completed'
       this.auditRun.updateMs = updateMs
       this.auditRun.cardsUpdated = cardsUpdated
+      this.auditRun.cardsMatched = cardsMatched
       
       await this.logAuditRun(this.auditRun)
       
@@ -204,7 +294,12 @@ export class VercelUpdatePipeline {
       console.log(`[update] Run ID: #${runId}`)
       console.log(`[update] Update cards: ${updateMs}ms`)
       console.log(`[update] Total: ${totalMs}ms`)
+      console.log(`[update] Cards matched: ${cardsMatched.toLocaleString()}`)
       console.log(`[update] Cards updated: ${cardsUpdated}`)
+      console.log(`[update] Note: cardsUpdated can be 0 even on success if no prices changed`)
+      
+      // Verification log for easy reading
+      console.log(`[ok] dataset=update, paperOnly=N/A, ratio=N/A, allowed=true, skipped=false`)
       
       return {
         ok: true,
@@ -212,6 +307,7 @@ export class VercelUpdatePipeline {
         durationMs: totalMs,
         runId,
         cardsUpdated,
+        cardsMatched,
         updateMs
       }
       
