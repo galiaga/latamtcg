@@ -11,6 +11,10 @@ interface HistoryUpsertResult {
   durationMs: number
   historyUpserts: number
   runId: number
+  rowsStagedToday?: number
+  historyUpsertsToday?: number
+  upsertsPerRow?: number
+  skipReason?: string
   errorMessage?: string
 }
 
@@ -100,6 +104,52 @@ export class VercelHistoryUpsertPipeline {
 
   private async disconnect() {
     await this.client.end()
+  }
+
+  private async checkGatingState(): Promise<{ allowed: boolean; reason?: string }> {
+    console.log(`[history] Checking gating state...`)
+    
+    try {
+      // Get today's date in America/Santiago
+      const today = new Date()
+      const todayStr = format(today, 'yyyy-MM-dd', { timeZone: 'America/Santiago' })
+      
+      // Check if stage was allowed today
+      const result = await this.client.query(`
+        SELECT value_boolean, value_date, updated_at
+        FROM kv_state 
+        WHERE key = 'last_stage_allowed'
+      `)
+      
+      if (result.rows.length === 0) {
+        return { allowed: false, reason: 'No gating state found - Stage may not have run' }
+      }
+      
+      const gatingState = result.rows[0]
+      const stageAllowed = gatingState.value_boolean
+      const stageDate = gatingState.value_date
+      
+      // Convert stageDate to string format for comparison
+      const stageDateStr = stageDate instanceof Date 
+        ? format(stageDate, 'yyyy-MM-dd', { timeZone: 'America/Santiago' })
+        : stageDate
+      
+      // Check if the date matches today
+      if (stageDateStr !== todayStr) {
+        return { allowed: false, reason: `Gating state is from ${stageDateStr}, expected ${todayStr}` }
+      }
+      
+      if (!stageAllowed) {
+        return { allowed: false, reason: 'Stage gating failed - consistency ratio outside acceptable range' }
+      }
+      
+      console.log(`[history] ✅ Gating check passed - Stage allowed for ${todayStr}`)
+      return { allowed: true }
+      
+    } catch (error) {
+      console.error(`[history] Error checking gating state:`, error)
+      return { allowed: false, reason: `Gating check failed: ${error instanceof Error ? error.message : String(error)}` }
+    }
   }
 
   private async getPriceDay(): Promise<string> {
@@ -203,6 +253,22 @@ export class VercelHistoryUpsertPipeline {
       
       console.log(`[ingest] Starting Vercel History Upsert...`)
       
+      // Check gating state first
+      const gatingCheck = await this.checkGatingState()
+      if (!gatingCheck.allowed) {
+        console.log(`[ingest] ⏭️  Skipping History Upsert: ${gatingCheck.reason}`)
+        // Verification log for easy reading
+        console.log(`[ok] dataset=history, paperOnly=N/A, ratio=N/A, allowed=false, skipped=true`)
+        return {
+          ok: true,
+          skipped: true,
+          durationMs: Date.now() - totalStartTime,
+          runId: 0,
+          historyUpserts: 0,
+          skipReason: gatingCheck.reason
+        }
+      }
+      
       // Get price day from staging table
       await this.getPriceDay()
       
@@ -222,6 +288,16 @@ export class VercelHistoryUpsertPipeline {
       
       const historyUpserts = parseInt(historyCountResult.rows[0].count)
       
+      // Get rows staged today for comparison
+      const stagedCountResult = await this.client.query(`
+        SELECT COUNT(*) 
+        FROM scryfall_daily_prices_stage
+      `)
+      const rowsStagedToday = parseInt(stagedCountResult.rows[0].count)
+      
+      // Calculate upserts per row ratio
+      const upsertsPerRow = rowsStagedToday > 0 ? historyUpserts / rowsStagedToday : 0
+      
       // Update audit run with results
       this.auditRun.status = 'completed'
       this.auditRun.upsertHistoryMs = upsertHistoryMs
@@ -235,14 +311,23 @@ export class VercelHistoryUpsertPipeline {
       console.log(`[ingest] Run ID: #${runId}`)
       console.log(`[ingest] Upsert history: ${upsertHistoryMs}ms`)
       console.log(`[ingest] Total: ${totalMs}ms`)
-      console.log(`[ingest] History upserts: ${historyUpserts}`)
+      console.log(`[ingest] Rows staged today: ${rowsStagedToday.toLocaleString()}`)
+      console.log(`[ingest] History upserts today: ${historyUpserts.toLocaleString()}`)
+      console.log(`[ingest] Upserts per row: ${upsertsPerRow.toFixed(2)}`)
+      console.log(`[ingest] Note: historyUpsertsToday ≤ 3 × rowsStagedToday (normal, foil, etched finishes)`)
+      
+      // Verification log for easy reading
+      console.log(`[ok] dataset=history, paperOnly=N/A, ratio=N/A, allowed=true, skipped=false`)
       
       return {
         ok: true,
         skipped: false,
         durationMs: totalMs,
         historyUpserts,
-        runId
+        runId,
+        rowsStagedToday,
+        historyUpsertsToday: historyUpserts,
+        upsertsPerRow
       }
       
     } catch (error: unknown) {

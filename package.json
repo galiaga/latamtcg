@@ -29,10 +29,10 @@
     "db:check:limits": "tsx scripts/check-purchase-limits-migration.ts",
     "ingest:prices": "tsx scripts/ingest-scryfall-prices-secure.ts",
     "vercel:stage-update": "tsx scripts/vercel-ingest-stage-update.ts",
-    "vercel:history-upsert": "tsx scripts/vercel-ingest-upsert-history.ts",
+    "vercel:history-upsert": "tsx src/scripts/vercel-ingest-upsert-history.ts",
     "vercel:retention": "tsx scripts/vercel-retention-30d.ts",
-    "vercel:ingest:stage": "tsx scripts/vercel-ingest-stage.ts",
-    "vercel:ingest:update": "tsx scripts/vercel-ingest-update.ts",
+    "vercel:ingest:stage": "tsx src/scripts/vercel-ingest-stage.ts",
+    "vercel:ingest:update": "tsx src/scripts/vercel-ingest-update.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"

@@ -141,6 +141,13 @@ npm install
 ```bash
 DATABASE_URL=postgres://user:pass@localhost:5432/latamtcg
 CRON_SECRET=choose-a-strong-random-value
+
+# Price Ingestion Configuration
+SCRYFALL_BULK_DATASET=default_cards  # Options: 'default_cards' | 'unique_prints'
+SCRYFALL_FILTER_PAPER_ONLY=false    # Options: 'true' | 'false' (string values)
+
+# SSL Configuration (Production)
+SUPABASE_CA_PEM_BASE64=base64-encoded-certificate  # Supabase CA certificate for secure connections
 ```
 3. Generate client and run migration:
 ```bash
@@ -157,6 +164,68 @@ npx ts-node scripts/run-scryfall-refresh.ts
 ```bash
 npm run searchindex:rebuild
 ```
+
+### Price Ingestion Pipeline
+
+The application includes a sophisticated price ingestion pipeline with the following features:
+
+#### Environment Variables
+
+- **`SCRYFALL_BULK_DATASET`**: Controls which Scryfall dataset to use
+  - `default_cards` (default): English cards or printed language (~110k cards)
+  - `unique_prints`: Unique artwork prints (~50k cards)
+  
+- **`SCRYFALL_FILTER_PAPER_ONLY`**: Enables paper-only filtering
+  - `false` (default): Include all cards (digital + paper)
+  - `true`: Only include cards with "paper" in the games array
+  
+- **`SUPABASE_CA_PEM_BASE64`**: Base64-encoded Supabase CA certificate for secure SSL connections in production
+
+#### Gating System
+
+The pipeline includes a gating system that prevents Update/History steps from running if the Stage detects consistency issues:
+
+- **Consistency Thresholds**:
+  - Without paper filter: 90%-110% of MtgCard count
+  - With paper filter: 95%-105% of MtgCard count
+  
+- **Gating State**: Stored in `kv_state` table with keys:
+  - `last_stage_allowed`: Boolean indicating if Stage passed consistency checks
+  - `last_stage_ratio`: Numeric ratio of staged rows to MtgCard count
+  - `last_stage_date`: Date of the last Stage run
+
+#### Pipeline Steps
+
+1. **Stage**: Downloads Scryfall data, applies filters, loads into staging table
+2. **Update**: Updates MtgCard prices (only if Stage gating passed)
+3. **History**: Upserts price history records (only if Stage gating passed)
+4. **Retention**: Cleans up old price history records
+
+#### Local Fallback
+
+The original local script (`scripts/ingest-scryfall-prices-secure.ts`) remains unchanged and can be used for local development and testing.
+
+#### Validation Checklist
+
+**Stage Validation:**
+- [ ] `paperOnly: true` in response
+- [ ] `rowsStaged` ≈ `mtgCardCount` (±5%)
+- [ ] `consistencyRatio` in [0.95, 1.05]
+- [ ] `consistencyWarning: null`
+- [ ] Log shows `allowed=true, skipped=false`
+
+**Update Validation (if Stage allowed=true):**
+- [ ] `skipped: false`
+- [ ] `cardsMatched/rowsStaged ≥ 0.95`
+- [ ] `cardsUpdated ≥ 0` (can be 0 if no prices changed)
+- [ ] Log shows `allowed=true, skipped=false`
+
+**History Validation (if Update succeeded):**
+- [ ] `skipped: false`
+- [ ] `historyUpsertsToday ≤ 3 × rowsStagedToday` (normal, foil, etched finishes)
+- [ ] `upsertsPerRow` reasonable (typically 1-3)
+- [ ] Compare with last N days to spot anomalies
+- [ ] Log shows `allowed=true, skipped=false`
 
 ### See the MTG table today
 
