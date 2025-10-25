@@ -1,7 +1,7 @@
 {
   "crons": [
     { "path": "/api/cron/ingest-stage?token=$CRON_SECRET", "schedule": "30 6 * * *" },
-    { "path": "/api/cron/ingest-update?token=$CRON_SECRET", "schedule": "33 6 * * *" }
+    { "path": "/api/jobs/searchindex-refresh", "schedule": "15 4 * * *" }
   ]
 }
 
