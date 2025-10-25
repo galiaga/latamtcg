@@ -2,6 +2,7 @@
 // COMPLETE: reads Supabase session and propagates user id/email as headers
 // STUB: Advanced RBAC/tenancy scoped out for v0
 // ADDED: Bot blocking for GPTBot and AhrefsBot to reduce unwanted crawler traffic
+// ADDED: Cron API route bypass for authentication protection
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
@@ -9,7 +10,15 @@ import { createServerClient } from '@supabase/ssr'
 // Block abusive bots that consume Vercel Image Transformations
 const BLOCKED_BOTS = /GPTBot|AhrefsBot/i
 
+console.log('[auth] middleware initialized - cron routes bypass enabled')
+
 export async function middleware(req: NextRequest) {
+  // Allow cron API routes to bypass all authentication/protection
+  if (req.nextUrl.pathname.startsWith('/api/cron/')) {
+    console.log(`[auth] Bypassing authentication for cron route: ${req.nextUrl.pathname}`)
+    return NextResponse.next()
+  }
+
   // Bot blocking: hard block abusive bots in production unless ALLOW_BOTS=true
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_BOTS !== 'true') {
     const ua = req.headers.get('user-agent') || ''
