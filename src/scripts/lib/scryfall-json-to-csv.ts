@@ -442,7 +442,7 @@ export async function downloadAndConvertToCsv(
   console.log(`[json-to-csv] ✅ Downloaded bulk data in ${downloadMs}ms`)
 
   const convertStartTime = Date.now()
-  const { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, parseMode, fallbackUsed } = await jsonToPriceCsv(response.body as NodeJS.ReadableStream, priceDay)
+  const { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, parseMode, fallbackUsed } = await jsonToPriceCsv(response.body as unknown as NodeJS.ReadableStream, priceDay)
   const convertMs = Date.now() - convertStartTime
 
   return { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, downloadMs, convertMs, parseMode, fallbackUsed }
