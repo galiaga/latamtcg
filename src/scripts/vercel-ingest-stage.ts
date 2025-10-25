@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { format } from 'date-fns-tz'
 import { gunzipSync } from 'zlib'
+import { downloadAndConvertToCsv } from './lib/scryfall-json-to-csv'
 
 // Load environment variables
 config({ path: '.env.local' })
@@ -15,7 +16,20 @@ interface StageResult {
   runId: number
   rowsStaged: number
   downloadMs?: number
+  convertMs?: number
+  rowsInCsv?: number
+  rowsInJson?: number
+  rowsWrittenCsv?: number
+  rowsFilteredOut?: number
+  stageMs?: number
   copyMs: number
+  datasetType?: string
+  paperOnly?: boolean
+  mtgCardCount?: number
+  consistencyRatio?: number
+  consistencyWarning?: string
+  parseMode?: 'stream' | 'buffer'
+  fallbackUsed?: boolean
   errorMessage?: string
 }
 
@@ -24,8 +38,15 @@ interface AuditRun {
   status: 'running' | 'completed' | 'failed'
   priceDay: string
   downloadMs?: number
+  convertMs?: number
+  rowsInCsv?: number
+  rowsInJson?: number
+  rowsWrittenCsv?: number
+  stageMs?: number
   copyMs?: number
   rowsStaged?: number
+  parseMode?: 'stream' | 'buffer'
+  fallbackUsed?: boolean
   errorMessage?: string
 }
 
@@ -100,6 +121,45 @@ export class VercelStagePipeline {
     }
   }
 
+  private async getScryfallBulkUrl(): Promise<string> {
+    // Use configured URL or fetch from Scryfall API
+    const configuredUrl = process.env.SCRYFALL_BULK_JSON_URL
+    if (configuredUrl) {
+      console.log(`[stage] Using configured Scryfall bulk URL: ${configuredUrl}`)
+      return configuredUrl
+    }
+
+    // Get dataset type from environment variable
+    const datasetType = process.env.SCRYFALL_BULK_DATASET || 'default_cards'
+    
+    // Validate dataset type
+    if (!['default_cards', 'unique_prints'].includes(datasetType)) {
+      throw new Error(`Invalid SCRYFALL_BULK_DATASET: ${datasetType}. Must be 'default_cards' or 'unique_prints'`)
+    }
+
+    console.log(`[stage] Fetching Scryfall bulk data info for dataset: ${datasetType}...`)
+    const response = await fetch('https://api.scryfall.com/bulk-data', {
+      headers: {
+        'User-Agent': 'latamtcg-price-ingestion/1.0',
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch bulk data info: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    const targetDataset = data.data?.find((item: any) => item.type === datasetType)
+
+    if (!targetDataset?.download_uri) {
+      throw new Error(`${datasetType} bulk data not found`)
+    }
+
+    console.log(`[stage] Found Scryfall ${datasetType} URL: ${targetDataset.download_uri}`)
+    return targetDataset.download_uri
+  }
+
   private async connect() {
     await this.client.connect()
   }
@@ -108,15 +168,88 @@ export class VercelStagePipeline {
     await this.client.end()
   }
 
+  private async setGatingState(rowsStaged: number, mtgCardCount: number, paperOnly: boolean): Promise<void> {
+    const ratio = rowsStaged / mtgCardCount
+    const paperOnlyFilter = process.env.SCRYFALL_FILTER_PAPER_ONLY === 'true'
+    
+    // Set thresholds based on filter
+    const lowerThreshold = paperOnlyFilter ? 0.95 : 0.90
+    const upperThreshold = paperOnlyFilter ? 1.05 : 1.10
+    
+    const stageAllowed = ratio >= lowerThreshold && ratio <= upperThreshold
+    const today = format(new Date(), 'yyyy-MM-dd', { timeZone: 'America/Santiago' })
+    
+    console.log(`[stage] Setting gating state: ratio=${ratio.toFixed(3)}, allowed=${stageAllowed}, thresholds=[${lowerThreshold}, ${upperThreshold}]`)
+    
+    // Upsert gating state
+    await this.client.query(`
+      INSERT INTO kv_state (key, value_boolean, value_numeric, value_date, updated_at)
+      VALUES ('last_stage_allowed', $1, $2, $3, NOW())
+      ON CONFLICT (key) DO UPDATE SET
+        value_boolean = EXCLUDED.value_boolean,
+        value_numeric = EXCLUDED.value_numeric,
+        value_date = EXCLUDED.value_date,
+        updated_at = EXCLUDED.updated_at
+    `, [stageAllowed, ratio, today])
+    
+    // Also store the ratio separately for easy access
+    await this.client.query(`
+      INSERT INTO kv_state (key, value_numeric, updated_at)
+      VALUES ('last_stage_ratio', $1, NOW())
+      ON CONFLICT (key) DO UPDATE SET
+        value_numeric = EXCLUDED.value_numeric,
+        updated_at = EXCLUDED.updated_at
+    `, [ratio])
+  }
+
+  private async checkDbConsistency(rowsStaged: number): Promise<{ mtgCardCount: number; warning?: string }> {
+    console.log(`[stage] Running DB consistency checks...`)
+    
+    // Get count of cards in MtgCard table
+    const mtgCardResult = await this.client.query('SELECT COUNT(*) FROM "MtgCard"')
+    const mtgCardCount = parseInt(mtgCardResult.rows[0].count)
+    
+    console.log(`[stage] MtgCard count: ${mtgCardCount.toLocaleString()}`)
+    console.log(`[stage] Rows staged: ${rowsStaged.toLocaleString()}`)
+    
+    // Check consistency (within 5% tolerance)
+    const lowerBound = Math.floor(mtgCardCount * 0.95)
+    const upperBound = Math.ceil(mtgCardCount * 1.05)
+    
+    if (rowsStaged < lowerBound || rowsStaged > upperBound) {
+      const warning = `DB consistency warning: staged rows (${rowsStaged}) outside expected range (${lowerBound}-${upperBound}) for MtgCard count (${mtgCardCount})`
+      console.warn(`[stage] ⚠️  ${warning}`)
+      return { mtgCardCount, warning }
+    }
+    
+    console.log(`[stage] ✅ DB consistency check passed`)
+    return { mtgCardCount }
+  }
+
   private validateCsvDate(csvPath: string) {
     // Read first line to get date
     const firstLine = fs.readFileSync(csvPath, 'utf8').split('\n')[0]
     const today = new Date()
     const todayStr = format(today, 'yyyy-MM-dd', { timeZone: 'America/Santiago' })
-    
+
     this.auditRun.priceDay = todayStr
-    
+
     console.log(`[stage] Validating CSV date against America/Santiago timezone...`)
+    
+    // Extract price_day from CSV header or first data row
+    const lines = fs.readFileSync(csvPath, 'utf8').split('\n')
+    if (lines.length < 2) {
+      throw new Error('CSV file appears to be empty or malformed')
+    }
+    
+    // Check if first data row has the correct price_day
+    const firstDataRow = lines[1] // Skip header
+    const priceDayFromCsv = firstDataRow.split(',').pop()?.trim()
+    
+    if (priceDayFromCsv !== todayStr) {
+      throw new Error(`Price day mismatch: CSV has '${priceDayFromCsv}', expected '${todayStr}' (America/Santiago today)`)
+    }
+
     console.log(`[stage] ✅ CSV date validated: ${todayStr} (America/Santiago today)`)
   }
 
@@ -255,6 +388,14 @@ export class VercelStagePipeline {
       
       let csvPath: string
       let downloadMs: number | undefined
+      let convertMs: number | undefined
+      let rowsInCsv: number | undefined
+      let rowsInJson: number | undefined
+      let rowsWrittenCsv: number | undefined
+      let rowsFilteredOut: number | undefined
+      let stageMs: number | undefined
+      let parseMode: 'stream' | 'buffer' | undefined
+      let fallbackUsed: boolean | undefined
       
       if (options.file) {
         csvPath = path.resolve(options.file)
@@ -277,7 +418,33 @@ export class VercelStagePipeline {
           csvPath = tempPath
         }
       } else {
-        throw new Error('Either --file or --url must be provided')
+        // Auto-detect and convert Scryfall JSON to CSV
+        console.log(`[stage] No file/url provided, auto-converting Scryfall JSON to CSV...`)
+        
+        const bulkUrl = await this.getScryfallBulkUrl()
+        const today = new Date()
+        const priceDay = format(today, 'yyyy-MM-dd', { timeZone: 'America/Santiago' })
+        
+        console.log(`[stage] Converting Scryfall JSON to CSV for ${priceDay}...`)
+        const convertStartTime = Date.now()
+        
+        const result = await downloadAndConvertToCsv(bulkUrl, priceDay)
+        csvPath = result.csvPath
+        rowsInCsv = result.rowCount
+        rowsInJson = result.rowsInJson
+        rowsWrittenCsv = result.rowsWrittenCsv
+        rowsFilteredOut = result.rowsFilteredOut
+        parseMode = result.parseMode
+        fallbackUsed = result.fallbackUsed
+        
+        convertMs = Date.now() - convertStartTime
+        
+               // Safety check: abort if too few rows (default_cards should have ~110k+ rows)
+               if (rowsInCsv < 100000) {
+                 throw new Error(`Abnormally low row count: ${rowsInCsv}. Expected ~110k+ rows from default_cards. Check bulk data URL.`)
+               }
+        
+        console.log(`[stage] ✅ Converted ${rowsInCsv.toLocaleString()} cards to CSV in ${convertMs}ms`)
       }
       
       // Validate CSV date
@@ -288,17 +455,37 @@ export class VercelStagePipeline {
       console.log(`[stage] Started Vercel Stage run #${runId}`)
       
       // Copy CSV to staging table
+      const stageStartTime = Date.now()
       const copyMs = await this.copyCsvToStage(csvPath)
+      stageMs = Date.now() - stageStartTime
       
       // Get final count
       const stageCountResult = await this.client.query('SELECT COUNT(*) FROM scryfall_daily_prices_stage')
       const rowsStaged = parseInt(stageCountResult.rows[0].count)
       
+      // Run DB consistency checks
+      const datasetType = process.env.SCRYFALL_BULK_DATASET || 'default_cards'
+      const paperOnly = process.env.SCRYFALL_FILTER_PAPER_ONLY === 'true'
+      const consistencyCheck = await this.checkDbConsistency(rowsStaged)
+      
+      // Set gating state for Update/History steps
+      await this.setGatingState(rowsStaged, consistencyCheck.mtgCardCount, paperOnly)
+      
+      // Calculate consistency ratio
+      const consistencyRatio = rowsStaged / consistencyCheck.mtgCardCount
+      
       // Update audit run with results
-      this.auditRun.status = 'completed'
+      this.auditRun.status = 'completed' // Always use 'completed' for DB constraint
       this.auditRun.downloadMs = downloadMs
+      this.auditRun.convertMs = convertMs
+      this.auditRun.rowsInCsv = rowsInCsv
+      this.auditRun.rowsInJson = rowsInJson
+      this.auditRun.rowsWrittenCsv = rowsWrittenCsv
+      this.auditRun.stageMs = stageMs
       this.auditRun.copyMs = copyMs
       this.auditRun.rowsStaged = rowsStaged
+      this.auditRun.parseMode = parseMode
+      this.auditRun.fallbackUsed = fallbackUsed
       
       await this.logAuditRun(this.auditRun)
       
@@ -306,10 +493,27 @@ export class VercelStagePipeline {
       
       console.log(`[stage] 🎉 Vercel Stage completed!`)
       console.log(`[stage] Run ID: #${runId}`)
+      console.log(`[stage] Dataset: ${datasetType}`)
+      console.log(`[stage] Paper-only filter: ${paperOnly}`)
+      console.log(`[stage] Parse mode: ${parseMode || 'N/A'}`)
+      console.log(`[stage] Fallback used: ${fallbackUsed || false}`)
       console.log(`[stage] Download: ${downloadMs || 0}ms`)
-      console.log(`[stage] Copy: ${copyMs}ms`)
+      console.log(`[stage] Convert: ${convertMs || 0}ms`)
+      console.log(`[stage] Stage: ${stageMs || 0}ms`)
       console.log(`[stage] Total: ${totalMs}ms`)
+      console.log(`[stage] Rows in JSON: ${rowsInJson || 'N/A'}`)
+      console.log(`[stage] Rows written CSV: ${rowsWrittenCsv || 'N/A'}`)
+      console.log(`[stage] Rows filtered out: ${rowsFilteredOut || 0}`)
       console.log(`[stage] Rows staged: ${rowsStaged}`)
+      console.log(`[stage] MtgCard count: ${consistencyCheck.mtgCardCount}`)
+      console.log(`[stage] Consistency ratio: ${consistencyRatio.toFixed(3)}`)
+      if (consistencyCheck.warning) {
+        console.log(`[stage] ⚠️  Consistency warning: ${consistencyCheck.warning}`)
+      }
+      
+      // Verification log for easy reading
+      const allowed = consistencyRatio >= 0.95 && consistencyRatio <= 1.05
+      console.log(`[ok] dataset=${datasetType}, paperOnly=${paperOnly}, parseMode=${parseMode || 'N/A'}, fallbackUsed=${fallbackUsed || false}, ratio=${consistencyRatio.toFixed(3)}, allowed=${allowed}, skipped=false`)
       
       return {
         ok: true,
@@ -318,7 +522,20 @@ export class VercelStagePipeline {
         runId,
         rowsStaged,
         downloadMs,
-        copyMs
+        convertMs,
+        rowsInCsv,
+        rowsInJson,
+        rowsWrittenCsv,
+        rowsFilteredOut,
+        stageMs,
+        copyMs,
+        datasetType,
+        paperOnly,
+        mtgCardCount: consistencyCheck.mtgCardCount,
+        consistencyRatio,
+        consistencyWarning: consistencyCheck.warning,
+        parseMode,
+        fallbackUsed
       }
       
     } catch (error: unknown) {
@@ -368,11 +585,14 @@ async function main() {
     console.log('Options:')
     console.log('  --file <path>    Use local CSV file')
     console.log('  --url <url>     Download CSV from URL')
+    console.log('  (no args)       Auto-convert Scryfall JSON to CSV')
     console.log('')
     console.log('Examples:')
     console.log('  yarn vercel:ingest:stage --file data/daily-prices.csv')
     console.log('  yarn vercel:ingest:stage --url https://api.scryfall.com/bulk-data/default-cards')
-    process.exit(1)
+    console.log('  yarn vercel:ingest:stage  # Auto-convert Scryfall JSON')
+    console.log('')
+    console.log('Auto-conversion mode: Downloading Scryfall JSON and converting to CSV...')
   }
   
   const pipeline = new VercelStagePipeline()
