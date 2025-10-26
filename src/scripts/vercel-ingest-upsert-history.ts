@@ -73,7 +73,11 @@ export class VercelHistoryUpsertPipeline {
 
     if (process.env.NODE_ENV === 'production') {
       if (!caPem) {
-        throw new Error('SUPABASE_CA_PEM_BASE64 is required in production')
+        console.log('[ssl] ⚠️  WARNING: No Supabase CA certificate found in production!')
+        console.log('[ssl] ⚠️  Using sslmode=prefer (no certificate verification)')
+        return {
+          rejectUnauthorized: false
+        }
       }
       console.log('[ssl] Production mode: Using secure SSL with CA verification')
       return {

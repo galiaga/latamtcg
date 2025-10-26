@@ -66,37 +66,41 @@ export class VercelUpdatePipeline {
     }
   }
 
-  private getSSLConfig() {
-    const caPem = process.env.SUPABASE_CA_PEM_BASE64
-      ? Buffer.from(process.env.SUPABASE_CA_PEM_BASE64, 'base64').toString()
-      : process.env.SUPABASE_CA_PEM
+         private getSSLConfig() {
+           const caPem = process.env.SUPABASE_CA_PEM_BASE64
+             ? Buffer.from(process.env.SUPABASE_CA_PEM_BASE64, 'base64').toString()
+             : process.env.SUPABASE_CA_PEM
 
-    if (process.env.NODE_ENV === 'production') {
-      if (!caPem) {
-        throw new Error('SUPABASE_CA_PEM_BASE64 is required in production')
-      }
-      console.log('[ssl] Production mode: Using secure SSL with CA verification')
-      return {
-        rejectUnauthorized: true,
-        ca: caPem
-      }
-    } else {
-      if (!caPem) {
-        console.log('[ssl] ⚠️  WARNING: No Supabase CA certificate found!')
-        console.log('[ssl] ⚠️  Using insecure SSL mode. This is NOT recommended for production.')
-        console.log('[ssl] ⚠️  To fix: Download Supabase CA certificate and set SUPABASE_CA_PEM_BASE64 environment variable')
-        return {
-          rejectUnauthorized: false
-        }
-      } else {
-        console.log('[ssl] Development mode: Using secure SSL with CA verification')
-        return {
-          rejectUnauthorized: true,
-          ca: caPem
-        }
-      }
-    }
-  }
+           if (process.env.NODE_ENV === 'production') {
+             if (!caPem) {
+               console.log('[ssl] ⚠️  WARNING: No Supabase CA certificate found in production!')
+               console.log('[ssl] ⚠️  Using sslmode=prefer (no certificate verification)')
+               return {
+                 rejectUnauthorized: false
+               }
+             }
+             console.log('[ssl] Production mode: Using secure SSL with CA verification')
+             return {
+               rejectUnauthorized: true,
+               ca: caPem
+             }
+           } else {
+             if (!caPem) {
+               console.log('[ssl] ⚠️  WARNING: No Supabase CA certificate found!')
+               console.log('[ssl] ⚠️  Using insecure SSL mode. This is NOT recommended for production.')
+               console.log('[ssl] ⚠️  To fix: Download Supabase CA certificate and set SUPABASE_CA_PEM_BASE64 environment variable')
+               return {
+                 rejectUnauthorized: false
+               }
+             } else {
+               console.log('[ssl] Development mode: Using secure SSL with CA verification')
+               return {
+                 rejectUnauthorized: true,
+                 ca: caPem
+               }
+             }
+           }
+         }
 
   private async connect() {
     await this.client.connect()
