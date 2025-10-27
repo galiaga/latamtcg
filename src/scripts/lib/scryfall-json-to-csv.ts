@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { Transform } from 'stream'
+import { Transform, Readable } from 'stream'
 import { pipeline } from 'stream/promises'
 import { createGunzip } from 'zlib'
 import StreamValues from 'stream-json/streamers/StreamValues'
@@ -554,8 +554,11 @@ export async function downloadAndConvertToCsv(
   const downloadMs = Date.now() - downloadStartTime
   console.log(`[json-to-csv] ✅ Downloaded bulk data in ${downloadMs}ms`)
 
+  // Convert Web Streams API ReadableStream to Node.js stream
+  const nodeStream = Readable.fromWeb(response.body as any)
+
   const convertStartTime = Date.now()
-  const { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, parseMode, fallbackUsed } = await jsonToPriceCsv(response.body as unknown as NodeJS.ReadableStream, priceDay)
+  const { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, parseMode, fallbackUsed } = await jsonToPriceCsv(nodeStream, priceDay)
   const convertMs = Date.now() - convertStartTime
 
   return { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, downloadMs, convertMs, parseMode, fallbackUsed }
