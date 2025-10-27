@@ -555,7 +555,14 @@ export async function downloadAndConvertToCsv(
   console.log(`[json-to-csv] ✅ Downloaded bulk data in ${downloadMs}ms`)
 
   // Convert Web Streams API ReadableStream to Node.js stream
-  const nodeStream = Readable.fromWeb(response.body as any)
+  let nodeStream = Readable.fromWeb(response.body as any)
+  
+  // Check if response is gzipped and decompress if needed
+  const contentEncoding = response.headers.get('content-encoding')
+  if (contentEncoding && contentEncoding.includes('gzip')) {
+    console.log(`[json-to-csv] Response is gzipped, decompressing...`)
+    nodeStream = nodeStream.pipe(createGunzip())
+  }
 
   const convertStartTime = Date.now()
   const { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, parseMode, fallbackUsed } = await jsonToPriceCsv(nodeStream, priceDay)
