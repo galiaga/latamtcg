@@ -22,6 +22,23 @@ interface ScryfallCard {
 }
 
 /**
+ * Resolve which parse mode to use based on environment and paperOnly setting
+ * 
+ * Rules:
+ * - If paperOnly=true AND in PROD, force buffer mode for reliability
+ * - Otherwise, use SCRYFALL_JSON_PARSE_MODE env var (default: 'stream')
+ */
+export function resolveParseMode({ paperOnly }: { paperOnly: boolean }): 'stream' | 'buffer' {
+  const forceBufferInProd = paperOnly && process.env.VERCEL_ENV === 'production'
+  
+  if (forceBufferInProd) {
+    return 'buffer'
+  }
+  
+  return (process.env.SCRYFALL_JSON_PARSE_MODE || 'stream') as 'stream' | 'buffer'
+}
+
+/**
  * Convert Scryfall JSON bulk data to CSV format for price ingestion
  *
  * @param inputStream - Stream of Scryfall JSON data (JSON array format)
@@ -36,18 +53,19 @@ export async function jsonToPriceCsv(
   let rowCount = 0
   let rowsInJson = 0
   let rowsFilteredOut = 0
-  let parseMode: 'stream' | 'buffer' = 'stream'
   let fallbackUsed = false
 
   // Check if paper-only filter is enabled
   const paperOnlyFilter = process.env.SCRYFALL_FILTER_PAPER_ONLY === 'true'
-  const jsonParseMode = process.env.SCRYFALL_JSON_PARSE_MODE || 'stream'
+  
+  // Resolve parse mode based on environment and paperOnly
+  const parseMode = resolveParseMode({ paperOnly: paperOnlyFilter })
+  
   console.log(`[json-to-csv] Paper-only filter: ${paperOnlyFilter}`)
-  console.log(`[json-to-csv] JSON parse mode: ${jsonParseMode}`)
+  console.log(`[json-to-csv] Resolved parse mode: ${parseMode}`)
 
   // Determine if we should use buffer mode
-  const shouldUseBufferMode = (paperOnlyFilter && jsonParseMode === 'buffer') || 
-                             (paperOnlyFilter && jsonParseMode === 'stream' && process.env.SCRYFALL_FORCE_BUFFER_MODE === 'true')
+  const shouldUseBufferMode = parseMode === 'buffer'
 
   // Buffer parsing function for fallback
   const parseWithBuffer = async (data: Buffer): Promise<void> => {
@@ -319,30 +337,43 @@ export async function jsonToPriceCsv(
       
       await parseWithBuffer(fullData)
     } else {
-      // Set up watchdog for streaming mode when paper-only is enabled
-      if (paperOnlyFilter) {
-        watchdogTimer = setInterval(() => {
-          const timeSinceLastProgress = Date.now() - lastProgressTime
-          if (timeSinceLastProgress > 30000) { // 30 seconds
-            console.log(`[json-to-csv] Fallback to buffer parse due to stall`)
-            fallbackUsed = true
-            // We'll handle the fallback in the catch block
-            throw new Error('Stream stalled - falling back to buffer parse')
-          }
-        }, 5000) // Check every 5 seconds
-      }
-
-      // Process the stream
-      await pipeline(
-        stream,
-        jsonToCsvTransform,
-        csvWriter
-      )
+      // Stream mode with watchdog for hard timeout and progress monitoring
+      const streamStartTime = Date.now()
+      const abortController = new AbortController()
       
-      // Clear watchdog timer if streaming completed successfully
-      if (watchdogTimer) {
-        clearInterval(watchdogTimer)
-        watchdogTimer = null
+      const watchdogInterval = setInterval(() => {
+        const elapsed = Date.now() - streamStartTime
+        const timeSinceLastProgress = Date.now() - lastProgressTime
+        
+        // Hard cap of 20s for stream mode
+        if (elapsed > 20000) {
+          console.log(`[json-to-csv] Watchdog: 20s hard cap reached, aborting stream`)
+          abortController.abort()
+        }
+        // No progress for 5s - likely stall
+        else if (timeSinceLastProgress > 5000) {
+          console.log(`[json-to-csv] Watchdog: no progress for ${Math.round(timeSinceLastProgress/1000)}s, aborting stream`)
+          abortController.abort()
+        }
+      }, 1000) // Check every second
+      
+      try {
+        // Process the stream with timeout
+        await pipeline(
+          stream,
+          jsonToCsvTransform,
+          csvWriter,
+          { signal: abortController.signal }
+        )
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          console.log(`[json-to-csv] Stream aborted by watchdog, fallback triggered`)
+          fallbackUsed = true
+          throw new Error('Stream aborted by watchdog')
+        }
+        throw error
+      } finally {
+        clearInterval(watchdogInterval)
       }
     }
 
