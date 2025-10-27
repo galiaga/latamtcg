@@ -2,6 +2,8 @@ import fs from 'fs'
 import { Transform } from 'stream'
 import { pipeline } from 'stream/promises'
 import { createGunzip } from 'zlib'
+import StreamValues from 'stream-json/streamers/StreamValues'
+import { parser as jsonParser } from 'stream-json'
 
 export type PriceCsvRow = {
   scryfall_id: string
@@ -67,69 +69,89 @@ export async function jsonToPriceCsv(
   // Determine if we should use buffer mode
   const shouldUseBufferMode = parseMode === 'buffer'
 
-  // Buffer parsing function for fallback
+  // Buffer parsing function - use stream-json for memory efficiency
   const parseWithBuffer = async (data: Buffer): Promise<void> => {
-    console.log(`[json-to-csv] Using buffer parse mode...`)
+    console.log(`[json-to-csv] Using buffer parse mode with stream-json...`)
     console.log('[mem]', Math.round(process.memoryUsage().rss/1024/1024), 'MB RSS')
     
     try {
-      const jsonData = JSON.parse(data.toString())
-      if (!Array.isArray(jsonData)) {
-        throw new Error('Expected JSON array format')
-      }
-      
-      console.log(`[json-to-csv] Parsed ${jsonData.length.toLocaleString()} cards from buffer`)
-      
       // Create CSV writer stream
       const csvWriter = fs.createWriteStream(csvPath)
       csvWriter.write('scryfall_id,price_usd,price_usd_foil,price_usd_etched,price_day\n')
       
-      for (let i = 0; i < jsonData.length; i++) {
-        const card: ScryfallCard = jsonData[i]
-        rowsInJson++
+      // Use stream-json for memory-efficient parsing
+      const jsonStream = jsonParser()
+      const valuesStream = StreamValues.withParser()
+      
+      return new Promise<void>((resolve, reject) => {
+        jsonStream.on('data', (chunk: any) => {
+          valuesStream.write(chunk)
+        })
         
-        // Apply paper-only filter if enabled
-        if (paperOnlyFilter && card.games && !card.games.includes('paper')) {
-          rowsFilteredOut++
-          continue // Skip this card
-        }
+        jsonStream.on('end', () => {
+          valuesStream.end()
+        })
         
-        // Extract price data - include ALL prints regardless of price availability
-        const scryfall_id = card.id
-        const price_usd = card.prices?.usd || ''
-        const price_usd_foil = card.prices?.usd_foil || ''
-        const price_usd_etched = card.prices?.usd_etched || ''
-        
-        // Write CSV row (escape commas and quotes if needed)
-        const csvRow = [
-          scryfall_id,
-          price_usd,
-          price_usd_foil,
-          price_usd_etched,
-          priceDay
-        ].map(field => {
-          // Escape quotes and wrap in quotes if contains comma or quote
-          const str = String(field || '')
-          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-            return `"${str.replace(/"/g, '""')}"`
+        valuesStream.on('data', (data: any) => {
+          try {
+            const card: ScryfallCard = data.value
+            rowsInJson++
+            
+            // Apply paper-only filter if enabled
+            if (paperOnlyFilter && card.games && !card.games.includes('paper')) {
+              rowsFilteredOut++
+              return // Skip this card
+            }
+            
+            // Extract price data - include ALL prints regardless of price availability
+            const scryfall_id = card.id
+            const price_usd = card.prices?.usd || ''
+            const price_usd_foil = card.prices?.usd_foil || ''
+            const price_usd_etched = card.prices?.usd_etched || ''
+            
+            // Write CSV row (escape commas and quotes if needed)
+            const csvRow = [
+              scryfall_id,
+              price_usd,
+              price_usd_foil,
+              price_usd_etched,
+              priceDay
+            ].map(field => {
+              // Escape quotes and wrap in quotes if contains comma or quote
+              const str = String(field || '')
+              if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`
+              }
+              return str
+            }).join(',')
+            
+            csvWriter.write(csvRow + '\n')
+            rowCount++
+            
+            if (rowCount % 10000 === 0) {
+              console.log(`[json-to-csv] Processed ${rowCount.toLocaleString()} cards... (RSS: ${Math.round(process.memoryUsage().rss/1024/1024)}MB)`)
+            }
+          } catch (err) {
+            console.warn(`[json-to-csv] Skipping malformed card:`, err)
           }
-          return str
-        }).join(',')
+        })
         
-        csvWriter.write(csvRow + '\n')
-        rowCount++
+        valuesStream.on('end', () => {
+          csvWriter.end()
+          csvWriter.on('finish', () => {
+            console.log(`[json-to-csv] Parsed ${rowsInJson.toLocaleString()} cards from buffer`)
+            console.log(`[json-to-csv] Wrote ${rowCount.toLocaleString()} CSV rows`)
+            resolve()
+          })
+          csvWriter.on('error', reject)
+        })
         
-        if (rowCount % 10000 === 0) {
-          console.log(`[json-to-csv] Processed ${rowCount.toLocaleString()} cards...`)
-        }
-      }
-      
-      csvWriter.end()
-      
-      // Wait for write stream to finish
-      await new Promise<void>((resolve, reject) => {
-        csvWriter.on('finish', resolve)
-        csvWriter.on('error', reject)
+        jsonStream.on('error', reject)
+        valuesStream.on('error', reject)
+        
+        // Write the buffer to jsonStream
+        jsonStream.write(data)
+        jsonStream.end()
       })
       
     } catch (error) {
