@@ -554,19 +554,38 @@ export async function downloadAndConvertToCsv(
   const downloadMs = Date.now() - downloadStartTime
   console.log(`[json-to-csv] ✅ Downloaded bulk data in ${downloadMs}ms`)
 
-  // Convert Web Streams API ReadableStream to Node.js stream
-  let nodeStream = Readable.fromWeb(response.body as any)
+  // For buffer mode, collect the response into a buffer and pass to stream-json
+  // This avoids Web Streams API compatibility issues
+  const parseMode = resolveParseMode({ paperOnly: process.env.SCRYFALL_FILTER_PAPER_ONLY === 'true' })
   
-  // Check if response is gzipped and decompress if needed
-  const contentEncoding = response.headers.get('content-encoding')
-  if (contentEncoding && contentEncoding.includes('gzip')) {
-    console.log(`[json-to-csv] Response is gzipped, decompressing...`)
-    nodeStream = nodeStream.pipe(createGunzip())
+  let inputForParser: NodeJS.ReadableStream
+  
+  if (parseMode === 'buffer') {
+    // Collect response body into buffer
+    console.log(`[json-to-csv] Collecting response body for buffer mode...`)
+    const arrayBuffer = await response.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    console.log(`[json-to-csv] Collected ${Math.round(buffer.length / 1024 / 1024)}MB into buffer`)
+    
+    // Create a readable stream from the buffer
+    inputForParser = Readable.from(buffer)
+  } else {
+    // For stream mode, convert Web Stream to Node.js stream
+    let nodeStream = Readable.fromWeb(response.body as any)
+    
+    // Check if response is gzipped and decompress if needed
+    const contentEncoding = response.headers.get('content-encoding')
+    if (contentEncoding && contentEncoding.includes('gzip')) {
+      console.log(`[json-to-csv] Response is gzipped, decompressing...`)
+      nodeStream = nodeStream.pipe(createGunzip())
+    }
+    
+    inputForParser = nodeStream
   }
 
   const convertStartTime = Date.now()
-  const { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, parseMode, fallbackUsed } = await jsonToPriceCsv(nodeStream, priceDay)
+  const { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, parseMode: actualParseMode, fallbackUsed } = await jsonToPriceCsv(inputForParser, priceDay)
   const convertMs = Date.now() - convertStartTime
 
-  return { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, downloadMs, convertMs, parseMode, fallbackUsed }
+  return { csvPath, rowCount, rowsInJson, rowsWrittenCsv, rowsFilteredOut, downloadMs, convertMs, parseMode: actualParseMode, fallbackUsed }
 }
