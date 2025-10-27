@@ -1,6 +1,5 @@
 {
   "crons": [
-    { "path": "/api/cron/ingest-all", "schedule": "30 9 * * *" },
     { "path": "/api/jobs/searchindex-refresh", "schedule": "15 4 * * *" }
   ]
 }

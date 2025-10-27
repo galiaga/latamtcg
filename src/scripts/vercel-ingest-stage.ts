@@ -1,13 +1,15 @@
 import { Client } from 'pg'
-import { config } from 'dotenv'
 import fs from 'fs'
 import path from 'path'
 import { format } from 'date-fns-tz'
 import { gunzipSync } from 'zlib'
 import { downloadAndConvertToCsv } from './lib/scryfall-json-to-csv'
 
-// Load environment variables
-config({ path: '.env.local' })
+// Load environment variables only in local dev (not in CI/Actions)
+if (process.env.NODE_ENV !== 'production' && !process.env.CI) {
+  const { config } = require('dotenv')
+  config({ path: '.env.local' })
+}
 
 interface StageResult {
   ok: boolean
@@ -123,6 +125,70 @@ export class VercelStagePipeline {
           ca: caPem
         }
       }
+    }
+  }
+
+  private async checkScryfallBulkMetadata(): Promise<{ shouldSkip: boolean; updatedAt?: string }> {
+    console.log('[stage] Checking Scryfall bulk data metadata...')
+    
+    const datasetType = process.env.SCRYFALL_BULK_DATASET || 'default_cards'
+    const response = await fetch('https://api.scryfall.com/bulk-data', {
+      headers: {
+        'User-Agent': 'latamtcg-price-ingestion/1.0',
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      console.log('[stage] Failed to fetch bulk metadata, proceeding without check')
+      return { shouldSkip: false }
+    }
+
+    const data = await response.json()
+    const targetDataset = data.data?.find((item: any) => item.type === datasetType)
+    
+    if (!targetDataset) {
+      console.log('[stage] Dataset not found in bulk metadata, proceeding')
+      return { shouldSkip: false }
+    }
+
+    const updatedAt = targetDataset.updated_at
+    console.log(`[stage] Scryfall bulk updated_at: ${updatedAt}`)
+
+    // Check stored metadata
+    try {
+      const result = await this.client.query(
+        'SELECT value, "updatedAt" FROM "KvMeta" WHERE key = $1',
+        ['scryfall_bulk_updated_at']
+      )
+      
+      if (result.rows.length > 0) {
+        const storedUpdatedAt = result.rows[0].value
+        console.log(`[stage] Stored bulk updated_at: ${storedUpdatedAt}`)
+        
+        if (storedUpdatedAt === updatedAt) {
+          console.log('[stage] Bulk data unchanged since last run')
+          return { shouldSkip: true, updatedAt }
+        }
+      }
+    } catch (error) {
+      console.log('[stage] Failed to check stored metadata:', error)
+    }
+
+    return { shouldSkip: false, updatedAt }
+  }
+
+  private async storeBulkMetadata(updatedAt: string): Promise<void> {
+    try {
+      await this.client.query(
+        `INSERT INTO "KvMeta" (key, value, "updatedAt", "createdAt")
+         VALUES ($1, $2, NOW(), NOW())
+         ON CONFLICT (key) DO UPDATE SET value = $2, "updatedAt" = NOW()`,
+        ['scryfall_bulk_updated_at', updatedAt]
+      )
+      console.log('[stage] Stored bulk metadata')
+    } catch (error) {
+      console.log('[stage] Failed to store bulk metadata:', error)
     }
   }
 
@@ -397,6 +463,27 @@ export class VercelStagePipeline {
       
       console.log(`[stage] Starting Vercel Stage ingestion... (120s timeout)`)
       
+      // Check if bulk data has changed (skip if using explicit file/url)
+      let bulkUpdatedAt: string | undefined
+      if (!options.file && !options.url) {
+        const metadata = await this.checkScryfallBulkMetadata()
+        if (metadata.shouldSkip) {
+          console.log('[stage] Bulk data unchanged, skipping Stage')
+          clearTimeout(timeoutId)
+          await this.disconnect()
+          
+          return {
+            ok: true,
+            skipped: true,
+            durationMs: Date.now() - totalStartTime,
+            runId: 0,
+            rowsStaged: 0,
+            copyMs: 0
+          }
+        }
+        bulkUpdatedAt = metadata.updatedAt
+      }
+      
       let csvPath: string
       let downloadMs: number | undefined
       let convertMs: number | undefined
@@ -525,6 +612,11 @@ export class VercelStagePipeline {
       // Verification log for easy reading
       const allowed = consistencyRatio >= 0.95 && consistencyRatio <= 1.05
       console.log(`[ok] dataset=${datasetType}, paperOnly=${paperOnly}, parseMode=${parseMode || 'N/A'}, fallbackUsed=${fallbackUsed || false}, ratio=${consistencyRatio.toFixed(3)}, allowed=${allowed}, skipped=false`)
+      
+      // Store bulk metadata for future ETag checks
+      if (bulkUpdatedAt) {
+        await this.storeBulkMetadata(bulkUpdatedAt)
+      }
       
       return {
         ok: true,

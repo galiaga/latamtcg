@@ -1,8 +1,10 @@
 import { Client } from 'pg'
-import { config } from 'dotenv'
 
-// Load environment variables
-config({ path: '.env.local' })
+// Load environment variables only in local dev (not in CI/Actions)
+if (process.env.NODE_ENV !== 'production' && !process.env.CI) {
+  const { config } = require('dotenv')
+  config({ path: '.env.local' })
+}
 
 interface RetentionResult {
   ok: boolean
