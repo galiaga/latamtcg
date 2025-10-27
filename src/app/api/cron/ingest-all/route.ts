@@ -152,9 +152,9 @@ async function handleRequest(request: NextRequest) {
     }
 
     // Phase 2: Update (only if Stage passed)
+    const updateStartTime = Date.now()
     try {
       console.log(`[ingest-all] Phase 2: Update...`)
-      const updateStartTime = Date.now()
       const updatePipeline = new VercelUpdatePipeline()
       const updateResult = await updatePipeline.ingest()
       const updateDuration = Date.now() - updateStartTime
@@ -181,9 +181,9 @@ async function handleRequest(request: NextRequest) {
 
       // Phase 3: History (only if Update succeeded)
       if (updateResult.ok && !updateResult.skipped) {
+        const historyStartTime = Date.now()
         try {
           console.log(`[ingest-all] Phase 3: History...`)
-          const historyStartTime = Date.now()
           const historyPipeline = new VercelHistoryUpsertPipeline()
           const historyResult = await historyPipeline.ingest()
           const historyDuration = Date.now() - historyStartTime
@@ -232,9 +232,9 @@ async function handleRequest(request: NextRequest) {
       // Phase 4: Retention (optional, configurable via RETENTION_ON_INGEST_ALL)
       const retentionEnabled = process.env.RETENTION_ON_INGEST_ALL !== 'false'
       if (retentionEnabled && stageResult.ok && updateResult.ok) {
+        const retentionStartTime = Date.now()
         try {
           console.log(`[ingest-all] Phase 4: Retention...`)
-          const retentionStartTime = Date.now()
           const retentionPipeline = new VercelRetentionPipeline()
           const retentionResult = await retentionPipeline.ingest()
           const retentionDuration = Date.now() - retentionStartTime
