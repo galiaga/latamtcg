@@ -55,6 +55,8 @@ Go to your repository → Settings → Secrets and variables → Actions:
 ```bash
 # Required secrets:
 DATABASE_URL           # PostgreSQL connection string from Supabase
+SUPABASE_URL           # Supabase project URL (e.g., https://xxx.supabase.co)
+SUPABASE_SERVICE_ROLE  # Supabase service role key
 SUPABASE_CA_PEM_BASE64 # Base64-encoded CA certificate
 
 # To encode certificate:

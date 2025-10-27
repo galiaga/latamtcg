@@ -29,6 +29,8 @@ jobs:
           SCRYFALL_BULK_DATASET: default_cards
           SCRYFALL_FILTER_PAPER_ONLY: "true"
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
           SUPABASE_CA_PEM_BASE64: ${{ secrets.SUPABASE_CA_PEM_BASE64 }}
         run: npm run ingest:stage -- --paper-only --dataset=default_cards --hard-timeout-ms=120000
 
@@ -36,6 +38,8 @@ jobs:
         env:
           NODE_ENV: production
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
           SUPABASE_CA_PEM_BASE64: ${{ secrets.SUPABASE_CA_PEM_BASE64 }}
         run: npm run ingest:update
 
@@ -43,6 +47,8 @@ jobs:
         env:
           NODE_ENV: production
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
           SUPABASE_CA_PEM_BASE64: ${{ secrets.SUPABASE_CA_PEM_BASE64 }}
         run: npm run ingest:history
 
@@ -50,6 +56,8 @@ jobs:
         env:
           NODE_ENV: production
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
           SUPABASE_CA_PEM_BASE64: ${{ secrets.SUPABASE_CA_PEM_BASE64 }}
         run: npm run ingest:retention
 

@@ -68,3 +68,4 @@ data/*.zip
 
 # environment files
 .env*.local
+prod-ca-2021.crt

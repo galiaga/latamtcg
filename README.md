@@ -287,6 +287,8 @@ Add these in your repository settings → Secrets and variables → Actions:
 
 ```bash
 DATABASE_URL           # PostgreSQL connection string (e.g., postgresql://user:pass@host:5432/db)
+SUPABASE_URL           # Supabase project URL (e.g., https://xxx.supabase.co)
+SUPABASE_SERVICE_ROLE  # Supabase service role key (anon or service_role)
 SUPABASE_CA_PEM_BASE64 # Base64-encoded Supabase CA certificate for secure TLS
 ```
 
@@ -298,6 +300,10 @@ SUPABASE_CA_PEM_BASE64 # Base64-encoded Supabase CA certificate for secure TLS
 4. Add each secret:
    - **Name**: `DATABASE_URL`
    - **Value**: Your PostgreSQL connection string from Supabase
+   - **Name**: `SUPABASE_URL`
+   - **Value**: Your Supabase project URL (from Project Settings → API)
+   - **Name**: `SUPABASE_SERVICE_ROLE`
+   - **Value**: Your Supabase service role key (from Project Settings → API)
    - **Name**: `SUPABASE_CA_PEM_BASE64`
    - **Value**: Base64-encoded CA certificate (download from Supabase dashboard → Project Settings → Database → Root certificate)
 
@@ -373,8 +379,10 @@ The workflow sets these environment variables automatically:
 - `NODE_ENV=production`: Disables `.env.local` loading
 - `SCRYFALL_BULK_DATASET=default_cards`: Fixed to default_cards
 - `SCRYFALL_FILTER_PAPER_ONLY=true`: Paper-only filtering enabled
-- `DATABASE_URL`: From GitHub Secrets
-- `SUPABASE_CA_PEM_BASE64`: From GitHub Secrets
+- `DATABASE_URL`: From GitHub Secrets (PostgreSQL connection string)
+- `SUPABASE_URL`: From GitHub Secrets (Supabase project URL)
+- `SUPABASE_SERVICE_ROLE`: From GitHub Secrets (Supabase service role key)
+- `SUPABASE_CA_PEM_BASE64`: From GitHub Secrets (CA certificate)
 
 **Important**: No `.env.local` files are used in production or CI. All configuration is via environment variables.
 
