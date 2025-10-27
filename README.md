@@ -269,6 +269,133 @@ The original local script (`scripts/ingest-scryfall-prices-secure.ts`) remains u
 npm run ingest:prices
 ```
 
+### GitHub Actions: Daily Price Ingestion
+
+**⚠️ This is now the primary method for production ingestion.** Scryfall price ingestion has been moved off Vercel to GitHub Actions to avoid serverless timeout and memory limits.
+
+#### Architecture
+
+- **Schedule**: 09:30 UTC daily via GitHub Actions cron
+- **Workflow**: `.github/workflows/ingest-scryfall.yml`
+- **Pipeline**: Stage → Update → History → Retention (each step runs as separate npm script)
+- **Database**: Direct PostgreSQL connection using `DATABASE_URL` with SSL verification
+- **No Vercel crons**: The `/api/cron/ingest-all` route remains available for manual testing but is disabled in `vercel.json`
+
+#### Required GitHub Secrets
+
+Add these in your repository settings → Secrets and variables → Actions:
+
+```bash
+DATABASE_URL           # PostgreSQL connection string (e.g., postgresql://user:pass@host:5432/db)
+SUPABASE_CA_PEM_BASE64 # Base64-encoded Supabase CA certificate for secure TLS
+```
+
+#### How to Set Secrets
+
+1. Go to your GitHub repository
+2. Click **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Add each secret:
+   - **Name**: `DATABASE_URL`
+   - **Value**: Your PostgreSQL connection string from Supabase
+   - **Name**: `SUPABASE_CA_PEM_BASE64`
+   - **Value**: Base64-encoded CA certificate (download from Supabase dashboard → Project Settings → Database → Root certificate)
+
+To encode the certificate:
+```bash
+cat certificate.pem | base64 | tr -d '\n'
+```
+
+#### Manual Workflow Trigger
+
+You can trigger the workflow manually from the GitHub Actions UI:
+
+1. Go to **Actions** tab in your repository
+2. Click **Ingest Scryfall Daily** workflow
+3. Click **Run workflow** → **Run workflow**
+
+Or via GitHub CLI:
+```bash
+gh workflow run ingest-scryfall.yml
+```
+
+#### Local Testing
+
+Test each phase locally with environment variables:
+
+```bash
+# Stage (download & convert JSON to CSV, load to staging)
+NODE_ENV=production \
+SCRYFALL_BULK_DATASET=default_cards \
+SCRYFALL_FILTER_PAPER_ONLY=true \
+DATABASE_URL="postgresql://..." \
+SUPABASE_CA_PEM_BASE64="..." \
+npm run ingest:stage -- --paper-only --dataset=default_cards --hard-timeout-ms=120000
+
+# Update (staging → MtgCard)
+NODE_ENV=production DATABASE_URL="..." npm run ingest:update
+
+# History (MtgCard → price_history)
+NODE_ENV=production DATABASE_URL="..." npm run ingest:history
+
+# Retention (cleanup >30d)
+NODE_ENV=production DATABASE_URL="..." npm run ingest:retention
+
+# Or run all phases at once
+npm run ingest:all
+```
+
+#### CLI Scripts
+
+Each phase has a dedicated CLI wrapper in `scripts/`:
+
+- **`scripts/ingest-stage.ts`**: Downloads Scryfall bulk data, converts JSON to CSV, loads to staging table
+  - Flags: `--paper-only`, `--dataset=default_cards`, `--hard-timeout-ms=120000`
+  - Logs JSON summary with `parseMode`, `rowsStaged`, `consistencyRatio`, etc.
+  - Exit code 1 if gating disallowed or timeout
+
+- **`scripts/ingest-update.ts`**: Updates MtgCard prices from staging
+  - Checks gating state; skips if Stage failed or not allowed
+  - Logs `cardsMatched`, `cardsUpdated`
+
+- **`scripts/ingest-history.ts`**: Upserts price history records
+  - Uses `(card_id, value_date)` unique constraint for idempotency
+  - Checks gating state; skips if Stage failed
+  - Logs `historyUpserts`, `rowsStagedToday`, `upsertsPerRow`
+
+- **`scripts/ingest-retention.ts`**: Deletes price history >30 days old
+  - Logs `deletedRows`, `durationMs`
+
+#### Environment Variables (Actions)
+
+The workflow sets these environment variables automatically:
+
+- `NODE_ENV=production`: Disables `.env.local` loading
+- `SCRYFALL_BULK_DATASET=default_cards`: Fixed to default_cards
+- `SCRYFALL_FILTER_PAPER_ONLY=true`: Paper-only filtering enabled
+- `DATABASE_URL`: From GitHub Secrets
+- `SUPABASE_CA_PEM_BASE64`: From GitHub Secrets
+
+**Important**: No `.env.local` files are used in production or CI. All configuration is via environment variables.
+
+#### Failure Handling
+
+- **Stage fails**: Workflow stops, Update/History/Retention do not run
+- **Stage gating disallows**: Update/History skip with logged reason
+- **Update fails**: History skips
+- **Retention fails**: Does not fail the overall workflow (logged as warning)
+
+#### ETag Optimization
+
+The Stage script checks if Scryfall's bulk data has been updated since the last run:
+
+1. Fetches `https://api.scryfall.com/bulk-data` and extracts `updated_at` timestamp
+2. Compares with stored value in `KvMeta` table (key: `scryfall_bulk_updated_at`)
+3. If unchanged, Stage skips download/conversion and returns early
+4. If changed or first run, proceeds normally and stores new `updated_at`
+
+**Result**: Subsequent runs on the same day are nearly instant if Scryfall hasn't updated the data.
+
 #### Validation Checklist
 
 **Stage Validation:**
