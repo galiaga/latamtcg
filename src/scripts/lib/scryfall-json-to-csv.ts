@@ -71,7 +71,6 @@ export async function jsonToPriceCsv(
   const parseWithBuffer = async (data: Buffer): Promise<void> => {
     console.log(`[json-to-csv] Using buffer parse mode...`)
     console.log('[mem]', Math.round(process.memoryUsage().rss/1024/1024), 'MB RSS')
-    parseMode = 'buffer'
     
     try {
       const jsonData = JSON.parse(data.toString())
