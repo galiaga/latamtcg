@@ -120,7 +120,8 @@ async function handleRequest(request: NextRequest) {
 
     // Check if Stage succeeded
     if (!stageResult.ok) {
-      console.log(`[ingest-all] ❌ Stage failed, stopping pipeline`)
+      const isTimeout = stageResult.errorMessage === 'stage-timeout'
+      console.log(`[ingest-all] ❌ Stage failed${isTimeout ? ' (timeout after 120s)' : ''}, stopping pipeline`)
       result.ok = false
       result.totalDurationMs = Date.now() - startTime
       return NextResponse.json(result, { status: 500 })

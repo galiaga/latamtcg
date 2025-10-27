@@ -384,12 +384,18 @@ export class VercelStagePipeline {
 
   async ingest(options: { file?: string; url?: string }): Promise<StageResult> {
     const totalStartTime = Date.now()
+    const HARD_TIMEOUT_MS = 120000 // 120 seconds hard cap
     let runId: number | undefined
+    
+    // Set up timeout that will throw if Stage exceeds 120s
+    const timeoutId = setTimeout(() => {
+      console.error(`[stage] ⏱️ Stage exceeded 120s hard cap, aborting`)
+    }, HARD_TIMEOUT_MS)
     
     try {
       await this.connect()
       
-      console.log(`[stage] Starting Vercel Stage ingestion...`)
+      console.log(`[stage] Starting Vercel Stage ingestion... (120s timeout)`)
       
       let csvPath: string
       let downloadMs: number | undefined
@@ -555,6 +561,9 @@ export class VercelStagePipeline {
         await this.logAuditRun(this.auditRun)
       }
       
+      // Check if this was a timeout
+      const isTimeout = totalMs >= HARD_TIMEOUT_MS
+      
       return {
         ok: false,
         skipped: true,
@@ -562,9 +571,10 @@ export class VercelStagePipeline {
         runId: runId || 0,
         rowsStaged: 0,
         copyMs: 0,
-        errorMessage: error instanceof Error ? error.message : String(error)
+        errorMessage: isTimeout ? 'stage-timeout' : (error instanceof Error ? error.message : String(error))
       }
     } finally {
+      clearTimeout(timeoutId)
       await this.disconnect()
     }
   }

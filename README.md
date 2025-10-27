@@ -211,12 +211,34 @@ curl "https://<prod-domain>/api/cron/ingest-all" -H "x-cron-secret: $CRON_SECRET
 - **`SCRYFALL_FILTER_PAPER_ONLY`**: Enables paper-only filtering
   - `false` (default): Include all cards (digital + paper)
   - `true`: Only include cards with "paper" in the games array
+  - **Production recommendation**: Set to `true` for reliability and performance
   
+- **`SCRYFALL_JSON_PARSE_MODE`**: Controls JSON parsing mode
+  - **Unset (default)**: In production with `paperOnly=true`, automatically uses buffer mode
+  - `stream`: Streaming parse with 5s/20s watchdog and automatic fallback
+  - `buffer`: Buffer the entire file and parse (recommended for paper-only in production)
+  - **Production recommendation**: Leave unset to auto-select buffer mode when `paperOnly=true`
+
 - **`SUPABASE_CA_PEM_BASE64`**: Base64-encoded Supabase CA certificate for secure SSL connections in production
 
 - **`RETENTION_ON_INGEST_ALL`**: Enable/disable 30-day retention cleanup (default: `true`)
   - `true`: Run retention at the end of ingest-all
   - `false`: Skip retention
+
+#### Performance & Reliability
+
+**Timeout Protection:**
+- **Stage hard cap**: 120 seconds (fails fast to avoid 300s Vercel timeout)
+- **Watchdog**: 5s no-progress + 20s total cap for stream mode with automatic fallback to buffer
+- **Buffer mode**: Automatically selected in production with `paperOnly=true` for <30s completion
+
+**Expected Timings:**
+- Stage with buffer: <30s (production with paper-only filter)
+- Stage with stream: 10-20s (local/non-paper)
+- Update: 10-35s
+- History: 10-20s
+- Retention: 2-10s
+- **Total**: <80s end-to-end
 
 #### Gating System
 
