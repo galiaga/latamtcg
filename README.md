@@ -167,7 +167,40 @@ npm run searchindex:rebuild
 
 ### Price Ingestion Pipeline
 
-The application includes a sophisticated price ingestion pipeline with the following features:
+The application includes a sophisticated price ingestion pipeline that runs in a single consolidated cron job.
+
+#### Single Cron: ingest-all
+
+The pipeline runs **Stage → Update → History → Retention** in-process within one API route (`/api/cron/ingest-all`) to fit within Vercel's 2-cron limit.
+
+**Schedule:** 09:30 UTC (06:30 America/Santiago) via `vercel.json`
+
+**Manual Execution:**
+
+1. **Via Vercel Dashboard**: Navigate to your project → Settings → Cron Jobs → Click "Run" on `ingest-all`
+
+2. **Via HTTP** (requires CRON_SECRET):
+```bash
+# Using query parameter
+curl "https://<prod-domain>/api/cron/ingest-all?token=$CRON_SECRET"
+
+# Using header
+curl "https://<prod-domain>/api/cron/ingest-all" -H "x-cron-secret: $CRON_SECRET"
+```
+
+**Expected Response:**
+```json
+{
+  "ok": true,
+  "totalDurationMs": 45000,
+  "phases": {
+    "stage": { "ok": true, "skipped": false, "durationMs": 18000, "rowsStaged": 110000, ... },
+    "update": { "ok": true, "skipped": false, "durationMs": 12000, "cardsUpdated": 73, ... },
+    "history": { "ok": true, "skipped": false, "durationMs": 10000, "historyUpserts": 230000, ... },
+    "retention": { "ok": true, "skipped": false, "durationMs": 2000, "deletedRows": 15000, ... }
+  }
+}
+```
 
 #### Environment Variables
 
@@ -180,6 +213,10 @@ The application includes a sophisticated price ingestion pipeline with the follo
   - `true`: Only include cards with "paper" in the games array
   
 - **`SUPABASE_CA_PEM_BASE64`**: Base64-encoded Supabase CA certificate for secure SSL connections in production
+
+- **`RETENTION_ON_INGEST_ALL`**: Enable/disable 30-day retention cleanup (default: `true`)
+  - `true`: Run retention at the end of ingest-all
+  - `false`: Skip retention
 
 #### Gating System
 
@@ -199,11 +236,16 @@ The pipeline includes a gating system that prevents Update/History steps from ru
 1. **Stage**: Downloads Scryfall data, applies filters, loads into staging table
 2. **Update**: Updates MtgCard prices (only if Stage gating passed)
 3. **History**: Upserts price history records (only if Stage gating passed)
-4. **Retention**: Cleans up old price history records
+4. **Retention**: Cleans up old price history records (optional, controlled by `RETENTION_ON_INGEST_ALL`)
+
+**Failure Handling:** If Stage fails, the pipeline stops early with `phases.stage.ok=false`. If Stage succeeds but `allowed=false`, Update and History are marked as `skipped` with a `skipReason`.
 
 #### Local Fallback
 
-The original local script (`scripts/ingest-scryfall-prices-secure.ts`) remains unchanged and can be used for local development and testing.
+The original local script (`scripts/ingest-scryfall-prices-secure.ts`) remains unchanged and can be used for local development and testing:
+```bash
+npm run ingest:prices
+```
 
 #### Validation Checklist
 

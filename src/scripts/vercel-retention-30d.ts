@@ -130,7 +130,7 @@ export class VercelRetentionPipeline {
     return true
   }
 
-  private async runRetention(): Promise<number> {
+  private async runRetention(): Promise<{ durationMs: number; deletedRows: number }> {
     const startTime = Date.now()
     
     console.log(`[retention] Running 30-day retention cleanup...`)
@@ -147,7 +147,7 @@ export class VercelRetentionPipeline {
     
     if (totalRowsToDelete === 0) {
       console.log(`[retention] No rows to delete`)
-      return 0
+      return { durationMs: Date.now() - startTime, deletedRows: 0 }
     }
     
     // Delete in batches of 200k for Vercel safety
@@ -182,7 +182,7 @@ export class VercelRetentionPipeline {
     const duration = Date.now() - startTime
     console.log(`[retention] ✅ Deleted ${totalDeleted.toLocaleString()} rows in ${duration}ms`)
     
-    return duration
+    return { durationMs: duration, deletedRows: totalDeleted }
   }
 
   private async logAuditRun(auditRun: AuditRun): Promise<number> {
@@ -234,19 +234,14 @@ export class VercelRetentionPipeline {
       console.log(`[retention] Started Vercel Retention run #${runId}`)
       
       // Run retention cleanup
-      const retentionMs = await this.runRetention()
-      
-      // Get final count of deleted rows
-      const deletedRowsResult = await this.client.query(`
-        SELECT COUNT(*) 
-        FROM ingestion_runs 
-        WHERE id = $1
-      `, [runId])
+      const retentionResult = await this.runRetention()
+      const retentionMs = retentionResult.durationMs
+      const deletedRows = retentionResult.deletedRows
       
       // Update audit run with results
       this.auditRun.status = 'completed'
       this.auditRun.retentionMs = retentionMs
-      this.auditRun.deletedRows = retentionMs > 0 ? 1 : 0 // Simplified for now
+      this.auditRun.deletedRows = deletedRows
       
       await this.logAuditRun(this.auditRun)
       
@@ -256,12 +251,13 @@ export class VercelRetentionPipeline {
       console.log(`[retention] Run ID: #${runId}`)
       console.log(`[retention] Retention: ${retentionMs}ms`)
       console.log(`[retention] Total: ${totalMs}ms`)
+      console.log(`[retention] Deleted rows: ${deletedRows}`)
       
       return {
         ok: true,
         skipped: false,
         durationMs: totalMs,
-        deletedRows: retentionMs > 0 ? 1 : 0, // Simplified for now
+        deletedRows,
         runId
       }
       

@@ -1,9 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/ingest-stage", "schedule": "30 9 * * *" },
-    { "path": "/api/cron/ingest-update", "schedule": "33 9 * * *" },
-    { "path": "/api/cron/ingest-history", "schedule": "36 9 * * *" },
-    { "path": "/api/cron/retention-30d", "schedule": "6 6 * * *" },
+    { "path": "/api/cron/ingest-all", "schedule": "30 9 * * *" },
     { "path": "/api/jobs/searchindex-refresh", "schedule": "15 4 * * *" }
   ]
 }
