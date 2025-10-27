@@ -110,9 +110,15 @@ async function handleRequest(request: NextRequest) {
       fallbackUsed: stageResult.fallbackUsed
     }
 
-    console.log(`[ingest-all] ✅ Stage completed: allowed=${!stageResult.skipReason}, rowsStaged=${stageResult.rowsStaged}`)
+    // Determine if Stage passed gating (allowed)
+    const stageAllowed = !stageResult.consistencyWarning && 
+                         stageResult.consistencyRatio !== undefined &&
+                         stageResult.consistencyRatio >= 0.95 && 
+                         stageResult.consistencyRatio <= 1.05
+    
+    console.log(`[ingest-all] ✅ Stage completed: allowed=${stageAllowed}, rowsStaged=${stageResult.rowsStaged}`)
 
-    // Check if Stage succeeded and was allowed
+    // Check if Stage succeeded
     if (!stageResult.ok) {
       console.log(`[ingest-all] ❌ Stage failed, stopping pipeline`)
       result.ok = false
@@ -121,7 +127,6 @@ async function handleRequest(request: NextRequest) {
     }
 
     // Check if Stage passed gating (allowed)
-    const stageAllowed = !stageResult.skipReason
     if (!stageAllowed) {
       console.log(`[ingest-all] ⏭️  Stage blocked by gating, skipping Update and History`)
       result.phases.update = {
