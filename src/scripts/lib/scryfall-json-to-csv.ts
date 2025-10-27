@@ -357,22 +357,9 @@ export async function jsonToPriceCsv(
       const valuesStream = StreamValues.withParser()
       
       await new Promise<void>((resolve, reject) => {
-        // Pipe stream through stream-json
-        stream.on('data', (chunk: Buffer) => {
-          jsonStream.write(chunk)
-        })
-        
-        stream.on('end', () => {
-          jsonStream.end()
-        })
-        
-        jsonStream.on('data', (chunk: any) => {
-          valuesStream.write(chunk)
-        })
-        
-        jsonStream.on('end', () => {
-          valuesStream.end()
-        })
+        // Pipe stream through stream-json using proper pipe chain
+        stream.pipe(jsonStream)
+        jsonStream.pipe(valuesStream)
         
         valuesStream.on('data', (data: any) => {
           try {
@@ -428,9 +415,8 @@ export async function jsonToPriceCsv(
           csvWriter.on('error', reject)
         })
         
-        jsonStream.on('error', reject)
         valuesStream.on('error', reject)
-        stream.on('error', reject)
+        jsonStream.on('error', reject)
       })
     } else {
       // Stream mode with watchdog for hard timeout and progress monitoring
