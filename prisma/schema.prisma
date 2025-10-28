@@ -17,7 +17,7 @@ model MtgCard {
   collectorNumber   String
   rarity            String?
   finishes          String[]
-  legalitiesJson    Json?
+  
   priceUsd          Decimal?  @db.Decimal(10, 2)
   priceUsdFoil      Decimal?  @db.Decimal(10, 2)
   priceEur          Decimal?  @db.Decimal(10, 2)

@@ -1,0 +1,1 @@
+-- Drop unused legalitiesJson column from MtgCard\nALTER TABLE IF EXISTS "public"."MtgCard" DROP COLUMN IF EXISTS "legalitiesJson";

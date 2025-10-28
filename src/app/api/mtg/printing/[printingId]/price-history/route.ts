@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCurrentPrice } from '@/lib/prices'
 
 export async function GET(
   request: NextRequest,
@@ -55,12 +56,24 @@ export async function GET(
       }))
     }
     
-    return NextResponse.json({
-      scryfallId: printingId,
-      days,
-      data: chartData,
-      hasData: Object.values(chartData).some(finish => finish.length > 0)
-    })
+    // Fallback: if no history rows, return a single-point series from current price table
+    const hasData = Object.values(chartData).some(finish => finish.length > 0)
+    if (!hasData) {
+      const finishes: Array<'nonfoil'|'foil'|'etched'> = ['nonfoil','foil','etched']
+      const series = { normal: [] as any[], foil: [] as any[], etched: [] as any[] }
+      for (const f of finishes) {
+        const { price, price_at } = await getCurrentPrice(printingId, f)
+        if (price != null && price_at) {
+          const point = { date: new Date(price_at).toISOString().slice(0,10), price: Number(price) }
+          if (f === 'nonfoil') series.normal.push(point)
+          else if (f === 'foil') series.foil.push(point)
+          else series.etched.push(point)
+        }
+      }
+      return NextResponse.json({ scryfallId: printingId, days, data: series, hasData: Object.values(series).some(arr => arr.length > 0) })
+    }
+    
+    return NextResponse.json({ scryfallId: printingId, days, data: chartData, hasData })
     
   } catch (error) {
     console.error('Price history API error:', error)

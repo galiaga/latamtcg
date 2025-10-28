@@ -19,4 +19,15 @@ export function formatCLP(value: unknown | null): string {
   return `$${num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`
 }
 
+export function formatDateTime(value: unknown | null): string {
+  if (value === null || value === undefined) return ''
+  try {
+    const d = typeof value === 'string' ? new Date(value) : (value as Date)
+    if (!d || Number.isNaN(d.getTime())) return ''
+    return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return ''
+  }
+}
+
 

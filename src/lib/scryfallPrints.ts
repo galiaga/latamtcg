@@ -43,7 +43,6 @@ function mapToDb(card: any, bulkUpdatedAt: string | null) {
     borderColor: card?.border_color ? String(card.border_color) : null,
     fullArt: Boolean(card?.full_art ?? false),
     // image omitted: computed on the fly from scryfallId
-    legalitiesJson: card?.legalities ?? undefined,
     priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
     priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,
     priceUsdEtched: priceUsdEtched ? new Prisma.Decimal(String(priceUsdEtched)) : null,

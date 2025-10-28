@@ -33,7 +33,7 @@ async function ensureStaging(pg: Client) {
       border_color text,
       full_art boolean,
       -- image URL dropped; computed on the fly from scryfall_id
-      legalities_json jsonb,
+      
       price_usd numeric(10,2),
       price_usd_foil numeric(10,2),
       price_usd_etched numeric(10,2),
@@ -68,7 +68,7 @@ async function copyPart(pg: Client, partPath: string) {
       INSERT INTO mtgcard_staging (
         scryfall_id, oracle_id, name, set_code, set_name, collector_number,
         rarity, finishes, frame_effects, promo_types, border_color, full_art,
-        image_normal_url, legalities_json, price_usd, price_usd_foil, price_usd_etched,
+        image_normal_url, price_usd, price_usd_foil, price_usd_etched,
         price_eur, price_tix, lang, is_paper, set_type, released_at, scryfall_updated_at
       )
       SELECT
@@ -85,7 +85,6 @@ async function copyPart(pg: Client, partPath: string) {
         (doc->>'borderColor'),
         (doc->>'fullArt')::boolean,
         NULL,
-        doc->'legalitiesJson',
         NULLIF(doc->>'priceUsd','')::numeric,
         NULLIF(doc->>'priceUsdFoil','')::numeric,
         NULLIF(doc->>'priceUsdEtched','')::numeric,
@@ -130,13 +129,13 @@ async function mergeIntoFinal(pg: Client) {
     INSERT INTO "MtgCard" (
       "scryfallId", "oracleId", "name", "setCode", "setName", "collectorNumber",
       "rarity", "finishes", "frameEffects", "promoTypes", "borderColor", "fullArt",
-      "legalitiesJson", "priceUsd", "priceUsdFoil", "priceUsdEtched",
+      "priceUsd", "priceUsdFoil", "priceUsdEtched",
       "priceEur", "priceTix", "lang", "isPaper", "setType", "releasedAt", "scryfallUpdatedAt"
     )
     SELECT
       scryfall_id, oracle_id, name, set_code, set_name, collector_number,
       rarity, finishes, frame_effects, promo_types, border_color, full_art,
-      legalities_json, price_usd, price_usd_foil, price_usd_etched,
+      price_usd, price_usd_foil, price_usd_etched,
       price_eur, price_tix, lang, is_paper, set_type, released_at, scryfall_updated_at
     FROM mtgcard_staging
     ON CONFLICT ("scryfallId") DO UPDATE SET
@@ -152,7 +151,6 @@ async function mergeIntoFinal(pg: Client) {
       "borderColor" = EXCLUDED."borderColor",
       "fullArt" = EXCLUDED."fullArt",
       -- image column removed
-      "legalitiesJson" = EXCLUDED."legalitiesJson",
       "priceUsd" = CASE WHEN EXCLUDED."priceUsd" IS DISTINCT FROM "MtgCard"."priceUsd" THEN EXCLUDED."priceUsd" ELSE "MtgCard"."priceUsd" END,
       "priceUsdFoil" = CASE WHEN EXCLUDED."priceUsdFoil" IS DISTINCT FROM "MtgCard"."priceUsdFoil" THEN EXCLUDED."priceUsdFoil" ELSE "MtgCard"."priceUsdFoil" END,
       "priceUsdEtched" = CASE WHEN EXCLUDED."priceUsdEtched" IS DISTINCT FROM "MtgCard"."priceUsdEtched" THEN EXCLUDED."priceUsdEtched" ELSE "MtgCard"."priceUsdEtched" END,

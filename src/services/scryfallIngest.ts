@@ -265,7 +265,7 @@ export async function runScryfallRefresh(): Promise<IngestSummary> {
         promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
         borderColor: card?.border_color ? String(card.border_color) : null,
         fullArt: Boolean(card?.full_art ?? false),
-        legalitiesJson: card?.legalities ?? undefined,
+        
         priceUsd: priceUsd ? String(priceUsd) : '',
         priceUsdFoil: priceUsdFoil ? String(priceUsdFoil) : '',
         priceUsdEtched: priceUsdEtched ? String(priceUsdEtched) : '',
@@ -465,7 +465,7 @@ async function upsertCardWithTx(tx: Prisma.TransactionClient, card: any, bulkUpd
       promoTypes: Array.isArray(card?.promo_types) ? card.promo_types.map((p: any) => String(p)) : [],
       borderColor: card?.border_color ? String(card.border_color) : null,
       fullArt: Boolean(card?.full_art ?? false),
-      legalitiesJson: card?.legalities ?? undefined,
+      
       priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
       priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,
       priceUsdEtched: priceUsdEtched ? new Prisma.Decimal(String(priceUsdEtched)) : null,
