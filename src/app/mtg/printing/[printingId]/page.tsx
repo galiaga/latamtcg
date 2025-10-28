@@ -11,7 +11,7 @@ import { formatDisplayName } from '@/lib/cardNames'
 const SHOW_HISTORY = process.env.NEXT_PUBLIC_PRICE_HISTORY_ENABLED === 'true'
 const PriceHistoryChart = SHOW_HISTORY ? (await import('@/components/PriceHistoryChart')).default : (null as any)
 import { getCurrentPrice } from '@/lib/prices'
-import { formatDateTime } from '@/lib/format'
+import { formatDateTime, formatUsd } from '@/lib/format'
 import { getVariantsForCard, resolveInitialVariant } from '@/helpers/pdpVariants'
 import { VariantSectionClient } from './VariantSectionClient'
 
@@ -252,7 +252,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             <p className="mt-4 text-sm" style={{ color: 'var(--mutedText)' }}>
               {price != null
                 ? (<>
-                    Last price update: <strong>${'{'}price{'}'}</strong>{price_at ? ` — ${'${'}formatDateTime(price_at){'}'}` : ''}
+                    Last price update: <strong>{formatUsd(price)}</strong>{price_at ? <> — {formatDateTime(price_at)}</> : null}
                   </>)
                 : 'No price available yet'}
             </p>
