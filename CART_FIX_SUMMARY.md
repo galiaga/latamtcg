@@ -25,7 +25,13 @@ Files modified:
 - `src/app/api/cart/add/route.ts`
 - `src/app/api/cart/update/route.ts`
 
-### 2. Disabled RLS on Cart Tables
+### 2. Fixed Syntax Error in cart.ts
+Found a critical syntax error in `src/lib/cart.ts`:
+- The `import { cookies }` statement was placed inside the file instead of at the top
+- This caused the `getOrCreateUserCart` function to fail when trying to create a cart
+- Fixed by moving the import to the top of the file
+
+### 3. Disabled RLS on Cart Tables
 RLS was disabled on Cart and CartItem tables because:
 - **Authorization is handled at the API route level** (not database-level)
 - The API routes already check user permissions before operations

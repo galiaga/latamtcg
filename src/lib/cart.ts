@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 
 type MinimalCart = { id: string }
@@ -10,7 +11,6 @@ export const getOrCreateUserCart = cache(async (userId: string): Promise<Minimal
   const created = await prisma.cart.create({ data: { userId }, select: { id: true } })
   return { id: created.id }
 })
-import { cookies } from 'next/headers'
 
 const CART_COOKIE = 'cart_token'
 
