@@ -3,7 +3,12 @@ name: Ingest Scryfall Daily
 on:
   schedule:
     - cron: "30 9 * * *"   # 09:30 UTC daily
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Debug mode'
+        required: false
+        default: 'false'
 
 jobs:
   ingest:
