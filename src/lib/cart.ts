@@ -8,6 +8,10 @@ export const getOrCreateUserCart = cache(async (userId: string): Promise<Minimal
   // Existing function was imported in api/cart. Wrap with react.cache to coalesce SSR/RSC duplicates.
   const found = await prisma.cart.findFirst({ where: { userId, checkedOutAt: null }, select: { id: true } })
   if (found) return { id: found.id }
+  // Ensure User row exists to satisfy FK constraint
+  try {
+    await prisma.user.upsert({ where: { id: userId }, update: {}, create: { id: userId } })
+  } catch {}
   const created = await prisma.cart.create({ data: { userId }, select: { id: true } })
   return { id: created.id }
 })
