@@ -19,6 +19,6 @@ CREATE OR REPLACE VIEW public.v_card_with_price AS
 SELECT c.*, p.price, p.price_at
 FROM "MtgCard" c
 LEFT JOIN public.mtgcard_current_price p
-  ON p.scryfall_id = c."scryfallId";
+  ON p.scryfall_id = c."scryfallId"::uuid;
 
 
