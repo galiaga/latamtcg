@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/supabase'
 import { getOrCreateUserCart } from '@/lib/cart'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
