@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.31.0 — 2025-10-28
+### Current Price Rollout (RLS, PDP flag, API fallback)
+- Database:
+  - Added RLS read-only policy on `public.mtgcard_current_price` for `anon, authenticated` (no client writes).
+  - Updated `public.v_card_with_price` to cast `MtgCard."scryfallId"::uuid` in the JOIN for compatibility.
+- Backend:
+  - New `getCurrentPrice(scryfallId, finish)` util using Supabase anon key for reads.
+  - Price history API falls back to a single current-price data point when no history rows exist.
+- Frontend (PDP):
+  - Feature flag `NEXT_PUBLIC_PRICE_HISTORY_ENABLED` gates the Price History chart.
+  - When disabled, shows a null-safe "Last price update" line with USD and timestamp.
+- Scripts & Docs:
+  - Standalone SQL scripts to disable pruning and drop history when ready: `scripts/db/disable_history.sql`, `scripts/db/drop_history.sql`.
+  - Maintenance README documents UPSERT SQL for local daily job and verification queries.
+
 ## v0.30.0 — 2025-01-24
 ### Price Ingestion Pipeline Optimization
 - **Split Phase 1 Pipeline**: Divided the monolithic price ingestion into two Vercel-safe steps for Hobby tier compatibility
