@@ -4,6 +4,8 @@ import { cookies } from 'next/headers'
 import { getSessionUser } from '@/lib/supabase'
 import { getOrCreateUserCart } from '@/lib/cart'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const t0 = Date.now()

@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getOrCreateAnonymousCart, getOrCreateUserCart } from '@/lib/cart'
 import { getSessionUser } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest) {
   try {
     const t0 = Date.now()
@@ -58,7 +60,17 @@ export async function POST(req: NextRequest) {
     return res
   } catch (error) {
     console.error('[cart/add] Error:', error)
-    return NextResponse.json({ error: 'Failed to add to cart', details: error instanceof Error ? error.message : String(error) }, { status: 500 })
+    console.error('[cart/add] Error stack:', error instanceof Error ? error.stack : 'No stack')
+    console.error('[cart/add] Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error ? error.cause : undefined,
+    })
+    return NextResponse.json({ 
+      error: 'Failed to add to cart', 
+      details: error instanceof Error ? error.message : String(error),
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+    }, { status: 500 })
   }
 }
 
