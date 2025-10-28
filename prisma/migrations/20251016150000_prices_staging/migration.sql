@@ -1,0 +1,1 @@
+-- No-op migration added to satisfy Prisma. See README.md for context.

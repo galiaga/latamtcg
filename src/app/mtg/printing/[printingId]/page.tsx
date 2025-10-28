@@ -7,7 +7,11 @@ import OtherPrintingsCarousel from '@/components/OtherPrintingsCarousel'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
 import { formatCLP } from '@/lib/format'
 import { formatDisplayName } from '@/lib/cardNames'
-import PriceHistoryChart from '@/components/PriceHistoryChart'
+// Gate history chart import behind flag via dynamic import to avoid bundling when disabled
+const SHOW_HISTORY = process.env.NEXT_PUBLIC_PRICE_HISTORY_ENABLED === 'true'
+const PriceHistoryChart = SHOW_HISTORY ? (await import('@/components/PriceHistoryChart')).default : (null as any)
+import { getCurrentPrice } from '@/lib/prices'
+import { formatDateTime, formatUsd } from '@/lib/format'
 import { getVariantsForCard, resolveInitialVariant } from '@/helpers/pdpVariants'
 import { VariantSectionClient } from './VariantSectionClient'
 
@@ -79,6 +83,10 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
   // Compute variants and resolve initial variant for PriceBlock
   const variants = await getVariantsForCard(data);
   const initialVariant = resolveInitialVariant(variants);
+
+  // Fetch current price to display last update when history is disabled
+  const finish: 'nonfoil' | 'foil' | 'etched' = (data.finishes?.includes('nonfoil') ? 'nonfoil' : (data.finishes?.includes('foil') ? 'foil' : 'etched')) as any
+  const { price, price_at } = await getCurrentPrice(data.id, finish)
 
   // Group siblings by (variant, finishGroup) where finishGroup collapses Standard (nonfoil+foil)
   const siblings = await prisma.$queryRaw<any[]>(Prisma.sql`
@@ -239,17 +247,28 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             {data.language && data.language !== 'EN' ? <span className="badge">{data.language.toUpperCase()}</span> : null}
           </div>
           
-          {/* Price History Chart - shown in right column on desktop only */}
-          <div className="mt-6 hidden lg:block">
-            <PriceHistoryChart printingId={data.id} days={30} />
-          </div>
+          {/* Price: last update line or chart (flagged) */}
+          {!SHOW_HISTORY ? (
+            <p className="mt-4 text-sm" style={{ color: 'var(--mutedText)' }}>
+              {price != null
+                ? (<>
+                    Last price update: <strong>{formatUsd(price)}</strong>{price_at ? <> — {formatDateTime(price_at)}</> : null}
+                  </>)
+                : 'No price available yet'}
+            </p>
+          ) : (
+            <div className="mt-6 hidden lg:block">
+              {PriceHistoryChart ? <PriceHistoryChart printingId={data.id} days={30} /> : null}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Price History Chart - shown on mobile below pricing section */}
-      <div className="lg:hidden">
-        <PriceHistoryChart printingId={data.id} days={30} />
-      </div>
+      {SHOW_HISTORY ? (
+        <div className="lg:hidden">
+          {PriceHistoryChart ? <PriceHistoryChart printingId={data.id} days={30} /> : null}
+        </div>
+      ) : null}
 
       <OtherPrintingsCarousel
         items={siblings

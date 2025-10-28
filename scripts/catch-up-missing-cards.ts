@@ -70,7 +70,7 @@ async function upsertCard(card: ScryfallCard): Promise<boolean> {
         promoTypes: Array.isArray(card.promo_types) ? card.promo_types : [],
         borderColor: card.border_color || null,
         fullArt: Boolean(card.full_art || false),
-        legalitiesJson: card.legalities || {},
+        
         priceUsd: priceUsd ? new Prisma.Decimal(String(priceUsd)) : null,
         priceUsdFoil: priceUsdFoil ? new Prisma.Decimal(String(priceUsdFoil)) : null,
         priceUsdEtched: priceUsdEtched ? new Prisma.Decimal(String(priceUsdEtched)) : null,
