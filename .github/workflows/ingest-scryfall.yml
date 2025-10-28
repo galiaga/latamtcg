@@ -40,7 +40,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
           SUPABASE_CA_PEM_BASE64: ${{ secrets.SUPABASE_CA_PEM_BASE64 }}
-        run: npm run ingest:stage -- --paper-only --dataset=default_cards --hard-timeout-ms=120000
+        run: npx tsx scripts/ingest-stage.ts --paper-only --dataset=default_cards --hard-timeout-ms=120000
 
       - name: Update (staging → MtgCard)
         env:
@@ -49,7 +49,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
           SUPABASE_CA_PEM_BASE64: ${{ secrets.SUPABASE_CA_PEM_BASE64 }}
-        run: npm run ingest:update
+        run: npx tsx scripts/ingest-update.ts
 
       - name: History (MtgCard → price history)
         env:
@@ -58,7 +58,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
           SUPABASE_CA_PEM_BASE64: ${{ secrets.SUPABASE_CA_PEM_BASE64 }}
-        run: npm run ingest:history
+        run: npx tsx scripts/ingest-history.ts
 
       - name: Retention (cleanup >30d old)
         env:
@@ -67,5 +67,5 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
           SUPABASE_CA_PEM_BASE64: ${{ secrets.SUPABASE_CA_PEM_BASE64 }}
-        run: npm run ingest:retention
+        run: npx tsx scripts/ingest-retention.ts
 
