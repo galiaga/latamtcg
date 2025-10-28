@@ -1,13 +1,11 @@
 import Link from 'next/link';
-import fs from 'fs';
-import path from 'path';
+import pkg from '../../package.json';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
   
-  // Read version from VERSION file
-  const versionPath = path.join(process.cwd(), 'VERSION');
-  const version = fs.existsSync(versionPath) ? fs.readFileSync(versionPath, 'utf8').trim() : '0.25.0';
+  // Use version from package.json which is always available
+  const version = pkg.version;
 
   return (
     <footer className="mt-16 bg-brand-900 text-gray-100 border-t border-brand-800">
