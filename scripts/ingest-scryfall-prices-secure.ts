@@ -5,6 +5,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 import https from 'node:https'
 import zlib from 'node:zlib'
+import { Transform } from 'node:stream'
+import { chain } from 'stream-chain'
+import { parser } from 'stream-json'
+import { streamArray } from 'stream-json/streamers/StreamArray'
 
 // Load environment variables
 import { config } from 'dotenv'
@@ -14,6 +18,7 @@ interface IngestOptions {
   file?: string
   url?: string
   dryRun?: boolean
+  skipDateCheck?: boolean
 }
 
 interface IngestResult {
@@ -211,6 +216,113 @@ export class SecurePriceIngestionPipeline {
     })
   }
 
+  private async fetchBulkDataInfo(): Promise<{ download_uri: string; updated_at: string; size: number; content_encoding: string }> {
+    return new Promise((resolve, reject) => {
+      const options = {
+        headers: {
+          'User-Agent': 'latamtcg-price-ingestion/1.0',
+          'Accept': 'application/json'
+        }
+      }
+      
+      https.get('https://api.scryfall.com/bulk-data', options, (res) => {
+        let data = ''
+        res.on('data', chunk => data += chunk)
+        res.on('end', () => {
+          try {
+            const response = JSON.parse(data)
+            const defaultCards = response.data?.find((item: any) => item.type === 'default_cards')
+            if (!defaultCards) {
+              reject(new Error('default_cards bulk data not found'))
+              return
+            }
+            resolve({
+              download_uri: defaultCards.download_uri,
+              updated_at: defaultCards.updated_at,
+              size: defaultCards.size,
+              content_encoding: defaultCards.content_encoding || 'gzip'
+            })
+          } catch (err) {
+            reject(err)
+          }
+        })
+      }).on('error', reject)
+    })
+  }
+
+  private async downloadBulkJson(url: string, filePath: string): Promise<{ durationMs: number; isGzipped: boolean }> {
+    const startTime = Date.now()
+    
+    return new Promise((resolve, reject) => {
+      console.log(`[ingest] Downloading bulk JSON from Scryfall...`)
+      const file = fs.createWriteStream(filePath)
+      
+      https.get(url, (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`))
+          return
+        }
+        
+        // Check Content-Encoding header to determine if file is gzipped
+        const contentEncoding = res.headers['content-encoding']
+        const isGzipped = contentEncoding === 'gzip' || url.endsWith('.gz')
+        
+        res.pipe(file)
+        file.on('finish', () => {
+          file.close()
+          const durationMs = Date.now() - startTime
+          console.log(`[ingest] ✅ Downloaded bulk JSON in ${durationMs}ms (gzipped: ${isGzipped})`)
+          resolve({ durationMs, isGzipped })
+        })
+      }).on('error', (err) => {
+        fs.unlink(filePath, () => reject(err))
+      })
+    })
+  }
+
+  private async generateCsvFromBulk(bulkJsonPath: string, csvPath: string): Promise<void> {
+    console.log(`[ingest] Generating CSV from bulk JSON...`)
+    const startTime = Date.now()
+    
+    const priceDay = this.getSantiagoToday()
+    const writeStream = fs.createWriteStream(csvPath)
+    
+    // Write CSV header
+    writeStream.write('scryfall_id,price_usd,price_usd_foil,price_usd_etched,price_day\n')
+    
+    return new Promise((resolve, reject) => {
+      const csvTransform = new Transform({
+        objectMode: true,
+        transform(data: any, encoding, callback) {
+          const card = data.value as { id: string; prices?: { usd?: string | null; usd_foil?: string | null; usd_etched?: string | null } }
+          const usd = card.prices?.usd?.trim() || ''
+          const usdFoil = card.prices?.usd_foil?.trim() || ''
+          const usdEtched = card.prices?.usd_etched?.trim() || ''
+          const line = `${card.id},${usd},${usdFoil},${usdEtched},${priceDay}\n`
+          writeStream.write(line)
+          callback()
+        }
+      })
+      
+      const streamPipeline = chain([
+        fs.createReadStream(bulkJsonPath),
+        parser(),
+        streamArray(),
+        csvTransform
+      ])
+      
+      streamPipeline.on('error', reject)
+      streamPipeline.on('end', () => {
+        writeStream.end()
+        writeStream.on('close', () => {
+          const durationMs = Date.now() - startTime
+          console.log(`[ingest] ✅ Generated CSV in ${durationMs}ms`)
+          resolve()
+        })
+      })
+    })
+  }
+
   private validateCsvDate(csvPath: string): void {
     console.log('[ingest] Validating CSV date against America/Santiago timezone...')
     
@@ -288,8 +400,10 @@ export class SecurePriceIngestionPipeline {
 
   private async runSetBasedMerge(): Promise<{
     updateCardsMs: number
+    currentPriceMs: number
     upsertHistoryMs: number
     cardsUpdated: number
+    currentPriceUpserts: number
     historyUpserts: number
   }> {
     console.log('[ingest] Running set-based merge transaction...')
@@ -319,38 +433,74 @@ export class SecurePriceIngestionPipeline {
         console.warn(`[ingest] ⚠️  ALERT: Only ${cardsUpdated} cards updated (expected ~90k). This may indicate data issues.`)
       }
       
-      // Insert/Upsert price history in one pass (set-based)
-      const historyStartTime = Date.now()
-      const historyResult = await this.client.query(`
+      // Upsert current prices (compact table for latest price per finish)
+      const currentPriceStartTime = Date.now()
+      const currentPriceResult = await this.client.query(`
         WITH u AS (
-          SELECT scryfall_id,'normal' AS finish, price_usd        AS price, price_day FROM scryfall_daily_prices_stage WHERE price_usd        IS NOT NULL
+          SELECT scryfall_id::uuid AS scryfall_id, 'nonfoil'::text AS finish, price_usd::numeric AS price, NOW() AS price_at FROM scryfall_daily_prices_stage WHERE price_usd IS NOT NULL
           UNION ALL
-          SELECT scryfall_id,'foil'   AS finish, price_usd_foil   AS price, price_day FROM scryfall_daily_prices_stage WHERE price_usd_foil   IS NOT NULL
+          SELECT scryfall_id::uuid AS scryfall_id, 'foil'::text AS finish, price_usd_foil::numeric AS price, NOW() AS price_at FROM scryfall_daily_prices_stage WHERE price_usd_foil IS NOT NULL
           UNION ALL
-          SELECT scryfall_id,'etched' AS finish, price_usd_etched AS price, price_day FROM scryfall_daily_prices_stage WHERE price_usd_etched IS NOT NULL
+          SELECT scryfall_id::uuid AS scryfall_id, 'etched'::text AS finish, price_usd_etched::numeric AS price, NOW() AS price_at FROM scryfall_daily_prices_stage WHERE price_usd_etched IS NOT NULL
         )
-        INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, source, price_day)
-        SELECT scryfall_id, finish, price, NOW(), 'scryfall', price_day
+        INSERT INTO public.mtgcard_current_price (scryfall_id, finish, price, price_at, source)
+        SELECT scryfall_id, finish, price, price_at, 'scryfall'
         FROM u
-        ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE
-        SET price = EXCLUDED.price, price_at = EXCLUDED.price_at, source = EXCLUDED.source
+        ON CONFLICT (scryfall_id, finish) DO UPDATE
+        SET price = EXCLUDED.price,
+            price_at = EXCLUDED.price_at,
+            source = EXCLUDED.source
       `)
       
-      const upsertHistoryMs = Date.now() - historyStartTime
-      const historyUpserts = historyResult.rowCount || 0
-      console.log(`[ingest] ✅ Upserted ${historyUpserts} price history records in ${upsertHistoryMs}ms`)
+      const currentPriceMs = Date.now() - currentPriceStartTime
+      const currentPriceUpserts = currentPriceResult.rowCount || 0
+      console.log(`[ingest] ✅ Upserted ${currentPriceUpserts} current price records in ${currentPriceMs}ms`)
       
-      // Alert if history upserts are abnormally low
-      if (historyUpserts < 120000) {
-        console.warn(`[ingest] ⚠️  ALERT: Only ${historyUpserts} history records upserted (expected ~136k). This may indicate data issues.`)
+      // Insert/Upsert price history in one pass (set-based) - optional, skip if table doesn't exist
+      let upsertHistoryMs = 0
+      let historyUpserts = 0
+      try {
+        const historyStartTime = Date.now()
+        const historyResult = await this.client.query(`
+          WITH u AS (
+            SELECT scryfall_id,'normal' AS finish, price_usd        AS price, price_day FROM scryfall_daily_prices_stage WHERE price_usd        IS NOT NULL
+            UNION ALL
+            SELECT scryfall_id,'foil'   AS finish, price_usd_foil   AS price, price_day FROM scryfall_daily_prices_stage WHERE price_usd_foil   IS NOT NULL
+            UNION ALL
+            SELECT scryfall_id,'etched' AS finish, price_usd_etched AS price, price_day FROM scryfall_daily_prices_stage WHERE price_usd_etched IS NOT NULL
+          )
+          INSERT INTO mtgcard_price_history (scryfall_id, finish, price, price_at, source, price_day)
+          SELECT scryfall_id, finish, price, NOW(), 'scryfall', price_day
+          FROM u
+          ON CONFLICT (scryfall_id, finish, price_day) DO UPDATE
+          SET price = EXCLUDED.price, price_at = EXCLUDED.price_at, source = EXCLUDED.source
+        `)
+        
+        upsertHistoryMs = Date.now() - historyStartTime
+        historyUpserts = historyResult.rowCount || 0
+        console.log(`[ingest] ✅ Upserted ${historyUpserts} price history records in ${upsertHistoryMs}ms`)
+        
+        // Alert if history upserts are abnormally low
+        if (historyUpserts < 120000) {
+          console.warn(`[ingest] ⚠️  ALERT: Only ${historyUpserts} history records upserted (expected ~136k). This may indicate data issues.`)
+        }
+      } catch (error: any) {
+        // History table may not exist (dropped after migration to current_price)
+        if (error.code === '42P01' && error.message.includes('mtgcard_price_history')) {
+          console.log(`[ingest] ℹ️  Skipping price history (table does not exist - expected after migration)`)
+        } else {
+          throw error
+        }
       }
       
       await this.client.query('COMMIT')
       
       return {
         updateCardsMs,
+        currentPriceMs,
         upsertHistoryMs,
         cardsUpdated,
+        currentPriceUpserts,
         historyUpserts
       }
       
@@ -400,11 +550,71 @@ export class SecurePriceIngestionPipeline {
           csvPath = tempPath
         }
       } else {
-        throw new Error('Either --file or --url must be provided')
+        // Auto-download from Scryfall if no file/url provided (default behavior)
+        console.log('[ingest] No file or URL provided - auto-downloading from Scryfall bulk data...')
+        const tempDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data')
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true })
+        }
+        
+        // 1. Fetch bulk data info
+        const bulkInfo = await this.fetchBulkDataInfo()
+        console.log(`[ingest] Scryfall bulk data updated: ${bulkInfo.updated_at}`)
+        console.log(`[ingest] Size: ${Math.round(bulkInfo.size / 1024 / 1024)}MB`)
+        console.log(`[ingest] Content encoding: ${bulkInfo.content_encoding}`)
+        
+        // 2. Download bulk JSON
+        const bulkJsonPath = path.join(tempDir, 'daily-bulk-data-raw')
+        const downloadResult = await this.downloadBulkJson(bulkInfo.download_uri, bulkJsonPath)
+        downloadMs = downloadResult.durationMs
+        const isGzipped = downloadResult.isGzipped
+        
+        // 3. Decompress if needed - double-check by reading file header
+        const bulkJsonDecompressed = path.join(tempDir, 'daily-bulk-data.json')
+        const fileHeader = Buffer.alloc(2)
+        const fd = fs.openSync(bulkJsonPath, 'r')
+        fs.readSync(fd, fileHeader, 0, 2, 0)
+        fs.closeSync(fd)
+        const actuallyGzipped = fileHeader[0] === 0x1f && fileHeader[1] === 0x8b // Gzip magic number
+        
+        if (actuallyGzipped) {
+          console.log(`[ingest] File is gzipped, decompressing...`)
+          decompressMs = await this.decompressGz(bulkJsonPath, bulkJsonDecompressed)
+        } else {
+          console.log(`[ingest] File is not gzipped, using as-is...`)
+          // File is already decompressed, just rename it
+          fs.renameSync(bulkJsonPath, bulkJsonDecompressed)
+          decompressMs = 0
+        }
+        
+        // 4. Generate CSV from bulk JSON
+        const csvPathFromBulk = path.join(tempDir, 'daily-prices-auto.csv')
+        await this.generateCsvFromBulk(bulkJsonDecompressed, csvPathFromBulk)
+        csvPath = csvPathFromBulk
+        
+        // Cleanup bulk JSON files
+        try {
+          if (fs.existsSync(bulkJsonPath)) fs.unlinkSync(bulkJsonPath)
+          // Note: bulkJsonDecompressed is kept until CSV is generated, then cleaned up after ingestion
+        } catch {}
       }
       
-      // Validate CSV date
-      this.validateCsvDate(csvPath)
+      // Extract or validate CSV date
+      if (!options.skipDateCheck) {
+        this.validateCsvDate(csvPath)
+      } else {
+        console.log('[ingest] ⚠️  Skipping CSV date validation (--skip-date-check)')
+        // Still extract price_day for audit logging, but don't validate
+        const csvContent = fs.readFileSync(csvPath, 'utf8')
+        const firstLine = csvContent.split('\n')[1] // Skip header
+        if (firstLine) {
+          const priceDay = firstLine.split(',')[4]?.trim() // price_day column
+          if (priceDay) {
+            this.auditRun.priceDay = priceDay
+            console.log(`[ingest] Using CSV price_day: ${priceDay}`)
+          }
+        }
+      }
       
       // Now log the start of run with priceDay
       runId = await this.logAuditRun(this.auditRun)
@@ -474,10 +684,12 @@ export class SecurePriceIngestionPipeline {
       console.log(`[ingest] Decompress: ${decompressMs || 0}ms`)
       console.log(`[ingest] Copy: ${copyMs}ms`)
       console.log(`[ingest] Update cards: ${mergeResult.updateCardsMs}ms`)
+      console.log(`[ingest] Upsert current prices: ${mergeResult.currentPriceMs}ms (${mergeResult.currentPriceUpserts} records)`)
       console.log(`[ingest] Upsert history: ${mergeResult.upsertHistoryMs}ms`)
       console.log(`[ingest] Total: ${totalMs}ms`)
       console.log(`[ingest] Rows in stage: ${rowsInStage}`)
       console.log(`[ingest] Cards updated: ${mergeResult.cardsUpdated}`)
+      console.log(`[ingest] Current price upserts: ${mergeResult.currentPriceUpserts}`)
       console.log(`[ingest] History upserts: ${mergeResult.historyUpserts}`)
       
       return {
@@ -529,20 +741,27 @@ async function main() {
       case '--dry-run':
         options.dryRun = true
         break
+      case '--skip-date-check':
+        options.skipDateCheck = true
+        break
       case '--help':
         console.log(`
 Usage: yarn ingest:prices [options]
 
 Options:
-  --file <path>     Path to local CSV file
-  --url <url>       URL to download CSV from
-  --dry-run         Validate CSV without making database changes
-  --help            Show this help message
+  (no args)             Auto-download today's prices from Scryfall bulk data
+  --file <path>         Path to local CSV file
+  --url <url>           URL to download CSV from
+  --dry-run             Validate CSV without making database changes
+  --skip-date-check     Skip CSV date validation (for testing with older files)
+  --help                Show this help message
 
 Examples:
+  yarn ingest:prices                                    # Auto-download from Scryfall
   yarn ingest:prices --file data/daily-prices.csv
-  yarn ingest:prices --url https://api.scryfall.com/bulk-data/default-cards
+  yarn ingest:prices --url https://example.com/prices.csv.gz
   yarn ingest:prices --file data/daily-prices.csv --dry-run
+  yarn ingest:prices --file data/daily-prices.csv --skip-date-check
 
 SSL Configuration:
   Set SUPABASE_CA_PEM environment variable with Supabase CA certificate content
@@ -552,12 +771,7 @@ SSL Configuration:
     }
   }
   
-  if (!options.file && !options.url) {
-    console.error('Error: Either --file or --url must be provided')
-    console.error('Use --help for usage information')
-    process.exit(1)
-  }
-  
+  // No file/url is now valid - will auto-download from Scryfall
   try {
     const pipeline = new SecurePriceIngestionPipeline()
     const result = await pipeline.ingest(options)

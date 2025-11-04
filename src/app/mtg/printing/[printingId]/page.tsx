@@ -249,13 +249,11 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
           
           {/* Price: last update line or chart (flagged) */}
           {!SHOW_HISTORY ? (
-            <p className="mt-4 text-sm" style={{ color: 'var(--mutedText)' }}>
-              {price != null
-                ? (<>
-                    Last price update: <strong>{formatUsd(price)}</strong>{price_at ? <> — {formatDateTime(price_at)}</> : null}
-                  </>)
-                : 'No price available yet'}
-            </p>
+            price != null ? (
+              <p className="mt-4 text-sm" style={{ color: 'var(--mutedText)' }}>
+                Last price update: <strong>{formatUsd(price)}</strong>{price_at ? <> — {formatDateTime(price_at)}</> : null}
+              </p>
+            ) : null
           ) : (
             <div className="mt-6 hidden lg:block">
               {PriceHistoryChart ? <PriceHistoryChart printingId={data.id} days={30} /> : null}
