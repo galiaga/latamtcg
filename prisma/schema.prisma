@@ -184,18 +184,35 @@ model Order {
   userId            String?
   email             String?
   totalAmount       Decimal?    @db.Decimal(10, 2)
-  status            String      @default("created")
+  amountCLP         Int?        // Amount in CLP for Flow payments
+  status            OrderStatus @default(pending)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   shippingAddressId String?
   billingAddressId  String?
+  // Flow payment fields
+  flowToken         String?     @unique // Flow payment token
+  flowOrder         String?     // Flow order identifier
+  flowPaymentId     String?     // Flow payment ID after completion
+  paidAt            DateTime?   // When payment was completed
+  metadata          Json?       // Additional order metadata
   billingAddress    Address?    @relation("OrderBillingAddress", fields: [billingAddressId], references: [id])
   shippingAddress   Address?    @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
   user              User?       @relation(fields: [userId], references: [id])
   items             OrderItem[]
+  paymentLogs       PaymentLog[]
 
   @@index([userId])
   @@index([createdAt])
+  @@index([flowToken])
+  @@index([status])
+}
+
+enum OrderStatus {
+  pending
+  paid
+  failed
+  cancelled
 }
 
 model OrderItem {
@@ -273,4 +290,18 @@ model StorePolicy {
   purchaseWindowDays   Int      @default(3)
   updatedAt            DateTime @updatedAt
   createdAt            DateTime @default(now())
+}
+
+/// Payment audit log for Flow webhooks and payment events
+model PaymentLog {
+  id        String   @id @default(cuid())
+  orderId   String
+  event     String   // Event type (e.g., "payment.created", "payment.paid", "payment.failed")
+  payload   Json     // Full event payload from Flow
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@index([event])
 }

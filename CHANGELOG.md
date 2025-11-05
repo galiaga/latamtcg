@@ -1,5 +1,117 @@
 # Changelog
 
+## v0.33.0 — 2025-11-05
+### Features
+- **Flow Payment Gateway Integration**: Complete end-to-end payment processing
+  - Integrated Flow.cl payment gateway for Chilean market (CLP payments)
+  - Guest checkout support with email collection
+  - Authenticated user checkout support
+  - Real-time payment status updates via webhooks
+  - Order confirmation emails via Resend
+
+### Database
+- **Order Model Enhancements**: Added Flow payment fields
+  - `amountCLP`: Payment amount in Chilean Pesos
+  - `status`: Order status enum (pending, paid, failed, cancelled)
+  - `flowToken`: Unique Flow payment token
+  - `flowOrder`: Flow order identifier
+  - `flowPaymentId`: Flow payment ID after completion
+  - `paidAt`: Payment completion timestamp
+  - `metadata`: JSON field for order details (items, prices, etc.)
+- **PaymentLog Model**: Audit trail for payment events
+  - Tracks all payment events (created, callback_received, paid, failed, etc.)
+  - Stores full event payloads for debugging and compliance
+  - Indexed by orderId, createdAt, and event type
+
+### API Routes
+- **POST /api/checkout**: Creates orders and initiates Flow payments
+  - Server-side price calculation (CLP from USD)
+  - Minimum order validation (configurable, default 1,000 CLP)
+  - Flow payment creation with HMAC-SHA256 signature
+  - Returns payment URL for client redirect
+- **POST /api/flow/callback**: Webhook handler for payment status
+  - Signature verification using Flow secret key
+  - Payment status confirmation via Flow API
+  - Order status updates (paid/failed/cancelled)
+  - Amount validation to prevent discrepancies
+  - Idempotency checks to prevent duplicate processing
+  - Automatic order confirmation email sending
+- **POST /api/checkout/return**: Handles Flow redirects (POST to GET conversion)
+  - Parses Flow form data
+  - Extracts payment token
+  - Redirects to return page with query parameters
+- **GET /api/orders/[orderId]/status**: Order status polling endpoint
+  - Used by return page for real-time status updates
+  - Supports both authenticated and guest orders
+
+### UI Components
+- **Checkout Return Page** (`/checkout/return`): Payment completion page
+  - Displays order status (success/failure/pending)
+  - Shows order summary with items and totals
+  - Real-time polling for pending payments
+  - Client-side status updates via SWR
+- **Cart Page Updates**: Integrated Flow checkout flow
+  - Guest checkout with email prompt
+  - Authenticated checkout
+  - Redirects to Flow payment page
+  - Error handling for payment failures
+
+### Admin Features
+- **Admin Orders Page** (`/admin/orders`): View all orders
+  - Token-protected admin interface
+  - Order listing with status filtering
+  - Detailed order information (customer, items, payment details)
+  - Payment event logs
+  - Flow payment tracking information
+
+### Email Integration
+- **Resend Integration**: Order confirmation emails
+  - HTML and plain text email templates
+  - Chilean number formatting (periods for thousands)
+  - Order details with items, prices, and totals
+  - Configurable via environment variables
+
+### Security & Quality
+- **HMAC-SHA256 Signature**: Flow API request signing
+  - Correct signature format per Flow.cl documentation
+  - Parameter sorting and concatenation
+  - Secret key from gateway.flow.cl (not regular Flow account)
+- **Amount Validation**: Prevents payment discrepancies
+  - Compares Flow payment amount with order amountCLP
+  - Logs discrepancies for audit
+- **Idempotency**: Prevents duplicate payment processing
+  - Checks order status before updating
+  - Ignores already-processed payments
+- **Error Handling**: Comprehensive logging and error messages
+  - Payment creation errors
+  - Webhook processing errors
+  - Email sending failures (non-blocking)
+
+### Configuration
+- **Environment Variables**: Added Flow and Resend configuration
+  - `FLOW_API_KEY`: Flow API key from gateway.flow.cl
+  - `FLOW_SECRET`: Flow secret key from gateway.flow.cl
+  - `FLOW_BASE_URL`: Flow API base URL (https://www.flow.cl/api)
+  - `FLOW_RETURN_URL`: Return URL after payment
+  - `FLOW_CALLBACK_URL`: Webhook callback URL
+  - `APP_BASE_URL`: Application base URL
+  - `RESEND_API_KEY`: Resend API key for emails
+  - `RESEND_FROM_EMAIL`: Sender email address
+
+### Documentation
+- **README Updates**: Comprehensive Flow integration guide
+  - Setup instructions
+  - Environment variable configuration
+  - Local testing with ngrok
+  - Domain verification for production emails
+  - Security best practices
+
+### Testing & Development
+- **Mock Payment Endpoint**: `/api/dev/payments/mock`
+  - Development-only endpoint for testing callbacks
+  - Simulates payment status updates
+  - Only active when `NODE_ENV !== 'production'`
+
 ## v0.32.1 — 2025-11-04
 ### Fixes
 - **Most Popular Sort**: Fixed SQL query error when sorting by popularity

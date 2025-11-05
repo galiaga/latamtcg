@@ -90,6 +90,163 @@ Models:
 - Optional: `SEARCH_SUGGESTION_LIMIT` (default 15)
 - Optional: `SCRYFALL_IMAGE_HOST` (default `cards.scryfall.io`)
 
+### Flow Payment Gateway
+
+The application integrates with Flow for payment processing. All payments are handled in CLP (Chilean Pesos).
+
+#### Required Environment Variables
+
+Add these to your `.env` file or Vercel environment variables:
+
+```bash
+FLOW_API_KEY=your_flow_api_key
+FLOW_SECRET=your_flow_secret_key
+FLOW_BASE_URL=https://www.flow.cl/api  # Production API URL
+FLOW_RETURN_URL=https://yourdomain.com/api/checkout/return  # Where Flow redirects after payment
+FLOW_CALLBACK_URL=https://yourdomain.com/api/flow/callback  # Webhook endpoint for payment status
+APP_BASE_URL=https://yourdomain.com  # Your app's base URL
+```
+
+### Email Notifications (Resend)
+
+The application uses Resend for sending order confirmation emails.
+
+#### Setup Resend
+
+1. **Create a Resend account**: Go to [resend.com](https://resend.com) and sign up
+2. **Get your API key**: 
+   - Go to API Keys in your Resend dashboard
+   - Create a new API key
+   - Copy the key (starts with `re_`)
+3. **Verify your domain** (for production):
+   - Add your domain in Resend dashboard
+   - Add the required DNS records
+   - Wait for verification (can take a few minutes)
+4. **For testing** (development):
+   - You can use Resend's test domain: `onboarding@resend.dev`
+   - Or use your verified domain
+
+#### Required Environment Variables
+
+Add these to your `.env` file:
+
+```bash
+RESEND_API_KEY=re_your_api_key_here
+RESEND_FROM_EMAIL=noreply@yourdomain.com  # Or use onboarding@resend.dev for testing
+```
+
+**Note**: 
+- For local development, you can use `onboarding@resend.dev` as the `RESEND_FROM_EMAIL`
+- For production, you must use a verified domain email address
+- If Resend is not configured, emails will be logged to the console instead of being sent
+
+**Important**: 
+- `FLOW_SECRET` must be kept secure and never exposed to the client
+- **CRITICAL**: The `FLOW_SECRET` must be obtained from `gateway.flow.cl` (not from your regular Flow account settings). Go to Integraciones > Integración por API to get the correct `apiKey` and `secretKey`.
+- `FLOW_RETURN_URL` should point to `/checkout/return` in your app
+- `FLOW_CALLBACK_URL` should point to `/api/flow/callback` in your app
+- Minimum payment amount: 350 CLP (Flow requirement)
+
+#### Database Migration
+
+Run the Prisma migration to add Flow payment fields:
+
+```bash
+npm run prisma:generate
+npm run db:migrate:dev
+```
+
+This adds:
+- `OrderStatus` enum: `pending`, `paid`, `failed`, `cancelled`
+- Flow fields to `Order` model: `amountCLP`, `flowToken`, `flowOrder`, `flowPaymentId`, `paidAt`, `metadata`
+- `PaymentLog` model for auditing payment events
+
+#### Testing Locally
+
+For local testing, you'll need to expose your local server to Flow's webhook:
+
+1. **Using ngrok** (recommended):
+   ```bash
+   # Install ngrok: https://ngrok.com/download
+   ngrok http 3000
+   ```
+
+2. **Update your `.env`**:
+   ```bash
+   FLOW_RETURN_URL=https://your-ngrok-url.ngrok.io/checkout/return
+   FLOW_CALLBACK_URL=https://your-ngrok-url.ngrok.io/api/flow/callback
+   APP_BASE_URL=https://your-ngrok-url.ngrok.io
+   ```
+
+3. **Configure Flow Dashboard**:
+   - In your Flow merchant dashboard, set the webhook URL to your ngrok callback URL
+   - Ensure the return URL matches your ngrok return URL
+
+4. **Test the flow**:
+   - Add items to cart
+   - Click checkout
+   - Complete payment on Flow's page
+   - Should redirect back to your return page
+
+#### Development Mock Endpoint
+
+For local testing without Flow, use the mock endpoint:
+
+```bash
+# Simulate a successful payment
+curl -X POST http://localhost:3000/api/dev/payments/mock \
+  -H "Content-Type: application/json" \
+  -d '{"orderId": "your_order_id", "status": 2}'
+```
+
+Status codes:
+- `1` = pending
+- `2` = paid
+- `3` = rejected
+- `4` = expired
+
+**Note**: This endpoint is only available when `NODE_ENV !== 'production'`
+
+#### Payment Flow
+
+1. **Checkout**: User clicks checkout → `POST /api/checkout`
+   - Creates `Order` with `status='pending'`
+   - Creates Flow payment via Flow API
+   - Stores `flowToken` in order
+   - Returns `paymentUrl` to client
+
+2. **Payment**: User completes payment on Flow's page
+
+3. **Return**: Flow redirects to `/checkout/return?token=...`
+   - Page fetches order by token
+   - Shows status (pending/paid/failed) from database
+   - If pending, polls `/api/orders/[orderId]/status` every 3s
+
+4. **Webhook**: Flow sends callback to `/api/flow/callback`
+   - Verifies signature
+   - Queries Flow API for payment status
+   - Updates order status in database
+   - Logs to `PaymentLog` for audit
+
+#### Security Features
+
+- **Signature Verification**: All webhooks verify HMAC-SHA256 signature
+- **Amount Validation**: Compares Flow payment amount with order amount
+- **Idempotency**: Callback updates are idempotent (ignores if already paid/failed)
+- **Server-Side Pricing**: All amounts computed server-side from database, never trust client
+
+#### Monitoring
+
+Check payment logs:
+
+```sql
+SELECT * FROM "PaymentLog" 
+WHERE "orderId" = 'your_order_id' 
+ORDER BY "createdAt" DESC;
+```
+
+Payment events are logged with full payloads for debugging and audit trails.
+
 ### Bot Control & Image Optimization
 
 - `ALLOW_BOTS`: Set to `true` to bypass bot blocking in production (default: `false`)

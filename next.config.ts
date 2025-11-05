@@ -40,6 +40,14 @@ const nextConfig: NextConfig = {
     // Skip ESLint during production builds to avoid blocking on unrelated pre-existing errors
     ignoreDuringBuilds: true,
   },
+  // Allow redirects from Flow payment gateway
+  experimental: {
+    serverActions: {
+      allowedOrigins: process.env.NODE_ENV === 'development' 
+        ? ['olinda-unstuccoed-unfaithfully.ngrok-free.dev', 'www.flow.cl', 'localhost:3000']
+        : ['www.flow.cl', 'flow.cl'],
+    },
+  },
 };
 
 export default nextConfig;
