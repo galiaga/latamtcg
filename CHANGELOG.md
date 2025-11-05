@@ -8,6 +8,12 @@
   - Resolves "column popularity_score does not exist" error in production
   - Query now correctly includes popularity score in result set for ORDER BY clause
 
+### Configuration
+- **Cron Job Schedule**: Updated to daily schedule for Vercel Hobby tier compatibility
+  - Changed from every 15 minutes (`*/15 * * * *`) to daily at 4:00 AM UTC (`0 4 * * *`)
+  - Removed searchindex-refresh cron job to comply with Hobby tier limit (1 cron job per day)
+  - Popularity materialized view now refreshes once daily instead of every 15 minutes
+
 ## v0.32.0 — 2025-11-04
 ### Features
 - **Most Popular Sort**: New default sort option that orders search results by popularity score
