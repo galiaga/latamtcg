@@ -36,12 +36,12 @@ export async function POST(req: NextRequest) {
     const validated = CheckoutRequestSchema.safeParse(body)
     
     if (!validated.success) {
-      console.error('[checkout] Validation error:', validated.error.errors)
+      console.error('[checkout] Validation error:', validated.error.issues)
       return NextResponse.json(
         { 
           error: 'invalid_request', 
           message: 'Invalid request parameters',
-          details: validated.error.errors 
+          details: validated.error.issues 
         },
         { status: 400 }
       )
