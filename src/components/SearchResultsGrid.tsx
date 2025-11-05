@@ -243,7 +243,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     router.push(`${pathname}?${params.toString()}`)
   }
 
-  function setSort(next: 'relevance' | 'price_asc' | 'price_desc' | 'name' | 'release_desc') {
+  function setSort(next: 'relevance' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc' | 'release_desc' | 'most-popular') {
     const params = new URLSearchParams(searchParams?.toString() || '')
     params.set('q', q)
     params.set('page', '1')
@@ -456,7 +456,9 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
               </button>
               {/* Sort control moved to the right */}
               {(() => {
-                const current = String(searchParams?.get('sort') || 'relevance')
+                // Default to most-popular (API will use this when MOST_POPULAR_ENABLED=true)
+                // If feature is disabled, API will override to relevance
+                const current = String(searchParams?.get('sort') || 'most-popular')
                 return (
                   <div className="ml-auto flex items-center gap-2">
                     <label htmlFor="sort-select" className="text-sm hidden md:block" style={{ color: 'var(--mutedText)' }}>Sort by:</label>
@@ -468,6 +470,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                       disabled={loading}
                       aria-label="Sort results"
                     >
+                      <option value="most-popular">Most Popular</option>
                       <option value="relevance">Relevance</option>
                       <option value="name_asc">Name: A → Z</option>
                       <option value="name_desc">Name: Z → A</option>

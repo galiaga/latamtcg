@@ -1,5 +1,56 @@
 # Changelog
 
+## v0.32.1 — 2025-11-04
+### Fixes
+- **Most Popular Sort**: Fixed SQL query error when sorting by popularity
+  - Added `popularity_score` column to all CTEs in optimized search query
+  - Ensured column is selected in `search_results`, `paginated_results`, and final SELECT
+  - Resolves "column popularity_score does not exist" error in production
+  - Query now correctly includes popularity score in result set for ORDER BY clause
+
+### Configuration
+- **Cron Job Schedule**: Updated to daily schedule for Vercel Hobby tier compatibility
+  - Changed from every 15 minutes (`*/15 * * * *`) to daily at 4:00 AM UTC (`0 4 * * *`)
+  - Removed searchindex-refresh cron job to comply with Hobby tier limit (1 cron job per day)
+  - Popularity materialized view now refreshes once daily instead of every 15 minutes
+
+## v0.32.0 — 2025-11-04
+### Features
+- **Most Popular Sort**: New default sort option that orders search results by popularity score
+  - Popularity score calculated from sales (30d) and cart adds (30d): `1.0 * sales_30d + 0.6 * cart_adds_30d`
+  - Tie-breakers: release date (DESC) then title (ASC)
+  - Items with no events (score = 0) appear after scored items
+  - Materialized view `item_popularity_mv` pre-computes scores for fast query performance
+  - Auto-refreshes every 15 minutes via cron job (`/api/jobs/refresh-popularity`)
+  - Feature flag: `MOST_POPULAR_ENABLED=true` to enable (defaults to relevance when disabled)
+  - Window parameter: `MOST_POPULAR_WINDOW_DAYS=30` (currently hardcoded to 30 days)
+
+### Technical Improvements
+- **Database Migration**: Added materialized view for popularity aggregation
+  - `item_popularity_mv` aggregates `OrderItem` and `CartItem` data over rolling 30-day window
+  - Unique index on `printing_id` for CONCURRENT REFRESH support
+  - Index on `popularity_score DESC` for optimal sort performance
+  - Initial population and refresh scripts included
+- **Search Integration**: Updated both optimized and original search implementations
+  - LEFT JOIN to `item_popularity_mv` when sort is `most-popular`
+  - Order by: `popularity_score DESC NULLS LAST, releasedAt DESC NULLS LAST, title ASC`
+  - Fallback to `MtgCard.releasedAt` when `SearchIndex.releasedAt` is null
+  - No performance regression - join only happens when sort is `most-popular`
+- **UI Updates**: Added "Most Popular" option to sort dropdown
+  - New sort option appears first in dropdown
+  - Defaults to most-popular when `MOST_POPULAR_ENABLED=true`
+  - Maintains user's manual sort choice until next search
+- **Cron Job**: Automated refresh mechanism
+  - Runs every 15 minutes via Vercel cron (`*/15 * * * *`)
+  - Uses CONCURRENT REFRESH to avoid blocking reads
+  - Includes telemetry logging (row count, max score, avg score)
+
+### Backward Compatibility
+- Fully backward compatible - existing sorts unchanged
+- Falls back to "relevance" when `MOST_POPULAR_ENABLED` is false
+- No changes to search filters or FTS matching logic
+- All existing functionality preserved
+
 ## v0.31.0 — 2025-10-28
 ### Current Price Rollout (RLS, PDP flag, API fallback)
 - Database:

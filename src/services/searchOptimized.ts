@@ -45,7 +45,7 @@ export interface OptimizedSearchParams {
   showUnavailable: boolean
   page: number
   pageSize: number
-  sort: 'relevance' | 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc' | 'release_desc'
+  sort: 'relevance' | 'name_asc' | 'name_desc' | 'price_asc' | 'price_desc' | 'release_desc' | 'most-popular'
 }
 
 export interface OptimizedSearchResult {
@@ -68,6 +68,8 @@ function buildOptimizedOrderByClause(sort: string, printing: string[] = []): Pri
       return Prisma.sql`COALESCE("priceUsd", "priceUsdFoil", "priceUsdEtched") DESC NULLS LAST, releasedAt DESC NULLS LAST`
     case 'release_desc':
       return Prisma.sql`releasedAt DESC NULLS LAST`
+    case 'most-popular':
+      return Prisma.sql`popularity_score DESC NULLS LAST, releasedAt DESC NULLS LAST, title ASC NULLS LAST`
     case 'relevance':
     default:
       return Prisma.sql`score DESC, releasedAt DESC NULLS LAST`
@@ -134,16 +136,18 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
             si.id, si."groupId", si.title, si."subtitle", si."imageNormalUrl", si."setCode",
             COALESCE(si."setName", s.set_name) AS "setName", si."collectorNumber",
             si."variantLabel", si."finishLabel", si."variantSuffix",
-            COALESCE(EXTRACT(EPOCH FROM si."releasedAt"), 0) AS releasedAt,
+            COALESCE(EXTRACT(EPOCH FROM si."releasedAt"), EXTRACT(EPOCH FROM mc."releasedAt"), 0) AS releasedAt,
             mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched", NULL AS "computedPriceClp", mc.rarity,
             (CASE WHEN mc."priceUsd" IS NOT NULL THEN true ELSE false END) AS hasNonfoil,
             (CASE WHEN mc."priceUsdFoil" IS NOT NULL THEN true ELSE false END) AS hasFoil,
             (CASE WHEN mc."priceUsdEtched" IS NOT NULL THEN true ELSE false END) AS hasEtched,
             ${scoreExpression} AS score,
+            ${sort === 'most-popular' ? Prisma.sql`COALESCE(ip.popularity_score, 0)::numeric AS popularity_score,` : Prisma.sql``}
             COUNT(*) OVER() AS total_count
           FROM "public"."SearchIndex" si
           JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
           LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+          ${sort === 'most-popular' ? Prisma.sql`LEFT JOIN public.item_popularity_mv ip ON ip.printing_id = si.id` : Prisma.sql``}
           WHERE si.game = 'mtg' AND si."isPaper" = true
             ${searchConditions}
             ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
@@ -156,23 +160,25 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
             ${safeAnyCondition(rarity, 'mc.rarity')}
             ${showUnavailable ? Prisma.sql`` : Prisma.sql`AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)`}
         ),
-        paginated_results AS (
-          SELECT 
-            id, "groupId", title, subtitle, "imageNormalUrl", "setCode",
-            "setName", "collectorNumber", "variantLabel", "finishLabel", "variantSuffix",
-            releasedAt, "priceUsd", "priceUsdFoil", "priceUsdEtched", rarity,
-            hasNonfoil, hasFoil, hasEtched, score, total_count,
-            ROW_NUMBER() OVER(ORDER BY ${buildOptimizedOrderByClause(sort, printing)}) AS row_number
-          FROM search_results
-        )
+      paginated_results AS (
         SELECT 
           id, "groupId", title, subtitle, "imageNormalUrl", "setCode",
           "setName", "collectorNumber", "variantLabel", "finishLabel", "variantSuffix",
           releasedAt, "priceUsd", "priceUsdFoil", "priceUsdEtched", rarity,
-          hasNonfoil, hasFoil, hasEtched, score, total_count, row_number
-        FROM paginated_results
-        WHERE row_number BETWEEN ${(page - 1) * pageSize + 1} AND ${page * pageSize + 1}
-        ORDER BY ${buildOptimizedOrderByClause(sort, printing)}
+          hasNonfoil, hasFoil, hasEtched, score, total_count,
+          ${sort === 'most-popular' ? Prisma.sql`popularity_score,` : Prisma.sql``}
+          ROW_NUMBER() OVER(ORDER BY ${buildOptimizedOrderByClause(sort, printing)}) AS row_number
+        FROM search_results
+      )
+      SELECT 
+        id, "groupId", title, subtitle, "imageNormalUrl", "setCode",
+        "setName", "collectorNumber", "variantLabel", "finishLabel", "variantSuffix",
+        releasedAt, "priceUsd", "priceUsdFoil", "priceUsdEtched", rarity,
+        hasNonfoil, hasFoil, hasEtched, score, total_count, row_number
+        ${sort === 'most-popular' ? Prisma.sql`, popularity_score` : Prisma.sql``}
+      FROM paginated_results
+      WHERE row_number BETWEEN ${(page - 1) * pageSize + 1} AND ${page * pageSize + 1}
+      ORDER BY ${buildOptimizedOrderByClause(sort, printing)}
       `
     )
     
@@ -227,11 +233,13 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
           (CASE WHEN mc."priceUsdFoil" IS NOT NULL THEN true ELSE false END) AS hasFoil,
           (CASE WHEN mc."priceUsdEtched" IS NOT NULL THEN true ELSE false END) AS hasEtched,
           ${scoreExpression} AS score,
+          ${sort === 'most-popular' ? Prisma.sql`COALESCE(ip.popularity_score, 0)::numeric AS popularity_score,` : Prisma.sql``}
           COUNT(*) OVER() AS total_count
-        FROM "public"."SearchIndex" si
-        JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-        LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
-        WHERE si.game = 'mtg' AND si."isPaper" = true
+          FROM "public"."SearchIndex" si
+          JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+          LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+          ${sort === 'most-popular' ? Prisma.sql`LEFT JOIN public.item_popularity_mv ip ON ip.printing_id = si.id` : Prisma.sql``}
+          WHERE si.game = 'mtg' AND si."isPaper" = true
           ${searchConditions}
           ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
           ${safeUpperAnyCondition(setList, 'si."setCode"')}
@@ -249,6 +257,7 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
           "setName", "collectorNumber", "variantLabel", "finishLabel", "variantSuffix",
           releasedAt, "priceUsd", "priceUsdFoil", "priceUsdEtched", rarity,
           hasNonfoil, hasFoil, hasEtched, score, total_count,
+          ${sort === 'most-popular' ? Prisma.sql`popularity_score,` : Prisma.sql``}
           ROW_NUMBER() OVER(ORDER BY ${buildOptimizedOrderByClause(sort, printing)}) AS row_number
         FROM search_results
       )
@@ -257,6 +266,7 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
         "setName", "collectorNumber", "variantLabel", "finishLabel", "variantSuffix",
         releasedAt, "priceUsd", "priceUsdFoil", "priceUsdEtched", rarity,
         hasNonfoil, hasFoil, hasEtched, score, total_count, row_number
+        ${sort === 'most-popular' ? Prisma.sql`, popularity_score` : Prisma.sql``}
       FROM paginated_results
       WHERE row_number BETWEEN ${(page - 1) * pageSize + 1} AND ${page * pageSize + 1}
       ORDER BY ${buildOptimizedOrderByClause(sort, printing)}
