@@ -63,8 +63,8 @@ describe('Facets Optimization', () => {
 
   describe('buildFacetsOptimized', () => {
     it('returns empty facets for empty candidates', async () => {
-      mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
-      mockCache.getSWR.mockImplementation(async (key, fresh, stale, fetcher) => {
+      mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+      mockCache.getSWR.mockImplementation(async (_key: string, _fresh: unknown, _stale: unknown, fetcher: () => Promise<unknown>) => {
         return await fetcher()
       })
 
@@ -94,13 +94,13 @@ describe('Facets Optimization', () => {
         { id: '3', setCode: 'JMP', rarity: 'common', finishes: ['nonfoil', 'foil'] }
       ]
 
-      mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
-      mockCache.getSWR.mockImplementation(async (key, fresh, stale, fetcher) => {
+      mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+      mockCache.getSWR.mockImplementation(async (_key: string, _fresh: unknown, _stale: unknown, fetcher: () => Promise<unknown>) => {
         return await fetcher()
       })
 
       mockPrisma.$queryRaw.mockResolvedValueOnce(candidates) // getCandidates
-      mockPrisma.$transaction.mockImplementation(async (fn) => {
+      mockPrisma.$transaction.mockImplementation(async (fn: (prisma: typeof mockPrisma) => Promise<unknown>) => {
         mockPrisma.$executeRaw.mockResolvedValue(undefined)
         mockPrisma.$queryRaw.mockResolvedValueOnce([
           { facet_type: 'sets', facet_key: 'THB', facet_name: 'Theros Beyond Death', count: 2 },
@@ -138,8 +138,8 @@ describe('Facets Optimization', () => {
     })
 
     it('uses SWR caching with single-flight protection', async () => {
-      mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
-      mockCache.getSWR.mockImplementation(async (key, fresh, stale, fetcher) => {
+      mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+      mockCache.getSWR.mockImplementation(async (_key: string, _fresh: unknown, _stale: unknown, fetcher: () => Promise<unknown>) => {
         return await fetcher()
       })
 
@@ -171,8 +171,8 @@ describe('Facets Optimization', () => {
       process.env.FACETS_LIMIT = '2'
 
       try {
-        mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
-        mockCache.getSWR.mockImplementation(async (key, fresh, stale, fetcher) => {
+        mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+        mockCache.getSWR.mockImplementation(async (_key: string, _fresh: unknown, _stale: unknown, fetcher: () => Promise<unknown>) => {
           return await fetcher()
         })
 
@@ -182,7 +182,7 @@ describe('Facets Optimization', () => {
           { id: '3', setCode: 'KHM', rarity: 'rare', finishes: ['nonfoil'] }
         ])
 
-        mockPrisma.$transaction.mockImplementation(async (fn) => {
+        mockPrisma.$transaction.mockImplementation(async (fn: (prisma: typeof mockPrisma) => Promise<unknown>) => {
           mockPrisma.$executeRaw.mockResolvedValue(undefined)
           mockPrisma.$queryRaw.mockResolvedValueOnce([
             { facet_type: 'sets', facet_key: 'THB', facet_name: 'Theros Beyond Death', count: 1 },
@@ -213,7 +213,7 @@ describe('Facets Optimization', () => {
     })
 
     it('handles errors gracefully', async () => {
-      mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
+      mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
       mockCache.getSWR.mockRejectedValue(new Error('Cache error'))
 
       const result = await buildFacetsOptimized({
@@ -235,8 +235,8 @@ describe('Facets Optimization', () => {
 
   describe('Candidate Resolution', () => {
     it('finds candidates for common queries like plains/island', async () => {
-      mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
-      mockCache.getSWR.mockImplementation(async (key, fresh, stale, fetcher) => {
+      mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+      mockCache.getSWR.mockImplementation(async (_key: string, _fresh: unknown, _stale: unknown, fetcher: () => Promise<unknown>) => {
         return await fetcher()
       })
 
@@ -247,7 +247,7 @@ describe('Facets Optimization', () => {
         { id: '3', setCode: 'KHM', rarity: 'common', finishes: ['nonfoil'] }
       ])
 
-      mockPrisma.$transaction.mockImplementation(async (fn) => {
+      mockPrisma.$transaction.mockImplementation(async (fn: (prisma: typeof mockPrisma) => Promise<unknown>) => {
         mockPrisma.$executeRaw.mockResolvedValue(undefined)
         mockPrisma.$queryRaw.mockResolvedValueOnce([
           { facet_type: 'sets', facet_key: 'THB', facet_name: 'Theros Beyond Death', count: 1 },
@@ -275,8 +275,8 @@ describe('Facets Optimization', () => {
     })
 
     it('uses correct column mapping for candidate IDs (scryfallId)', async () => {
-      mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
-      mockCache.getSWR.mockImplementation(async (key, fresh, stale, fetcher) => {
+      mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+      mockCache.getSWR.mockImplementation(async (_key: string, _fresh: unknown, _stale: unknown, fetcher: () => Promise<unknown>) => {
         return await fetcher()
       })
 
@@ -287,7 +287,7 @@ describe('Facets Optimization', () => {
         { id: 'card2', setCode: 'JMP', rarity: 'uncommon', finishes: ['foil'] }
       ])
 
-      mockPrisma.$transaction.mockImplementation(async (fn) => {
+      mockPrisma.$transaction.mockImplementation(async (fn: (prisma: typeof mockPrisma) => Promise<unknown>) => {
         mockPrisma.$executeRaw.mockResolvedValue(undefined)
         mockPrisma.$queryRaw.mockResolvedValueOnce([])
         return await fn(mockPrisma)
@@ -314,8 +314,8 @@ describe('Facets Optimization', () => {
     })
 
     it('handles type mismatch between candidate IDs and database columns', async () => {
-      mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
-      mockCache.getSWR.mockImplementation(async (key, fresh, stale, fetcher) => {
+      mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+      mockCache.getSWR.mockImplementation(async (_key: string, _fresh: unknown, _stale: unknown, fetcher: () => Promise<unknown>) => {
         return await fetcher()
       })
 
@@ -324,7 +324,7 @@ describe('Facets Optimization', () => {
       
       mockPrisma.$queryRaw.mockResolvedValueOnce([]) // No matches due to type mismatch
 
-      mockPrisma.$transaction.mockImplementation(async (fn) => {
+      mockPrisma.$transaction.mockImplementation(async (fn: (prisma: typeof mockPrisma) => Promise<unknown>) => {
         mockPrisma.$executeRaw.mockResolvedValue(undefined)
         mockPrisma.$queryRaw.mockResolvedValueOnce([])
         return await fn(mockPrisma)
@@ -399,8 +399,8 @@ describe('Facets Optimization', () => {
 
   describe('Performance Requirements', () => {
     it('uses single query for all facets', async () => {
-      mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
-      mockCache.getSWR.mockImplementation(async (key, fresh, stale, fetcher) => {
+      mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+      mockCache.getSWR.mockImplementation(async (_key: string, _fresh: unknown, _stale: unknown, fetcher: () => Promise<unknown>) => {
         return await fetcher()
       })
 
@@ -408,7 +408,7 @@ describe('Facets Optimization', () => {
         { id: '1', setCode: 'THB', rarity: 'common', finishes: ['nonfoil'] }
       ])
 
-      mockPrisma.$transaction.mockImplementation(async (fn) => {
+      mockPrisma.$transaction.mockImplementation(async (fn: (prisma: typeof mockPrisma) => Promise<unknown>) => {
         mockPrisma.$executeRaw.mockResolvedValue(undefined)
         mockPrisma.$queryRaw.mockResolvedValueOnce([
           { facet_type: 'sets', facet_key: 'THB', facet_name: 'Theros Beyond Death', count: 1 },
@@ -433,13 +433,13 @@ describe('Facets Optimization', () => {
     })
 
     it('sets work_mem for facet computation', async () => {
-      mockCache.withLock.mockImplementation(async (key, ttl, fn) => fn())
-      mockCache.getSWR.mockImplementation(async (key, fresh, stale, fetcher) => {
+      mockCache.withLock.mockImplementation(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn())
+      mockCache.getSWR.mockImplementation(async (_key: string, _fresh: unknown, _stale: unknown, fetcher: () => Promise<unknown>) => {
         return await fetcher()
       })
 
       mockPrisma.$queryRaw.mockResolvedValueOnce([])
-      mockPrisma.$transaction.mockImplementation(async (fn) => {
+      mockPrisma.$transaction.mockImplementation(async (fn: (prisma: typeof mockPrisma) => Promise<unknown>) => {
         mockPrisma.$executeRaw.mockResolvedValue(undefined)
         mockPrisma.$queryRaw.mockResolvedValueOnce([])
         return await fn(mockPrisma)

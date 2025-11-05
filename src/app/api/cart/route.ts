@@ -5,8 +5,6 @@ import { cookies } from 'next/headers'
 import { getSessionUser } from '@/lib/supabase'
 import { getOrCreateUserCart } from '@/lib/cart'
 import { getScryfallNormalUrl } from '@/lib/images'
-import type { CartApiResponse } from '@/types/search'
-import { CartResponseSchema } from '@/schemas/api'
 import { getPricingConfig } from '@/lib/pricingData'
 import { computePriceCLP } from '@/lib/pricing'
 

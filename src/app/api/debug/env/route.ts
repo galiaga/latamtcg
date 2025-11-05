@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Check environment variables
     const envVars = {

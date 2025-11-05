@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ThemeToggle from "@/components/ThemeToggle";
 import Script from "next/script";
-import pkg from '../../package.json'
 import SearchBox from "@/components/SearchBox";
 import SafeClient from "@/components/SafeClient";
 import Link from "next/link";

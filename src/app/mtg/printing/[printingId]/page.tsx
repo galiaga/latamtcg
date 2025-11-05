@@ -5,7 +5,6 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import OtherPrintingsCarousel from '@/components/OtherPrintingsCarousel'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
-import { formatCLP } from '@/lib/format'
 import { formatDisplayName } from '@/lib/cardNames'
 // Gate history chart import behind flag via dynamic import to avoid bundling when disabled
 const SHOW_HISTORY = process.env.NEXT_PUBLIC_PRICE_HISTORY_ENABLED === 'true'

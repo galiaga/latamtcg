@@ -10,7 +10,7 @@ export async function getSupabaseServer() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !key) return null
   try {
-    const cookieStore = await cookies() as any
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       url,
       key,
@@ -26,7 +26,7 @@ export async function getSupabaseServer() {
             try { cookieStore.set({ name, value: '', ...options }) } catch {}
           },
         },
-      } as any
+      }
     )
     return supabase
   } catch {
@@ -44,7 +44,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!supabase) return null
   try {
     const { data } = await supabase.auth.getUser()
-    const user = (data as any)?.user
+    const user = data?.user
     if (!user) return null
     return { id: user.id, email: user.email ?? null }
   } catch {

@@ -5,13 +5,12 @@ import { SWRConfig } from 'swr'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/components/CartProvider'
 import { supabaseBrowser } from '@/lib/supabase-browser'
-import { formatCLP } from '@/lib/format'
 import Image from 'next/image'
 import Link from 'next/link'
 import SkeletonCartRow from '@/components/SkeletonCartRow'
 import { usePricing } from '@/components/PricingProvider'
 import { calculateShipping, meetsMinimumOrder, amountToMinimum, amountToFreeShipping } from '@/lib/pricing'
-import { getDisplayPrice, formatPrice } from '@/lib/pricingClient'
+import { formatPrice } from '@/lib/pricingClient'
 
 
 type CartItem = {
