@@ -4,7 +4,6 @@ import { cacheGetJSON, cacheSetJSON, buildCacheKey } from '@/lib/cache'
 import { parseSortParam } from '@/search/sort'
 import { recordMetric } from '@/lib/metrics'
 import type { SearchApiResponse } from '@/types/search'
-import { SearchParamsSchema, SearchResponseSchema } from '@/schemas/api'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

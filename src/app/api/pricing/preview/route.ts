@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getPricingConfig, getBetaClpForDate } from '@/lib/pricingData'
-import { pickAlpha, ceilToStep, computePriceCLP } from '@/lib/pricing'
+import { pickAlpha, ceilToStep } from '@/lib/pricing'
 
 const previewSchema = z.object({
   tcgUsd: z.string().transform(val => parseFloat(val)).refine(val => !isNaN(val) && val > 0, {

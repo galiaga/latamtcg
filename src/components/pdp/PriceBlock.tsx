@@ -1,11 +1,7 @@
 "use client";
 
 import * as React from "react";
-
-export function formatCLP(n?: number | null) {
-  if (n == null) return "—";
-  return `$${n.toLocaleString("es-CL")}`;
-}
+import { formatCLP } from "@/lib/format";
 
 export function PriceBlock({
   variantLabel,
