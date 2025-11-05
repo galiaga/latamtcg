@@ -40,7 +40,10 @@ export async function GET(req: NextRequest) {
     const pageSize = Math.min(25, Math.max(1, requested))
     const exact = String(searchParams.get('exact') || '')
     const facetAll = String(searchParams.get('facetAll') || '')
-    const sort = String(searchParams.get('sort') || 'relevance')
+    // Use most-popular as default if enabled and no sort specified
+    const mostPopularEnabled = process.env.MOST_POPULAR_ENABLED === 'true'
+    const defaultSort = mostPopularEnabled ? 'most-popular' : 'relevance'
+    const sort = String(searchParams.get('sort') || defaultSort)
     const mode = (() => {
       const m = String(searchParams.get('mode') || 'name')
       return m === 'text' || m === 'all' ? m : 'name'

@@ -1,6 +1,6 @@
 # Database Schema Documentation
 
-**Last Updated:** 2025-10-28 (v0.31.0)
+**Last Updated:** 2025-11-04 (v0.32.0)
 
 ## Overview
 

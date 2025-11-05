@@ -1,6 +1,6 @@
 {
   "name": "latamtcg",
-  "version": "0.31.0",
+  "version": "0.32.1",
   "private": true,
   "scripts": {
     "dev": "NEXT_FORCE_WEBPACK=1 next dev",
@@ -27,6 +27,7 @@
     "db:seed:policy": "tsx scripts/seed-store-policy.ts",
     "db:verify:pricing": "tsx scripts/verify-pricing-setup.ts",
     "db:check:limits": "tsx scripts/check-purchase-limits-migration.ts",
+    "db:migrate:popularity": "tsx scripts/apply-popularity-migration.ts",
     "ingest:prices": "tsx scripts/ingest-scryfall-prices-secure.ts",
     "ingest:prices:local": "tsx src/scripts/local-ingest-prices.ts",
     "ingest:stage": "tsx scripts/ingest-stage.ts",

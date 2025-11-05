@@ -1,6 +1,7 @@
 {
   "crons": [
-    { "path": "/api/jobs/searchindex-refresh", "schedule": "15 4 * * *" }
+    { "path": "/api/jobs/searchindex-refresh", "schedule": "15 4 * * *" },
+    { "path": "/api/jobs/refresh-popularity", "schedule": "*/15 * * * *" }
   ]
 }
 

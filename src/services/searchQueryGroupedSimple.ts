@@ -80,6 +80,8 @@ function buildOrderByClause(sort: SortOption): Prisma.Sql {
       return Prisma.sql`COALESCE(mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched") DESC NULLS LAST`
     case 'release_desc':
       return Prisma.sql`si."releasedAt" DESC NULLS LAST`
+    case 'most-popular':
+      return Prisma.sql`ip.popularity_score DESC NULLS LAST, COALESCE(si."releasedAt", mc."releasedAt") DESC NULLS LAST, si.title ASC NULLS LAST`
     default:
       return Prisma.sql`score DESC, si."releasedAt" DESC NULLS LAST`
   }
@@ -351,6 +353,7 @@ export async function groupedSearchOriginal(params: GroupedParams): Promise<Grou
           FROM "public"."SearchIndex" si
           JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
           LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+          ${sort === 'most-popular' ? Prisma.sql`LEFT JOIN public.item_popularity_mv ip ON ip.printing_id = si.id` : Prisma.sql``}
           WHERE si.game = 'mtg' AND si."isPaper" = true
             AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
             ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
@@ -723,6 +726,7 @@ async function getFacetCandidates({ queryTokens, groupId, setList, printing, rar
       SELECT DISTINCT si.id
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      ${sort === 'most-popular' ? Prisma.sql`LEFT JOIN public.item_popularity_mv ip ON ip.printing_id = si.id` : Prisma.empty}
       WHERE si.game = 'mtg' AND si."isPaper" = true
         AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
