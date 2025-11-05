@@ -22,4 +22,10 @@ vi.mock('next/navigation', () => {
   return { usePathname: () => '/' }
 })
 
+// Set Flow environment variables for tests if not already set
+if (!process.env.FLOW_API_KEY) process.env.FLOW_API_KEY = 'test_api_key'
+if (!process.env.FLOW_SECRET) process.env.FLOW_SECRET = 'test_secret_key_for_signing'
+if (!process.env.FLOW_RETURN_URL) process.env.FLOW_RETURN_URL = 'https://example.com/return'
+if (!process.env.FLOW_CALLBACK_URL) process.env.FLOW_CALLBACK_URL = 'https://example.com/callback'
+
 

@@ -11,6 +11,8 @@ import SkeletonCartRow from '@/components/SkeletonCartRow'
 import { usePricing } from '@/components/PricingProvider'
 import { calculateShipping, meetsMinimumOrder, amountToMinimum, amountToFreeShipping } from '@/lib/pricing'
 import { formatPrice } from '@/lib/pricingClient'
+import { useGuestCheckout } from '@/hooks/useGuestCheckout'
+import GuestCheckoutModal from '@/components/checkout/GuestCheckoutModal'
 
 
 type CartItem = {
@@ -147,21 +149,15 @@ export default function CartPage() {
     } catch {}
   }
 
-  async function checkoutGuest() {
-    if (!meetsMinimum) {
-      alert(`Minimum order is ${formatPrice(config?.minOrderSubtotalClp || 0, config)}. Add ${formatPrice(amountToMin, config)} more to checkout.`)
-      return
-    }
-    
-    const email = window.prompt('Enter your email to checkout as guest')
-    if (!email) return
-    
+  // Guest checkout handler (extracted for reuse)
+  const handleGuestEmailCollected = useCallback(async (email: string) => {
     try {
-      const res = await fetch('/api/checkout/guest', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
+      const res = await fetch('/api/checkout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
       const json = await res.json()
       
-      if (res.ok && json?.orderId) {
-        window.location.href = `/order/confirmation?orderId=${encodeURIComponent(json.orderId)}`
+      if (res.ok && json?.paymentUrl) {
+        // Redirect to Flow payment page
+        window.location.href = json.paymentUrl
         return
       }
       
@@ -175,12 +171,30 @@ export default function CartPage() {
         } else {
           alert('Some items exceed purchase limits. Please reduce quantities and try again.')
         }
+      } else if (json?.error === 'minimum_order_not_met') {
+        alert(`Minimum order is ${formatPrice(json.required || 0, config)}. Add ${formatPrice((json.required || 0) - (json.current || 0), config)} more to checkout.`)
       } else {
-        alert(json?.error || 'Unable to checkout')
+        alert(json?.error || json?.message || 'Unable to checkout')
       }
     } catch (e: any) {
       alert(e?.message || 'Unable to checkout')
+      throw e // Re-throw so modal can handle it
     }
+  }, [config])
+
+  // Guest checkout hook
+  const { isModalOpen, startGuestCheckout, closeModal, submit } = useGuestCheckout({
+    onEmailCollected: handleGuestEmailCollected,
+  })
+
+  async function checkoutGuest() {
+    if (!meetsMinimum) {
+      alert(`Minimum order is ${formatPrice(config?.minOrderSubtotalClp || 0, config)}. Add ${formatPrice(amountToMin, config)} more to checkout.`)
+      return
+    }
+    
+    // Use hook to start guest checkout (handles feature flag and fallback)
+    await startGuestCheckout()
   }
 
   async function checkoutUser() {
@@ -191,25 +205,12 @@ export default function CartPage() {
     
     try {
       setRedirecting(true)
-      const res = await fetch('/api/checkout/user', { method: 'POST', headers: { 'content-type': 'application/json' } })
+      const res = await fetch('/api/checkout', { method: 'POST', headers: { 'content-type': 'application/json' } })
       const json = await res.json()
-      if (res.ok && json?.orderId) {
-        const target = `/order/confirmation?orderId=${encodeURIComponent(json.orderId)}`
+      if (res.ok && json?.paymentUrl) {
+        // Redirect to Flow payment page
         try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
-        // Try client navigation first, then hard redirect fallback
-        try {
-          router.push(target)
-          // Fallback if client navigation is blocked
-          setTimeout(() => {
-            try {
-              if (typeof window !== 'undefined' && window.location.pathname !== '/order/confirmation') {
-                window.location.href = target
-              }
-            } catch {}
-          }, 300)
-        } catch {
-          try { window.location.href = target } catch {}
-        }
+        window.location.href = json.paymentUrl
         return
       }
       
@@ -223,8 +224,10 @@ export default function CartPage() {
         } else {
           alert('Some items exceed purchase limits. Please reduce quantities and try again.')
         }
+      } else if (json?.error === 'minimum_order_not_met') {
+        alert(`Minimum order is ${formatPrice(json.required || 0, config)}. Add ${formatPrice((json.required || 0) - (json.current || 0), config)} more to checkout.`)
       } else {
-        alert(json?.error || 'Unable to checkout')
+        alert(json?.error || json?.message || 'Unable to checkout')
       }
     } catch (e: any) {
       alert(e?.message || 'Unable to checkout')
@@ -373,6 +376,17 @@ export default function CartPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Guest Checkout Modal */}
+      {isModalOpen && (
+        <GuestCheckoutModal
+          isOpen={isModalOpen}
+          initialEmail={typeof window !== 'undefined' ? localStorage.getItem('latamtcg_guest_email') ?? '' : ''}
+          onCancel={closeModal}
+          onContinue={submit}
+          onCreateAccount={(email) => router.push(`/auth?email=${encodeURIComponent(email)}`)}
+        />
       )}
     </div>
     </SWRConfig>

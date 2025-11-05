@@ -48,9 +48,41 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const result = pricingConfigSchema.safeParse(body)
+    
+    // Clean up the body: remove empty strings, convert to proper types, remove undefined
+    const cleanedBody: Record<string, any> = {}
+    for (const [key, value] of Object.entries(body)) {
+      // Skip undefined values
+      if (value === undefined) continue
+      
+      // Handle empty strings - convert to undefined for optional fields
+      if (value === '' || value === null) {
+        // Only allow null for freeShippingThresholdClp (can be null to disable)
+        if (key === 'freeShippingThresholdClp') {
+          cleanedBody[key] = null
+        }
+        // Skip other empty values
+        continue
+      }
+      
+      // Convert number strings to numbers
+      if (typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '') {
+        const numValue = Number(value)
+        if (!isNaN(numValue)) {
+          cleanedBody[key] = numValue
+        }
+      } else {
+        cleanedBody[key] = value
+      }
+    }
+    
+    console.log('[admin/pricing/config] Received body:', JSON.stringify(body, null, 2))
+    console.log('[admin/pricing/config] Cleaned body:', JSON.stringify(cleanedBody, null, 2))
+    
+    const result = pricingConfigSchema.safeParse(cleanedBody)
 
     if (!result.success) {
+      console.error('[admin/pricing/config] Validation failed:', result.error.issues)
       return NextResponse.json(
         { error: 'Invalid configuration data', details: result.error.issues },
         { status: 400 }
@@ -62,7 +94,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Update pricing config error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

@@ -1,19 +1,31 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 
 export default function AuthPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = useMemo(() => {
     try { return supabaseBrowser() } catch { return null }
   }, [])
+
+  // Prefill email from query params (from guest checkout or post-purchase invite)
+  const emailParam = searchParams?.get('email') || ''
+  const fromOrder = searchParams?.get('fromOrder')
 
   const [email, setEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Prefill email when component mounts or emailParam changes
+  useEffect(() => {
+    if (emailParam && !email) {
+      setEmail(emailParam)
+    }
+  }, [emailParam, email])
 
   // If already signed in, redirect to /orders
   useEffect(() => {

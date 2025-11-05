@@ -89,14 +89,21 @@ export default function AdminPricingPage() {
         'x-admin-token': token
       }
       
+      // Remove fields that shouldn't be sent (id, timestamps)
+      const { id, createdAt, updatedAt, ...dataToSend } = formData
+      
       const res = await fetch('/api/admin/pricing/config', {
         method: 'POST',
         headers,
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       })
 
       if (!res.ok) {
-        throw new Error('Failed to save configuration')
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        const errorMessage = errorData.details 
+          ? `Validation error: ${JSON.stringify(errorData.details, null, 2)}`
+          : errorData.error || errorData.message || 'Failed to save configuration'
+        throw new Error(errorMessage)
       }
 
       const data = await res.json()
