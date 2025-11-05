@@ -147,7 +147,7 @@ export async function getPurchaseLimitInfo(params: {
             gte: windowStart
           },
           status: {
-            notIn: ['cancelled', 'refunded']
+            notIn: ['cancelled', 'failed']
           }
         }
       },
