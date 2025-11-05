@@ -1,4 +1,5 @@
 import PopularCards from '@/components/PopularCards'
+import RandomButton from '@/components/RandomButton'
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Discover and collect Magic: The Gathering cards with real-time pricing and seamless shopping experience.
           </p>
+          <RandomButton />
         </section>
 
         {/* Popular Cards Section */}
