@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
 
     // Try to log the error
     try {
-      const params = await parseFlowCallback(req).catch(() => ({}))
+      const params = await parseFlowCallback(req).catch(() => ({} as Record<string, string>))
       const token = params.token || params.Token || params.token_payment
       if (token) {
         const order = await prisma.order.findUnique({
