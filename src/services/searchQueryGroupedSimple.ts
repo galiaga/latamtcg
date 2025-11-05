@@ -726,7 +726,6 @@ async function getFacetCandidates({ queryTokens, groupId, setList, printing, rar
       SELECT DISTINCT si.id
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-      ${sort === 'most-popular' ? Prisma.sql`LEFT JOIN public.item_popularity_mv ip ON ip.printing_id = si.id` : Prisma.empty}
       WHERE si.game = 'mtg' AND si."isPaper" = true
         AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
