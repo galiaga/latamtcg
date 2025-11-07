@@ -28,6 +28,9 @@ export const metadata: Metadata = {
     template: 'LatamTCG | %s',
   },
   description: 'LatamTCG',
+  icons: {
+    icon: '/favicon.ico?v=3',
+  },
 };
 
 export default function RootLayout({
