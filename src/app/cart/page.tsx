@@ -173,8 +173,12 @@ export default function CartPage() {
         }
       } else if (json?.error === 'minimum_order_not_met') {
         alert(`Minimum order is ${formatPrice(json.required || 0, config)}. Add ${formatPrice((json.required || 0) - (json.current || 0), config)} more to checkout.`)
+      } else if (json?.error === 'configuration_error') {
+        // Show descriptive message for configuration errors
+        alert(json?.message || 'Payment system configuration error. Please contact support.')
       } else {
-        alert(json?.error || json?.message || 'Unable to checkout')
+        // Prioritize message over error code for better UX
+        alert(json?.message || json?.error || 'Unable to checkout')
       }
     } catch (e: any) {
       alert(e?.message || 'Unable to checkout')
@@ -226,8 +230,12 @@ export default function CartPage() {
         }
       } else if (json?.error === 'minimum_order_not_met') {
         alert(`Minimum order is ${formatPrice(json.required || 0, config)}. Add ${formatPrice((json.required || 0) - (json.current || 0), config)} more to checkout.`)
+      } else if (json?.error === 'configuration_error') {
+        // Show descriptive message for configuration errors
+        alert(json?.message || 'Payment system configuration error. Please contact support.')
       } else {
-        alert(json?.error || json?.message || 'Unable to checkout')
+        // Prioritize message over error code for better UX
+        alert(json?.message || json?.error || 'Unable to checkout')
       }
     } catch (e: any) {
       alert(e?.message || 'Unable to checkout')

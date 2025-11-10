@@ -139,6 +139,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'cart_empty' }, { status: 400 })
     }
 
+    // Validate Flow configuration early (fail fast)
+    try {
+      const { getFlowConfig } = await import('@/lib/flow/flowClient')
+      getFlowConfig()
+    } catch (configError: any) {
+      console.error('[checkout] Flow configuration error:', configError.message)
+      let errorCode = 'configuration_error'
+      let errorMessage = 'Payment system configuration error. Please contact support.'
+      
+      if (configError.message?.includes('FLOW_API_KEY')) {
+        errorMessage = 'Payment system configuration error: FLOW_API_KEY is not set. Please contact support.'
+      } else if (configError.message?.includes('FLOW_SECRET')) {
+        errorMessage = 'Payment system configuration error: FLOW_SECRET is not set. Please contact support.'
+      } else if (configError.message?.includes('FLOW_RETURN_URL')) {
+        errorMessage = 'Payment system configuration error: FLOW_RETURN_URL is not set or invalid. Please contact support.'
+      } else if (configError.message?.includes('FLOW_CALLBACK_URL')) {
+        errorMessage = 'Payment system configuration error: FLOW_CALLBACK_URL is not set or invalid. Please contact support.'
+      } else if (configError.message?.includes('Invalid URL format')) {
+        errorMessage = 'Payment system configuration error: Flow URLs are invalid. Please contact support.'
+      }
+      
+      return NextResponse.json(
+        { error: errorCode, message: errorMessage },
+        { status: 500 }
+      )
+    }
+
     // Get pricing configuration
     const pricingConfig = await getPricingConfig()
     const betaClp = await getBetaClpForDate()
@@ -356,13 +383,17 @@ export async function POST(req: NextRequest) {
     
     if (error.message?.includes('environment variable')) {
       errorCode = 'configuration_error'
-      errorMessage = `Missing Flow configuration: ${error.message}. Please set FLOW_API_KEY, FLOW_SECRET, FLOW_RETURN_URL, and FLOW_CALLBACK_URL environment variables.`
+      // Extract which variable is missing from the error message
+      const missingVar = error.message.match(/FLOW_\w+/)?.[0] || 'Flow configuration'
+      errorMessage = `Payment system configuration error: ${missingVar} is not set. Please contact support.`
     } else if (error.message?.includes('Invalid URL format')) {
       errorCode = 'configuration_error'
-      errorMessage = `Invalid Flow URL configuration: ${error.message}. Please check FLOW_RETURN_URL and FLOW_CALLBACK_URL are valid URLs.`
+      // Extract which URL is invalid from the error message
+      const invalidVar = error.message.match(/FLOW_\w+_URL/)?.[0] || 'Flow URL'
+      errorMessage = `Payment system configuration error: ${invalidVar} is not a valid URL. Please contact support.`
     } else if (error.message?.includes('Flow API error')) {
       errorCode = 'payment_gateway_error'
-      errorMessage = `Flow payment gateway error: ${error.message}`
+      errorMessage = `Payment gateway error: ${error.message}`
     }
 
     // Log error to payment log if we have an order
