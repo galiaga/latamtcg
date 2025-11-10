@@ -55,6 +55,16 @@ export default function HeaderUser() {
           } catch {}
           try { await fetch('/api/cart/reset', { method: 'POST' }) } catch {}
           try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
+          
+          // Clear user-related localStorage data (keep theme preference)
+          try {
+            localStorage.removeItem('latamtcg_guest_email')
+            localStorage.removeItem('cart:pulse')
+            localStorage.removeItem('cart:delta')
+          } catch {}
+          
+          // Redirect to home page
+          router.push('/')
           router.refresh()
         } else if (event === 'USER_UPDATED') {
           setUser(session?.user ? { id: session.user.id, email: session.user.email ?? null } : null)
@@ -151,8 +161,18 @@ export default function HeaderUser() {
             type="button"
             className="block w-full text-left px-4 py-2"
             onClick={async () => {
-              try { await supabase?.auth.signOut() } catch {}
               setMenuOpen(false)
+              try { 
+                await supabase?.auth.signOut()
+                // Clear user-related localStorage data (keep theme preference)
+                try {
+                  localStorage.removeItem('latamtcg_guest_email')
+                  localStorage.removeItem('cart:pulse')
+                  localStorage.removeItem('cart:delta')
+                } catch {}
+                // Redirect to home page
+                router.push('/')
+              } catch {}
               router.refresh()
             }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in oklab, var(--chip-hover) 40%, transparent)' }}
