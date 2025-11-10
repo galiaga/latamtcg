@@ -10,15 +10,33 @@ export async function GET(req: NextRequest) {
   // In production, require secret token (use CRON_SECRET if available, otherwise FLOW_SECRET)
   if (process.env.NODE_ENV === 'production') {
     const secret = req.nextUrl.searchParams.get('secret')?.trim()
-    const expectedSecret = (process.env.CRON_SECRET || process.env.FLOW_SECRET)?.trim()
+    // Get raw value and trimmed value to detect hidden characters
+    const rawExpectedSecret = process.env.CRON_SECRET || process.env.FLOW_SECRET
+    const expectedSecret = rawExpectedSecret?.trim()
+    
+    // Check for hidden characters (non-printable, newlines, etc.)
+    const hasHiddenChars = rawExpectedSecret && rawExpectedSecret !== rawExpectedSecret.trim()
+    const nonPrintableChars = rawExpectedSecret ? Array.from(rawExpectedSecret).filter(c => {
+      const code = c.charCodeAt(0)
+      return code < 32 && code !== 9 && code !== 10 && code !== 13 // Exclude tab, LF, CR
+    }) : []
     
     // Debug info (without exposing actual secrets)
     const debugInfo = {
       hasSecret: !!secret,
       secretLength: secret?.length || 0,
+      secretFirstChars: secret?.substring(0, 8) || '',
+      secretLastChars: secret?.substring(Math.max(0, (secret?.length || 0) - 8)) || '',
       hasExpectedSecret: !!expectedSecret,
+      rawExpectedSecretLength: rawExpectedSecret?.length || 0,
       expectedSecretLength: expectedSecret?.length || 0,
+      expectedSecretFirstChars: expectedSecret?.substring(0, 8) || '',
+      expectedSecretLastChars: expectedSecret?.substring(Math.max(0, (expectedSecret?.length || 0) - 8)) || '',
       secretsMatch: secret === expectedSecret,
+      // Check for hidden characters
+      hasHiddenChars: hasHiddenChars,
+      nonPrintableCharCount: nonPrintableChars.length,
+      lengthMismatch: (secret?.length || 0) !== (expectedSecret?.length || 0),
     }
     
     if (!expectedSecret) {
