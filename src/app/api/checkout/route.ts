@@ -51,7 +51,9 @@ export async function POST(req: NextRequest) {
 
     // Get user (optional - supports guest checkout)
     const user = await getSessionUser()
-    let email: string | undefined = bodyEmail
+    // Use email from request body, session user, or database (in that order)
+    // Note: user.email can be null from Supabase, so we need to check explicitly
+    let email: string | undefined = bodyEmail || (user?.email ? user.email : undefined)
 
     // Determine cart source
     let cartItems: Array<{ printingId: string; quantity: number; unitPrice: number | null }> = []
@@ -73,13 +75,17 @@ export async function POST(req: NextRequest) {
         unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
       }))
 
-      // Get email from user if authenticated
+      // Get email from user if authenticated (use session email first, then database)
       if (user && cart.userId === user.id) {
-        const userRecord = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { email: true },
-        })
-        email = userRecord?.email || undefined
+        if (!email && user.email) {
+          email = user.email
+        } else if (!email) {
+          const userRecord = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { email: true },
+          })
+          email = userRecord?.email || undefined
+        }
       }
     } else if (bodyItems && bodyItems.length > 0) {
       // Use items from request body
@@ -106,11 +112,16 @@ export async function POST(req: NextRequest) {
         unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
       }))
 
-      const userRecord = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { email: true },
-      })
-      email = userRecord?.email || undefined
+      // Use email from session user first, then database
+      if (!email && user.email) {
+        email = user.email
+      } else if (!email) {
+        const userRecord = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { email: true },
+        })
+        email = userRecord?.email || undefined
+      }
     } else {
       // Try guest cart from cookie
       const store = await cookies()
