@@ -126,10 +126,11 @@ export async function createPayment(params: FlowPaymentCreateParams): Promise<Fl
     urlConfirmation: params.urlConfirmation || config.FLOW_CALLBACK_URL,
   }
 
-  // Add email only if provided (Flow might not want empty email in signature)
-  if (params.email && params.email.trim() !== '') {
-    payload.email = params.email
+  // Email is required by Flow API
+  if (!params.email || params.email.trim() === '') {
+    throw new Error('Email is required for Flow payment creation')
   }
+  payload.email = params.email.trim()
 
   // Flow.cl signature format: 
   // 1. Sort parameters alphabetically by key
