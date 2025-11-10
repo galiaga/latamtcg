@@ -4,14 +4,14 @@ import { NextRequest, NextResponse } from 'next/server'
 /**
  * GET /api/debug/flow-config
  * Diagnostic endpoint to check Flow configuration
- * In production, requires ?secret=CRON_SECRET or ?secret=FLOW_SECRET query parameter
+ * In production, requires ?secret=FLOW_SECRET query parameter
  */
 export async function GET(req: NextRequest) {
-  // In production, require secret token (use CRON_SECRET if available, otherwise FLOW_SECRET)
+  // In production, require secret token (use FLOW_SECRET for Flow config debugging)
   if (process.env.NODE_ENV === 'production') {
     const secret = req.nextUrl.searchParams.get('secret')?.trim()
-    // Get raw value and trimmed value to detect hidden characters
-    const rawExpectedSecret = process.env.CRON_SECRET || process.env.FLOW_SECRET
+    // Use FLOW_SECRET directly since this endpoint is for Flow configuration
+    const rawExpectedSecret = process.env.FLOW_SECRET
     const expectedSecret = rawExpectedSecret?.trim()
     
     // Check for hidden characters (non-printable, newlines, etc.)
@@ -37,12 +37,14 @@ export async function GET(req: NextRequest) {
       hasHiddenChars: hasHiddenChars,
       nonPrintableCharCount: nonPrintableChars.length,
       lengthMismatch: (secret?.length || 0) !== (expectedSecret?.length || 0),
+      // Show FLOW_SECRET info
+      flowSecretLength: process.env.FLOW_SECRET?.length || 0,
     }
     
     if (!expectedSecret) {
       return NextResponse.json({ 
         error: 'unauthorized', 
-        message: 'No secret configured in environment. FLOW_SECRET or CRON_SECRET must be set.',
+        message: 'No FLOW_SECRET configured in environment.',
         debug: debugInfo
       }, { status: 401 })
     }
