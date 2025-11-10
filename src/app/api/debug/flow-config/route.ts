@@ -59,12 +59,15 @@ export async function GET(req: NextRequest) {
   }
 
   const config = {
-    FLOW_API_KEY: process.env.FLOW_API_KEY ? '✅ Set' : '❌ Missing',
-    FLOW_SECRET: process.env.FLOW_SECRET ? '✅ Set' : '❌ Missing',
+    FLOW_API_KEY: process.env.FLOW_API_KEY ? `✅ Set (${process.env.FLOW_API_KEY.length} chars)` : '❌ Missing',
+    FLOW_SECRET: process.env.FLOW_SECRET ? `✅ Set (${process.env.FLOW_SECRET.length} chars)` : '❌ Missing',
     FLOW_BASE_URL: process.env.FLOW_BASE_URL || 'https://www.flow.cl/api (default)',
     FLOW_RETURN_URL: process.env.FLOW_RETURN_URL || '❌ Missing',
     FLOW_CALLBACK_URL: process.env.FLOW_CALLBACK_URL || '❌ Missing',
     APP_BASE_URL: process.env.APP_BASE_URL || '❌ Missing',
+    // Also check CRON_SECRET to see if it exists
+    CRON_SECRET: process.env.CRON_SECRET ? `✅ Set (${process.env.CRON_SECRET.length} chars)` : '❌ Missing',
+    NODE_ENV: process.env.NODE_ENV || 'not set',
   }
 
   // Validate URLs

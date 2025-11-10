@@ -257,6 +257,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Validate email is present (required by Flow)
+    if (!email || email.trim() === '') {
+      console.error('[checkout] Email is required for Flow payment')
+      return NextResponse.json(
+        {
+          error: 'email_required',
+          message: 'Email is required to complete checkout. Please provide your email address.',
+        },
+        { status: 400 }
+      )
+    }
+
     // Create order and payment in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create order
