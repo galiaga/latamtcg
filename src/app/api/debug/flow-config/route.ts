@@ -1,14 +1,19 @@
 export const runtime = 'nodejs'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * GET /api/debug/flow-config
  * Diagnostic endpoint to check Flow configuration
- * Only available in non-production
+ * In production, requires ?secret=CRON_SECRET or ?secret=FLOW_SECRET query parameter
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // In production, require secret token (use CRON_SECRET if available, otherwise FLOW_SECRET)
   if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'not_available_in_production' }, { status: 403 })
+    const secret = req.nextUrl.searchParams.get('secret')
+    const expectedSecret = process.env.CRON_SECRET || process.env.FLOW_SECRET
+    if (!expectedSecret || secret !== expectedSecret) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    }
   }
 
   const config = {
