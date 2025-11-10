@@ -9,10 +9,32 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(req: NextRequest) {
   // In production, require secret token (use CRON_SECRET if available, otherwise FLOW_SECRET)
   if (process.env.NODE_ENV === 'production') {
-    const secret = req.nextUrl.searchParams.get('secret')
-    const expectedSecret = process.env.CRON_SECRET || process.env.FLOW_SECRET
-    if (!expectedSecret || secret !== expectedSecret) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    const secret = req.nextUrl.searchParams.get('secret')?.trim()
+    const expectedSecret = (process.env.CRON_SECRET || process.env.FLOW_SECRET)?.trim()
+    
+    // Debug info (without exposing actual secrets)
+    const debugInfo = {
+      hasSecret: !!secret,
+      secretLength: secret?.length || 0,
+      hasExpectedSecret: !!expectedSecret,
+      expectedSecretLength: expectedSecret?.length || 0,
+      secretsMatch: secret === expectedSecret,
+    }
+    
+    if (!expectedSecret) {
+      return NextResponse.json({ 
+        error: 'unauthorized', 
+        message: 'No secret configured in environment. FLOW_SECRET or CRON_SECRET must be set.',
+        debug: debugInfo
+      }, { status: 401 })
+    }
+    
+    if (!secret || secret !== expectedSecret) {
+      return NextResponse.json({ 
+        error: 'unauthorized', 
+        message: 'Secret mismatch. Check that the secret parameter matches your FLOW_SECRET exactly.',
+        debug: debugInfo
+      }, { status: 401 })
     }
   }
 
