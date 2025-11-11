@@ -28,7 +28,20 @@ export async function POST(req: NextRequest) {
     const t1 = Date.now()
     const card = await prisma.mtgCard.findUnique({ where: { scryfallId: printingId }, select: { priceUsd: true, priceUsdFoil: true, priceUsdEtched: true } })
     dbMs += Date.now() - t1
-    const unitPrice = (card?.priceUsdEtched ?? card?.priceUsdFoil ?? card?.priceUsd) ?? null
+    
+    // Select price based on finish/variant
+    const finish = (body.finish || 'normal') as 'normal' | 'foil' | 'etched'
+    let unitPrice: number | null = null
+    if (finish === 'etched' && card?.priceUsdEtched) {
+      unitPrice = Number(card.priceUsdEtched)
+    } else if (finish === 'foil' && card?.priceUsdFoil) {
+      unitPrice = Number(card.priceUsdFoil)
+    } else if (finish === 'normal' && card?.priceUsd) {
+      unitPrice = Number(card.priceUsd)
+    } else {
+      // Fallback to best available price if requested finish not available
+      unitPrice = (card?.priceUsdEtched ?? card?.priceUsdFoil ?? card?.priceUsd) ? Number(card?.priceUsdEtched ?? card?.priceUsdFoil ?? card?.priceUsd) : null
+    }
 
     // Idempotency: record request if provided
     try {
@@ -37,14 +50,95 @@ export async function POST(req: NextRequest) {
       }
     } catch {}
 
-    // Single write: create or increment
+    // Single write: create or increment (checking both printingId AND finish)
     const t2 = Date.now()
     await prisma.$transaction(async (tx) => {
-      const line = await tx.cartItem.findFirst({ where: { cartId, printingId }, select: { id: true, quantity: true, unitPrice: true } })
+      // Normalize finish to always be a string (never null)
+      const normalizedFinish = finish || 'normal'
+      
+      // Try to find existing item by printingId and finish
+      // If finish column doesn't exist in DB, this will fail and we'll fall back
+      let line = null
+      try {
+        line = await tx.cartItem.findFirst({ 
+          where: { 
+            cartId, 
+            printingId,
+            finish: normalizedFinish
+          }, 
+          select: { id: true, quantity: true, unitPrice: true, finish: true } 
+        })
+      } catch (err: any) {
+        // If finish column doesn't exist, fall back to finding by printingId only
+        const errorMsg = err?.message || String(err)
+        if (errorMsg.includes('finish') || errorMsg.includes('column') || (err as any)?.code === 'P2021' || (err as any)?.code === '42703') {
+          // Column doesn't exist - use legacy behavior (find by printingId only)
+          line = await tx.cartItem.findFirst({ 
+            where: { 
+              cartId, 
+              printingId
+            }, 
+            select: { id: true, quantity: true, unitPrice: true } 
+          })
+        } else {
+          throw err
+        }
+      }
+      
       if (line) {
-        await tx.cartItem.update({ where: { id: line.id }, data: { quantity: line.quantity + quantity, unitPrice: unitPrice ?? line.unitPrice } })
+        // Update existing item
+        const updateData: any = { 
+          quantity: line.quantity + quantity, 
+          unitPrice: unitPrice ?? line.unitPrice
+        }
+        
+        // Try to include finish if the column exists
+        try {
+          updateData.finish = normalizedFinish
+          await tx.cartItem.update({ 
+            where: { id: line.id }, 
+            data: updateData
+          })
+        } catch (err: any) {
+          // If finish column doesn't exist, update without it
+          const errorMsg = err?.message || String(err)
+          if (errorMsg.includes('finish') || errorMsg.includes('column') || (err as any)?.code === 'P2021' || (err as any)?.code === '42703') {
+            delete updateData.finish
+            await tx.cartItem.update({ 
+              where: { id: line.id }, 
+              data: updateData
+            })
+          } else {
+            throw err
+          }
+        }
       } else {
-        await tx.cartItem.create({ data: { cartId, printingId, quantity, unitPrice } })
+        // Create new item
+        const createData: any = { 
+          cartId, 
+          printingId, 
+          quantity, 
+          unitPrice
+        }
+        
+        // Try to include finish
+        try {
+          createData.finish = normalizedFinish
+          await tx.cartItem.create({ 
+            data: createData
+          })
+        } catch (err: any) {
+          // If finish column doesn't exist, create without it
+          const errorMsg = err?.message || String(err)
+          if (errorMsg.includes('finish') || errorMsg.includes('column') || (err as any)?.code === 'P2021' || (err as any)?.code === '42703') {
+            delete createData.finish
+            await tx.cartItem.create({ 
+              data: createData
+            })
+          } else {
+            throw err
+          }
+        }
       }
     })
     dbMs += Date.now() - t2
@@ -67,9 +161,23 @@ export async function POST(req: NextRequest) {
       message: error instanceof Error ? error.message : String(error),
       cause: error instanceof Error ? error.cause : undefined,
     })
+    
+    // Check if error is related to missing finish column
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const isFinishError = errorMessage.includes('finish') || errorMessage.includes('column') || (error as any)?.code === 'P2021'
+    
+    if (isFinishError) {
+      console.error('[cart/add] Finish column may not exist in database. Migration may be needed.')
+      return NextResponse.json({ 
+        error: 'database_schema_error', 
+        message: 'Cart database schema needs to be updated. Please run database migrations.',
+        details: 'The finish column may be missing from CartItem table. Run: npx prisma migrate deploy'
+      }, { status: 500 })
+    }
+    
     return NextResponse.json({ 
       error: 'Failed to add to cart', 
-      details: error instanceof Error ? error.message : String(error),
+      details: errorMessage,
       stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
     }, { status: 500 })
   }

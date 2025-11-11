@@ -280,6 +280,29 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Find cart ID to store in order metadata (for later cart cleanup when payment is confirmed)
+    let cartIdToStore: string | null = null
+    if (cartId) {
+      cartIdToStore = cartId
+    } else if (user) {
+      const userCart = await prisma.cart.findFirst({
+        where: { userId: user.id, checkedOutAt: null },
+        select: { id: true },
+      })
+      cartIdToStore = userCart?.id || null
+    } else {
+      // Guest cart
+      const store = await cookies()
+      const token = store.get('cart_token')?.value
+      if (token) {
+        const guestCart = await prisma.cart.findFirst({
+          where: { token, checkedOutAt: null },
+          select: { id: true },
+        })
+        cartIdToStore = guestCart?.id || null
+      }
+    }
+
     // Create order and payment in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create order
@@ -301,6 +324,7 @@ export async function POST(req: NextRequest) {
             subtotalCLP,
             shippingCLP,
             totalCLP,
+            cartId: cartIdToStore, // Store cartId for later cleanup when payment is confirmed
             items: enriched.map((item) => ({
               printingId: item.printingId,
               quantity: item.quantity,
@@ -351,38 +375,9 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      // Mark cart as checked out if we used a cart
-      if (cartId) {
-        await tx.cart.update({
-          where: { id: cartId },
-          data: { checkedOutAt: new Date() },
-        })
-      } else if (user) {
-        const userCart = await tx.cart.findFirst({
-          where: { userId: user.id, checkedOutAt: null },
-        })
-        if (userCart) {
-          await tx.cart.update({
-            where: { id: userCart.id },
-            data: { checkedOutAt: new Date() },
-          })
-        }
-      } else {
-        // Guest cart
-        const store = await cookies()
-        const token = store.get('cart_token')?.value
-        if (token) {
-          const guestCart = await tx.cart.findFirst({
-            where: { token, checkedOutAt: null },
-          })
-          if (guestCart) {
-            await tx.cart.update({
-              where: { id: guestCart.id },
-              data: { checkedOutAt: new Date() },
-            })
-          }
-        }
-      }
+      // NOTE: Cart is NOT marked as checked out here.
+      // Cart will only be marked as checked out when payment is confirmed (status = 'paid')
+      // This ensures cart items remain available if payment fails or user cancels.
 
       return {
         orderId: order.id,

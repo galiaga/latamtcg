@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseFlowCallback } from '@/lib/flow/flowClient'
+import { prisma } from '@/lib/prisma'
 
 /**
  * Handle POST requests from Flow redirect
@@ -19,6 +20,36 @@ export async function POST(req: NextRequest) {
     const status = params.status || params.Status || params.STATUS
     
     console.log('[checkout/return] Extracted token:', token ? `${token.substring(0, 10)}...` : 'missing')
+    console.log('[checkout/return] Extracted status:', status)
+    
+    // If status indicates cancellation (3 = rejected, 4 = expired), update order and redirect to cart
+    const statusNum = status ? Number(status) : null
+    if (statusNum === 3 || statusNum === 4) {
+      if (token) {
+        try {
+          const order = await prisma.order.findUnique({
+            where: { flowToken: token },
+            select: { id: true, status: true },
+          })
+          
+          if (order && order.status === 'pending') {
+            // Update order status immediately
+            await prisma.order.update({
+              where: { id: order.id },
+              data: {
+                status: statusNum === 3 ? 'failed' : 'cancelled',
+              },
+            })
+            console.log(`[checkout/return] Order ${order.id} marked as ${statusNum === 3 ? 'failed' : 'cancelled'} due to Flow status`)
+          }
+        } catch (error) {
+          console.error('[checkout/return] Error updating order status:', error)
+        }
+      }
+      // Redirect to cart immediately for cancelled/failed payments
+      const baseUrl = process.env.APP_BASE_URL || req.nextUrl.origin
+      return NextResponse.redirect(new URL('/cart?payment=cancelled', baseUrl))
+    }
     
     if (!token) {
       console.error('[checkout/return] No token found in Flow redirect. Params:', Object.keys(params))
@@ -39,9 +70,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(returnUrl)
   } catch (error) {
     console.error('[checkout/return] POST handler error:', error)
-    // Fallback: redirect to return page without params
+    // Fallback: redirect to cart (safer than showing error page)
     const baseUrl = process.env.APP_BASE_URL || req.nextUrl.origin
-    return NextResponse.redirect(new URL('/checkout/return', baseUrl))
+    return NextResponse.redirect(new URL('/cart', baseUrl))
   }
 }
 

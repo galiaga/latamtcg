@@ -1,5 +1,9 @@
--- CreateEnum
-CREATE TYPE "OrderStatus" AS ENUM ('pending', 'paid', 'failed', 'cancelled');
+-- CreateEnum (only if it doesn't exist)
+DO $$ BEGIN
+  CREATE TYPE "OrderStatus" AS ENUM ('pending', 'paid', 'failed', 'cancelled');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- AlterTable
 ALTER TABLE "Order" ADD COLUMN "amountCLP" INTEGER,

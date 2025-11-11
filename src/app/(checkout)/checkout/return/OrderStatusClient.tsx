@@ -12,10 +12,13 @@ export default function OrderStatusClient({ orderId, token }: OrderStatusClientP
   const router = useRouter()
   const [status, setStatus] = useState<string>('pending')
   const [error, setError] = useState<string | null>(null)
+  const [pollCount, setPollCount] = useState(0)
 
   useEffect(() => {
     let pollInterval: NodeJS.Timeout | null = null
     let mounted = true
+    let currentPollCount = 0
+    const MAX_POLLS = 10 // Stop after 10 polls (30 seconds)
 
     const pollStatus = async () => {
       try {
@@ -33,9 +36,11 @@ export default function OrderStatusClient({ orderId, token }: OrderStatusClientP
 
         const newStatus = data.status || 'pending'
         setStatus(newStatus)
+        currentPollCount++
+        setPollCount(currentPollCount)
 
-        // If payment is complete or failed, stop polling and refresh
-        if (newStatus === 'paid' || newStatus === 'failed' || newStatus === 'cancelled') {
+        // If payment is complete, stop polling and refresh to show success page
+        if (newStatus === 'paid') {
           if (pollInterval) {
             clearInterval(pollInterval)
             pollInterval = null
@@ -44,11 +49,39 @@ export default function OrderStatusClient({ orderId, token }: OrderStatusClientP
           setTimeout(() => {
             router.refresh()
           }, 500)
+        } else if (newStatus === 'failed' || newStatus === 'cancelled') {
+          // If payment failed or was cancelled, redirect to cart immediately
+          if (pollInterval) {
+            clearInterval(pollInterval)
+            pollInterval = null
+          }
+          // Redirect to cart so user can try again
+          setTimeout(() => {
+            router.push('/cart?payment=cancelled')
+          }, 500)
+        } else if (currentPollCount >= MAX_POLLS) {
+          // If we've polled too many times and still pending, likely cancelled
+          // Redirect to cart to avoid infinite polling
+          if (pollInterval) {
+            clearInterval(pollInterval)
+            pollInterval = null
+          }
+          console.warn(`[OrderStatusClient] Max polls reached for order ${orderId}, redirecting to cart`)
+          router.push('/cart?payment=timeout')
         }
       } catch (err: any) {
         if (!mounted) return
         setError(err.message || 'Failed to check status')
-        // Continue polling on error (might be transient)
+        currentPollCount++
+        setPollCount(currentPollCount)
+        // If we've had too many errors, redirect to cart
+        if (currentPollCount >= MAX_POLLS) {
+          if (pollInterval) {
+            clearInterval(pollInterval)
+            pollInterval = null
+          }
+          router.push('/cart?payment=error')
+        }
       }
     }
 

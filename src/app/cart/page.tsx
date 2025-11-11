@@ -17,6 +17,7 @@ import GuestCheckoutModal from '@/components/checkout/GuestCheckoutModal'
 
 type CartItem = {
   printingId: string
+  finish?: string // 'normal', 'foil', or 'etched' - for identifying the specific variant
   quantity: number
   unitPrice: number
   lineTotal: number
@@ -25,6 +26,7 @@ type CartItem = {
   setName: string | null
   collectorNumber: string
   imageUrl: string
+  finishLabel?: string // 'Normal', 'Foil', or 'Etched' - for display
 }
 
 export default function CartPage() {
@@ -92,12 +94,17 @@ export default function CartPage() {
     return () => {}
   }, [refresh])
 
-  async function update(printingId: string, action: 'inc' | 'set' | 'remove', quantity?: number) {
+  async function update(printingId: string, action: 'inc' | 'set' | 'remove', quantity?: number, finish?: string) {
     try {
       // Optimistic local update and badge tick in same tab
       setItems((prev) => {
         const arr = [...prev]
-        const idx = arr.findIndex((it) => it.printingId === printingId)
+        // Find item by both printingId and finish (if provided)
+        const idx = arr.findIndex((it) => {
+          if (it.printingId !== printingId) return false
+          if (finish !== undefined) return it.finish === finish
+          return true // If no finish specified, match first item with this printingId (backward compatibility)
+        })
         if (idx >= 0) {
           if (action === 'remove') {
             arr.splice(idx, 1)
@@ -117,7 +124,11 @@ export default function CartPage() {
       try {
         mutateCart((curr: any) => {
           const base = curr || { items: [], subtotal: 0, total: 0, count: 0 }
-          const currentItem = items.find((it) => it.printingId === printingId)
+          const currentItem = items.find((it) => {
+            if (it.printingId !== printingId) return false
+            if (finish !== undefined) return it.finish === finish
+            return true
+          })
           let delta = 0
           if (action === 'remove' && currentItem) delta = -currentItem.quantity
           else if (action === 'inc') delta = Number.isFinite(Number(quantity)) ? Math.floor(Number(quantity as any)) : 1
@@ -130,7 +141,7 @@ export default function CartPage() {
         }, { revalidate: false })
       } catch {}
 
-      const postPromise = fetch('/api/cart/update', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, printingId, quantity }) })
+      const postPromise = fetch('/api/cart/update', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, printingId, quantity, finish }) })
         .then(async (r) => {
           if (!r.ok) {
             const errorData = await r.json().catch(() => ({}))
@@ -265,22 +276,35 @@ export default function CartPage() {
       {items.length > 0 && (
         <div className="mt-4 grid grid-cols-1 gap-4">
           {items.map((it) => (
-            <div key={it.printingId} className="border rounded p-3">
+            <div key={`${it.printingId}-${it.finish || 'normal'}`} className="border rounded p-3">
               {/* Desktop layout */}
               <div className="hidden md:flex items-center gap-4">
-                <div className="w-12 h-16 relative">
+                <Link href={`/mtg/printing/${it.printingId}`} className="w-12 h-16 relative block hover:opacity-80 transition-opacity">
                   <Image src={it.imageUrl} alt={it.name} fill sizes="48px" className="object-contain rounded" />
-                </div>
+                </Link>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{it.name}</div>
-                  <div className="text-xs" style={{ color: 'var(--mutedText)' }}>{(it.setName || it.setCode.toUpperCase())}{it.collectorNumber ? ` • #${it.collectorNumber}` : ''}</div>
+                  <Link href={`/mtg/printing/${it.printingId}`} className="font-medium truncate block hover:underline">
+                    {it.name}
+                  </Link>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="text-xs" style={{ color: 'var(--mutedText)' }}>{(it.setName || it.setCode.toUpperCase())}{it.collectorNumber ? ` • #${it.collectorNumber}` : ''}</div>
+                    {it.finishLabel && (
+                      <span className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                        background: 'var(--primarySoft)', 
+                        color: 'var(--primary)',
+                        fontWeight: '500'
+                      }}>
+                        {it.finishLabel}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1)} aria-label="Decrease quantity">−</button>
+                  <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1, it.finish)} aria-label="Decrease quantity">−</button>
                   <div className="w-8 text-center tabular-nums">{it.quantity}</div>
                   <button 
                     className="btn btn-sm" 
-                    onClick={() => update(it.printingId, 'inc', 1)} 
+                    onClick={() => update(it.printingId, 'inc', 1, it.finish)} 
                     aria-label="Increase quantity"
                     disabled={it.quantity >= 4}
                   >+</button>
@@ -288,30 +312,43 @@ export default function CartPage() {
                 <div className="w-20 text-right tabular-nums">{formatPrice(it.unitPrice, config)}</div>
                 <div className="w-24 text-right tabular-nums font-bold">{formatPrice(it.lineTotal, config)}</div>
                 <div>
-                  <button className="btn btn-ghost" onClick={() => update(it.printingId, 'remove')}>Remove</button>
+                  <button className="btn btn-ghost" onClick={() => update(it.printingId, 'remove', undefined, it.finish)}>Remove</button>
                 </div>
               </div>
               
               {/* Mobile layout */}
               <div className="md:hidden">
                 <div className="flex items-start gap-3">
-                  <div className="w-16 h-16 relative">
+                  <Link href={`/mtg/printing/${it.printingId}`} className="w-16 h-16 relative block hover:opacity-80 transition-opacity">
                     <Image src={it.imageUrl} alt={it.name} fill sizes="64px" className="object-cover rounded" />
-                  </div>
+                  </Link>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{it.name}</div>
-                    <div className="text-xs" style={{ color: 'var(--mutedText)' }}>{(it.setName || it.setCode.toUpperCase())}{it.collectorNumber ? ` • #${it.collectorNumber}` : ''}</div>
+                    <Link href={`/mtg/printing/${it.printingId}`} className="font-medium truncate block hover:underline">
+                      {it.name}
+                    </Link>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="text-xs" style={{ color: 'var(--mutedText)' }}>{(it.setName || it.setCode.toUpperCase())}{it.collectorNumber ? ` • #${it.collectorNumber}` : ''}</div>
+                      {it.finishLabel && (
+                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                          background: 'var(--primarySoft)', 
+                          color: 'var(--primary)',
+                          fontWeight: '500'
+                        }}>
+                          {it.finishLabel}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
                 {/* Controls below content on mobile */}
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1)} aria-label="Decrease quantity">−</button>
+                    <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1, it.finish)} aria-label="Decrease quantity">−</button>
                     <div className="w-8 text-center tabular-nums">{it.quantity}</div>
                     <button 
                       className="btn btn-sm" 
-                      onClick={() => update(it.printingId, 'inc', 1)} 
+                      onClick={() => update(it.printingId, 'inc', 1, it.finish)} 
                       aria-label="Increase quantity"
                       disabled={it.quantity >= 4}
                     >+</button>
@@ -319,7 +356,7 @@ export default function CartPage() {
                   <div className="flex items-center gap-3">
                     <div className="text-sm tabular-nums">{formatPrice(it.unitPrice, config)} each</div>
                     <div className="text-lg font-bold tabular-nums">{formatPrice(it.lineTotal, config)}</div>
-                    <button className="btn btn-ghost btn-sm" onClick={() => update(it.printingId, 'remove')}>Remove</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => update(it.printingId, 'remove', undefined, it.finish)}>Remove</button>
                   </div>
                 </div>
               </div>

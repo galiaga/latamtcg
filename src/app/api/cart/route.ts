@@ -7,6 +7,8 @@ import { getOrCreateUserCart } from '@/lib/cart'
 import { getScryfallNormalUrl } from '@/lib/images'
 import { getPricingConfig } from '@/lib/pricingData'
 import { computePriceCLP } from '@/lib/pricing'
+import { formatCardVariant } from '@/lib/cards/formatVariant'
+import { formatDisplayName } from '@/lib/cardNames'
 
 export async function GET(req: Request) {
   try {
@@ -32,7 +34,24 @@ export async function GET(req: Request) {
 
     // Enrich with card details and compute price fallback
     const ids = Array.from(new Set(rows.map(r => r.printingId)))
-    const cards = await prisma.mtgCard.findMany({ where: { scryfallId: { in: ids } }, select: { scryfallId: true, name: true, setCode: true, set: { select: { set_name: true } }, collectorNumber: true, priceUsd: true, priceUsdFoil: true, priceUsdEtched: true } })
+    const cards = await prisma.mtgCard.findMany({ 
+      where: { scryfallId: { in: ids } }, 
+      select: { 
+        scryfallId: true, 
+        name: true, 
+        flavorName: true,
+        setCode: true, 
+        set: { select: { set_name: true } }, 
+        collectorNumber: true, 
+        priceUsd: true, 
+        priceUsdFoil: true, 
+        priceUsdEtched: true,
+        finishes: true,
+        promoTypes: true,
+        frameEffects: true,
+        borderColor: true
+      } 
+    })
     const map = new Map(cards.map((c) => [c.scryfallId, c]))
     
     // Get pricing configuration with fallback
@@ -64,14 +83,28 @@ export async function GET(req: Request) {
     const items = rows.map((it) => {
       const c = map.get(it.printingId)
       
-      // Use server-side pricing system
+      // Use stored unitPrice (in USD) - this was saved when the item was added with the correct variant
       let unitPrice = it.unitPrice != null ? Number(it.unitPrice) : 0
       
-      if (pricingConfig && pricingConfig.useCLP) {
-        // Get the best USD price
-        const usdPrice = c?.priceUsdEtched ?? c?.priceUsdFoil ?? c?.priceUsd
-        if (usdPrice) {
-          // Compute CLP price using server-side function
+      if (pricingConfig && pricingConfig.useCLP && unitPrice > 0) {
+        // Convert stored USD price to CLP using server-side function
+        const clpPrice = computePriceCLP(unitPrice, {
+          tcgPriceUsd: unitPrice,
+          fxClp: pricingConfig.fxClp,
+          alphaLow: pricingConfig.alphaLow,
+          alphaMid: pricingConfig.alphaMid,
+          alphaHigh: pricingConfig.alphaHigh,
+          alphaTierLowUsd: pricingConfig.alphaTierLowUsd,
+          alphaTierMidUsd: pricingConfig.alphaTierMidUsd,
+          betaClp: 0, // Default to 0 for now
+          priceMinPerCardClp: pricingConfig.priceMinPerCardClp,
+          roundToStepClp: pricingConfig.roundToStepClp
+        })
+        unitPrice = clpPrice
+      } else if (!it.unitPrice && c) {
+        // Fallback: if no stored price, use best available (shouldn't happen normally)
+        const usdPrice = c.priceUsdEtched ?? c.priceUsdFoil ?? c.priceUsd
+        if (usdPrice && pricingConfig && pricingConfig.useCLP) {
           const clpPrice = computePriceCLP(Number(usdPrice), {
             tcgPriceUsd: Number(usdPrice),
             fxClp: pricingConfig.fxClp,
@@ -80,31 +113,65 @@ export async function GET(req: Request) {
             alphaHigh: pricingConfig.alphaHigh,
             alphaTierLowUsd: pricingConfig.alphaTierLowUsd,
             alphaTierMidUsd: pricingConfig.alphaTierMidUsd,
-            betaClp: 0, // Default to 0 for now
+            betaClp: 0,
             priceMinPerCardClp: pricingConfig.priceMinPerCardClp,
             roundToStepClp: pricingConfig.roundToStepClp
           })
           unitPrice = clpPrice
+        } else if (usdPrice) {
+          unitPrice = Number(usdPrice)
         }
       }
       
       const lineTotal = unitPrice * it.quantity
       
-      const name = String(c?.name || '(Unknown)')
+      // Get finish from stored cart item (now stored in database)
+      const storedFinish = it.finish || 'normal'
+      const finish: 'normal' | 'foil' | 'etched' = (storedFinish === 'foil' || storedFinish === 'etched') ? storedFinish : 'normal'
+      
+      // Generate variant suffix for display name
+      let variantSuffix = ''
+      let finishLabel = ''
+      if (c) {
+        const variant = formatCardVariant({
+          finishes: c.finishes || [],
+          promoTypes: c.promoTypes || [],
+          frameEffects: c.frameEffects || [],
+          borderColor: c.borderColor
+        })
+        variantSuffix = variant.suffix
+        
+        // Set finish label based on stored finish
+        if (finish === 'etched') {
+          finishLabel = 'Etched'
+        } else if (finish === 'foil') {
+          finishLabel = 'Foil'
+        } else {
+          finishLabel = 'Normal'
+        }
+      }
+      
+      // Format display name with flavor name and variant suffix
+      const baseName = String(c?.name || '(Unknown)')
+      const flavorName = c?.flavorName || null
+      const displayName = formatDisplayName(baseName, flavorName) + variantSuffix
+      
       const setCode = String(c?.setCode || '')
       // Access set relation safely
       const setName = (c as { set?: { set_name?: unknown } })?.set?.set_name ? String((c as { set: { set_name: string } }).set.set_name) : null
       const collectorNumber = String(c?.collectorNumber || '')
       return {
         printingId: it.printingId,
+        finish: storedFinish, // Include finish for cart operations
         quantity: it.quantity,
         unitPrice,
         lineTotal,
-        name,
+        name: displayName, // Use full display name with variant suffix
         setCode,
         setName,
         collectorNumber,
         imageUrl: getScryfallNormalUrl(it.printingId),
+        finishLabel: finishLabel, // Add finish label for display
       }
     })
 

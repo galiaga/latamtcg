@@ -52,7 +52,11 @@ export function VariantSectionClient({
       />
 
       <div className="flex flex-col gap-1">
-        <AddToCartButton printingId={printingId} size="lg" />
+        <AddToCartButton 
+          printingId={printingId} 
+          size="lg" 
+          variant={current?.id as 'normal' | 'foil' | 'etched' | undefined} 
+        />
       </div>
     </div>
   );

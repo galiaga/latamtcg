@@ -169,6 +169,7 @@ model CartItem {
   id         String   @id @default(cuid())
   cartId     String
   printingId String
+  finish     String?  @default("normal") // 'normal', 'foil', or 'etched' - distinguishes variants of the same card
   quantity   Int      @default(1)
   unitPrice  Decimal? @db.Decimal(10, 2)
   createdAt  DateTime @default(now())
@@ -177,6 +178,7 @@ model CartItem {
 
   @@index([cartId])
   @@index([printingId])
+  @@unique([cartId, printingId, finish]) // Ensure one cart item per (cart, printing, finish) combination
 }
 
 model Order {

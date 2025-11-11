@@ -10,7 +10,7 @@ sales AS (
   FROM "OrderItem" oi
   JOIN "Order" o ON o.id = oi."orderId"
   WHERE o."createdAt" >= now() - interval '30 days'
-    AND (o.status IN ('paid','completed','fulfilled','shipped') OR o.status IS NULL)
+    AND o.status = 'paid'
   GROUP BY 1
 ),
 cart AS (

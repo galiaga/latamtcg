@@ -1,5 +1,56 @@
 # Changelog
 
+## v0.34.0 — 2025-11-11
+### Features
+- **Cart Variant Support**: Enhanced cart to treat normal, foil, and etched versions as separate items
+  - Users can now add multiple variants of the same card (e.g., 2x Normal + 3x Foil = 5 items)
+  - Cart items display variant labels (Normal, Foil, Etched) for clarity
+  - Variant selection properly passed from product page to cart
+  - Database schema updated with `finish` field on `CartItem` model
+- **Cart Persistence**: Cart items now persist until payment is 100% confirmed
+  - Cart items remain available if payment fails or is cancelled
+  - Cart is only marked as checked out when payment status is confirmed as 'paid'
+  - Prevents loss of cart items when external payment process fails
+- **Payment Cancellation Handling**: Improved user experience for cancelled payments
+  - Cancelled payments automatically redirect to cart instead of showing stuck processing page
+  - Order status updated immediately when Flow returns cancellation status
+  - Cart items preserved for retry after cancellation
+- **Cart Navigation**: Enhanced cart page with clickable items
+  - Card images and item names are now clickable links to product pages
+  - Improved user experience for reviewing cart items
+
+### Performance
+- **Cart Update Optimization**: Significantly improved cart update performance
+  - Replaced full cart item fetch with database aggregation queries
+  - Uses SQL `SUM()` for total count calculation
+  - Uses raw SQL `SUM(quantity * unitPrice)` for total price calculation
+  - Parallel query execution for faster response times
+  - Reduced response times from 3-19 seconds to sub-second for most operations
+
+### Fixes
+- **Variant Selection**: Fixed issue where selecting Foil variant added Normal version to cart
+  - Added `variant` prop to `AddToCartButton` component dependency array
+  - Fixed debounce key to include variant for proper request tracking
+  - Variant selection now correctly passed through entire checkout flow
+- **Cart Item Display**: Fixed cart to show correct variant prices and labels
+  - Cart items now display the correct finish label (Normal, Foil, Etched)
+  - Price matching logic improved to correctly identify variant by stored unitPrice
+  - Full card names with variant suffixes displayed consistently
+
+### Technical Improvements
+- **Database Migrations**: Applied cart variant support migrations
+  - Added `finish` column to `CartItem` table with default 'normal'
+  - Added unique constraint on `(cartId, printingId, finish)` combination
+  - Fixed previous migration issues with OrderStatus enum
+- **Error Handling**: Enhanced error handling for payment cancellations
+  - Return URL handler detects Flow cancellation status codes (3, 4)
+  - Order status updated immediately on cancellation detection
+  - Graceful fallback to cart redirect for all error scenarios
+- **Status Polling**: Improved order status polling with timeout protection
+  - Maximum polling limit (10 polls = 30 seconds) prevents infinite loops
+  - Automatic redirect to cart on timeout or error
+  - Better user experience for stuck payment processing pages
+
 ## v0.33.0 — 2025-11-05
 ### Features
 - **Flow Payment Gateway Integration**: Complete end-to-end payment processing
