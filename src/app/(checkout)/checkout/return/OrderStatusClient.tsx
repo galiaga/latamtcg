@@ -100,8 +100,14 @@ export default function OrderStatusClient({ orderId, token }: OrderStatusClientP
 
   if (status === 'pending') {
     return (
-      <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
-        <p className="text-sm text-yellow-800">
+      <div 
+        className="mt-6 p-4 border rounded"
+        style={{ 
+          background: 'color-mix(in oklab, var(--warning) 15%, transparent)',
+          borderColor: 'color-mix(in oklab, var(--warning) 30%, transparent)'
+        }}
+      >
+        <p className="text-sm" style={{ color: 'var(--text)' }}>
           Waiting for payment confirmation... This page will update automatically.
         </p>
       </div>
@@ -110,8 +116,14 @@ export default function OrderStatusClient({ orderId, token }: OrderStatusClientP
 
   if (error) {
     return (
-      <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded">
-        <p className="text-sm text-red-800">Error checking status: {error}</p>
+      <div 
+        className="mt-6 p-4 border rounded"
+        style={{ 
+          background: 'color-mix(in oklab, var(--danger) 15%, transparent)',
+          borderColor: 'color-mix(in oklab, var(--danger) 30%, transparent)'
+        }}
+      >
+        <p className="text-sm" style={{ color: 'var(--text)' }}>Error checking status: {error}</p>
       </div>
     )
   }

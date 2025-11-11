@@ -1,0 +1,22 @@
+🎉 Thanks for your purchase at LatamTCG!
+
+Order # test-order-real-cards
+Date: Nov 11, 2025, 3:47 PM
+Status: Received
+
+Items:
+- Baral, Chief of Compliance (Normal) x1 — CLP 10,800
+- Temple Garden (Foil) x2 — CLP 34,000
+- Super Shredder (Etched) x3 — CLP 180,000
+- Steam Vents (Normal) x4 — CLP 68,000
+- Raphael, the Muscle (Foil) x5 — CLP 225,000
+
+Subtotal: CLP 517,800
+Shipping: CLP 5,000
+Taxes: CLP 98,382
+Total paid: CLP 621,182
+View my order: https://latamtcg.com/order/confirmation?orderId=test-order-real-cards
+
+You will receive a shipping confirmation when your order is on its way. 🚚
+Questions? Write to hola@latamtcg.com
+© 2025 LatamTCG — Made with 💜 in Latin America
