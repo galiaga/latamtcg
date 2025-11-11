@@ -4,6 +4,10 @@
  */
 
 import { Resend } from 'resend'
+import { renderOrderHtml } from '@/emails/order-confirmation.html'
+import { renderOrderText } from '@/emails/order-confirmation.text'
+import { messages, type Locale } from '@/emails/i18n/messages'
+import { resolveLocale } from '@/emails/i18n/format'
 
 interface OrderConfirmationEmailParams {
   to: string
@@ -15,8 +19,12 @@ interface OrderConfirmationEmailParams {
     lineTotalCLP: number
   }>
   subtotalCLP: number
-  shippingCLP: number
+  shippingCLP?: number
+  taxesCLP?: number
   totalCLP: number
+  locale?: Locale
+  supportEmail?: string
+  orderUrl?: string
 }
 
 // Initialize Resend client
@@ -30,77 +38,51 @@ const resend = process.env.RESEND_API_KEY
 export async function sendOrderConfirmationEmail(
   params: OrderConfirmationEmailParams
 ): Promise<void> {
-  const { to, orderId, orderDate, items, subtotalCLP, shippingCLP, totalCLP } = params
+  const {
+    to,
+    orderId,
+    orderDate,
+    items,
+    subtotalCLP,
+    shippingCLP,
+    taxesCLP,
+    totalCLP,
+    locale,
+    supportEmail = 'hola@latamtcg.com',
+    orderUrl,
+  } = params
 
-  // Format email content
+  const resolvedLocale = resolveLocale(locale)
+
+  // Prepare email data
+  const emailData = {
+    orderId,
+    orderDateISO: orderDate.toISOString(),
+    items: items.map((item: any) => ({
+      name: item.displayName || item.cardName || 'Unknown Card',
+      quantity: item.quantity,
+      priceCLP: item.lineTotalCLP,
+      finishLabel: item.finishLabel,
+    })),
+    subtotalCLP,
+    shippingCLP,
+    taxesCLP,
+    totalCLP,
+    supportEmail,
+    orderUrl,
+    locale: resolvedLocale,
+  }
+
+  // Render email content using i18n templates
+  const html = renderOrderHtml(emailData)
+  const text = renderOrderText(emailData)
+  const subject = messages[resolvedLocale].subject
+
   const emailContent = {
     to,
-    subject: `Order Confirmation - ${orderId.slice(0, 12)}`,
-    html: `
-      <html>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #333;">Order Confirmation</h1>
-          <p>Thank you for your order!</p>
-          
-          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>Order ID:</strong> ${orderId}</p>
-            <p><strong>Order Date:</strong> ${orderDate.toLocaleString('es-CL')}</p>
-          </div>
-
-          <h2>Order Items</h2>
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <thead>
-              <tr style="background: #f0f0f0;">
-                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item</th>
-                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Quantity</th>
-                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${items
-                .map(
-                  (item) => `
-                <tr>
-                  <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.cardName}</td>
-                  <td style="padding: 10px; text-align: right; border-bottom: 1px solid #eee;">${item.quantity}</td>
-                  <td style="padding: 10px; text-align: right; border-bottom: 1px solid #eee;">${item.lineTotalCLP.toLocaleString('es-CL')} CLP</td>
-                </tr>
-              `
-                )
-                .join('')}
-            </tbody>
-          </table>
-
-          <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #ddd;">
-            <p style="text-align: right;"><strong>Subtotal:</strong> ${subtotalCLP.toLocaleString('es-CL')} CLP</p>
-            ${shippingCLP > 0 ? `<p style="text-align: right;"><strong>Shipping:</strong> ${shippingCLP.toLocaleString('es-CL')} CLP</p>` : ''}
-            <p style="text-align: right; font-size: 18px; font-weight: bold;"><strong>Total:</strong> ${totalCLP.toLocaleString('es-CL')} CLP</p>
-          </div>
-
-          <p style="margin-top: 30px; color: #666;">
-            Your order will be processed and shipped as soon as possible.
-          </p>
-
-          <p style="margin-top: 20px; color: #666; font-size: 12px;">
-            If you have any questions, please contact our support team.
-          </p>
-        </body>
-      </html>
-    `,
-    text: `
-Order Confirmation
-
-Order ID: ${orderId}
-Order Date: ${orderDate.toLocaleString('es-CL')}
-
-Order Items:
-${items.map((item) => `- ${item.cardName} × ${item.quantity}: ${item.lineTotalCLP.toLocaleString('es-CL')} CLP`).join('\n')}
-
-Subtotal: ${subtotalCLP.toLocaleString('es-CL')} CLP
-${shippingCLP > 0 ? `Shipping: ${shippingCLP.toLocaleString('es-CL')} CLP\n` : ''}Total: ${totalCLP.toLocaleString('es-CL')} CLP
-
-Your order will be processed and shipped as soon as possible.
-    `,
+    subject,
+    html,
+    text,
   }
 
   // Send email via Resend if configured

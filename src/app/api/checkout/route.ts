@@ -8,6 +8,8 @@ import { computePriceCLP, calculateShipping } from '@/lib/pricing'
 import { createPayment } from '@/lib/flow/flowClient'
 import { cookies } from 'next/headers'
 import { getOrCreateUserCart } from '@/lib/cart'
+import { formatDisplayName } from '@/lib/cardNames'
+import { formatCardVariant } from '@/lib/cards/formatVariant'
 
 const CheckoutRequestSchema = z.object({
   cartId: z.string().optional(),
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
     let email: string | undefined = bodyEmail || (user?.email ? user.email : undefined)
 
     // Determine cart source
-    let cartItems: Array<{ printingId: string; quantity: number; unitPrice: number | null }> = []
+    let cartItems: Array<{ printingId: string; quantity: number; unitPrice: number | null; finish?: string }> = []
 
     if (cartId) {
       // Use specified cart
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
         printingId: item.printingId,
         quantity: item.quantity,
         unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
+        finish: item.finish || 'normal',
       }))
 
       // Get email from user if authenticated (use session email first, then database)
@@ -93,6 +96,7 @@ export async function POST(req: NextRequest) {
         printingId: item.printingId,
         quantity: item.quantity,
         unitPrice: null, // Will be computed from DB
+        finish: 'normal', // Default to normal if not provided in body
       }))
     } else if (user) {
       // Use user's active cart
@@ -110,6 +114,7 @@ export async function POST(req: NextRequest) {
         printingId: item.printingId,
         quantity: item.quantity,
         unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
+        finish: item.finish || 'normal',
       }))
 
       // Use email from session user first, then database
@@ -137,6 +142,7 @@ export async function POST(req: NextRequest) {
             printingId: item.printingId,
             quantity: item.quantity,
             unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
+            finish: item.finish || 'normal',
           }))
         }
       }
@@ -184,14 +190,19 @@ export async function POST(req: NextRequest) {
     // Enrich cart items with card details and compute CLP prices
     const enriched = await Promise.all(
       cartItems.map(async (item) => {
-        // Get card from database
+        // Get card from database with full details for display name
         const card = await prisma.mtgCard.findUnique({
           where: { scryfallId: item.printingId },
           select: {
             name: true,
+            flavorName: true,
             priceUsd: true,
             priceUsdFoil: true,
             priceUsdEtched: true,
+            finishes: true,
+            frameEffects: true,
+            promoTypes: true,
+            borderColor: true,
           },
         })
 
@@ -199,9 +210,14 @@ export async function POST(req: NextRequest) {
           throw new Error(`Card not found: ${item.printingId}`)
         }
 
-        // Always compute CLP price from current USD prices (never trust stored unitPrice)
-        // unitPrice in CartItem is stored in USD, but we need CLP for Flow payments
-        const usdPrice = card.priceUsdEtched ?? card.priceUsdFoil ?? card.priceUsd
+        // Determine finish and price based on cart item finish
+        const finish = (item.finish === 'foil' || item.finish === 'etched') ? item.finish : 'normal'
+        const usdPrice = finish === 'etched' 
+          ? (card.priceUsdEtched ?? card.priceUsdFoil ?? card.priceUsd)
+          : finish === 'foil'
+          ? (card.priceUsdFoil ?? card.priceUsd)
+          : card.priceUsd
+
         if (!usdPrice) {
           throw new Error(`No price available for card: ${item.printingId}`)
         }
@@ -219,12 +235,27 @@ export async function POST(req: NextRequest) {
           roundToStepClp: pricingConfig.roundToStepClp,
         })
 
+        // Format full display name with variant suffix
+        const variant = formatCardVariant({
+          finishes: card.finishes || [],
+          promoTypes: card.promoTypes || [],
+          frameEffects: card.frameEffects || [],
+          borderColor: card.borderColor,
+        })
+        const displayName = formatDisplayName(card.name || '', card.flavorName) + variant.suffix
+
+        // Format finish label
+        const finishLabel = finish === 'etched' ? 'Etched' : finish === 'foil' ? 'Foil' : 'Normal'
+
         return {
           printingId: item.printingId,
           quantity: item.quantity,
           unitPriceCLP,
           lineTotalCLP: unitPriceCLP * item.quantity,
-          cardName: card.name,
+          cardName: card.name, // Keep for backward compatibility
+          displayName, // Full display name with variant suffix
+          finish, // 'normal', 'foil', or 'etched'
+          finishLabel, // 'Normal', 'Foil', or 'Etched'
         }
       })
     )
@@ -330,7 +361,10 @@ export async function POST(req: NextRequest) {
               quantity: item.quantity,
               unitPriceCLP: item.unitPriceCLP,
               lineTotalCLP: item.lineTotalCLP,
-              cardName: item.cardName,
+              cardName: item.cardName, // Keep for backward compatibility
+              displayName: item.displayName, // Full display name with variant suffix
+              finish: item.finish, // 'normal', 'foil', or 'etched'
+              finishLabel: item.finishLabel, // 'Normal', 'Foil', or 'Etched'
             })),
           },
         },

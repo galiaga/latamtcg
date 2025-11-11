@@ -189,20 +189,31 @@ export async function POST(req: NextRequest) {
           const items = metadata?.items || []
           const subtotalCLP = metadata?.subtotalCLP || orderDetails.amountCLP || 0
           const shippingCLP = metadata?.shippingCLP || 0
+          const taxesCLP = metadata?.taxesCLP
           const totalCLP = metadata?.totalCLP || orderDetails.amountCLP || 0
+
+          // Construct order URL
+          const baseUrl = process.env.APP_BASE_URL || req.nextUrl.origin
+          const orderUrl = `${baseUrl}/order/confirmation?orderId=${order.id}`
 
           await sendOrderConfirmationEmail({
             to: orderDetails.email,
             orderId: order.id,
             orderDate: orderDetails.createdAt,
             items: items.map((item: any) => ({
-              cardName: item.cardName || 'Unknown Card',
+              cardName: item.cardName || 'Unknown Card', // Keep for backward compatibility
+              displayName: item.displayName || item.cardName || 'Unknown Card',
               quantity: item.quantity || 1,
               lineTotalCLP: item.lineTotalCLP || 0,
+              finishLabel: item.finishLabel,
             })),
             subtotalCLP,
             shippingCLP,
+            taxesCLP,
             totalCLP,
+            orderUrl,
+            supportEmail: 'hola@latamtcg.com',
+            // locale is optional - defaults to 'en' via resolveLocale
           })
           console.log(`[flow/callback] Order confirmation email sent to ${orderDetails.email}`)
         } else {

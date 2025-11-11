@@ -33,9 +33,15 @@ export default async function CheckoutReturnPage({
   if (!token) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <h1 className="text-xl font-semibold">Payment Return</h1>
-        <div className="mt-4 p-4 border border-yellow-200 bg-yellow-50 rounded">
-          <p className="text-yellow-800">Missing payment token. Please contact support if you completed a payment.</p>
+        <h1 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>Payment Return</h1>
+        <div 
+          className="mt-4 p-4 border rounded"
+          style={{ 
+            borderColor: 'color-mix(in oklab, var(--warning) 30%, transparent)',
+            background: 'color-mix(in oklab, var(--warning) 15%, transparent)'
+          }}
+        >
+          <p style={{ color: 'var(--text)' }}>Missing payment token. Please contact support if you completed a payment.</p>
         </div>
         <div className="mt-4">
           <Link href="/" className="btn">Go home</Link>
@@ -69,9 +75,15 @@ export default async function CheckoutReturnPage({
   if (!order) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <h1 className="text-xl font-semibold">Payment Return</h1>
-        <div className="mt-4 p-4 border border-red-200 bg-red-50 rounded">
-          <p className="text-red-800">Order not found for this payment token. Please contact support.</p>
+        <h1 className="text-xl font-semibold" style={{ color: 'var(--text)' }}>Payment Return</h1>
+        <div 
+          className="mt-4 p-4 border rounded"
+          style={{ 
+            borderColor: 'color-mix(in oklab, var(--danger) 30%, transparent)',
+            background: 'color-mix(in oklab, var(--danger) 15%, transparent)'
+          }}
+        >
+          <p style={{ color: 'var(--text)' }}>Order not found for this payment token. Please contact support.</p>
         </div>
         <div className="mt-4">
           <Link href="/" className="btn">Go home</Link>
@@ -110,9 +122,15 @@ export default async function CheckoutReturnPage({
       <div className="mx-auto max-w-3xl p-6">
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+            <div 
+              className="w-12 h-12 rounded-full flex items-center justify-center"
+              style={{ 
+                background: 'color-mix(in oklab, var(--success) 20%, transparent)',
+                color: 'var(--success)'
+              }}
+            >
               <svg
-                className="w-6 h-6 text-green-600"
+                className="w-6 h-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -125,20 +143,26 @@ export default async function CheckoutReturnPage({
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-semibold">Payment Successful!</h1>
+            <h1 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>Payment Successful!</h1>
           </div>
-          <p className="text-gray-600">Thank you for your order. Your payment has been confirmed.</p>
+          <p style={{ color: 'var(--mutedText)' }}>Thank you for your order. Your payment has been confirmed.</p>
         </div>
 
-        <div className="border rounded-lg p-6 bg-gray-50">
+        <div 
+          className="border rounded-lg p-6"
+          style={{ 
+            background: 'var(--card)',
+            borderColor: 'var(--border)'
+          }}
+        >
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <div className="text-sm text-gray-600">Order ID</div>
-              <div className="font-mono text-sm">{order.id.slice(0, 12)}</div>
+              <div className="text-sm" style={{ color: 'var(--mutedText)' }}>Order ID</div>
+              <div className="font-mono text-sm" style={{ color: 'var(--text)' }}>{order.id.slice(0, 12)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600">Payment Date</div>
-              <div className="text-sm">
+              <div className="text-sm" style={{ color: 'var(--mutedText)' }}>Payment Date</div>
+              <div className="text-sm" style={{ color: 'var(--text)' }}>
                 {order.paidAt?.toLocaleString('es-CL', {
                   dateStyle: 'medium',
                   timeStyle: 'short',
@@ -149,10 +173,10 @@ export default async function CheckoutReturnPage({
 
           {metadata?.items && metadata.items.length > 0 && (
             <div className="mb-4">
-              <h2 className="font-semibold mb-2">Order Items</h2>
+              <h2 className="font-semibold mb-2" style={{ color: 'var(--text)' }}>Order Items</h2>
               <div className="space-y-2">
                 {metadata.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
+                  <div key={idx} className="flex justify-between text-sm" style={{ color: 'var(--text)' }}>
                     <span>
                       {item.cardName} × {item.quantity}
                     </span>
@@ -164,27 +188,39 @@ export default async function CheckoutReturnPage({
           )}
 
           {metadata?.shippingCLP && metadata.shippingCLP > 0 && (
-            <div className="mb-4 border-t pt-4">
-              <div className="flex justify-between text-sm mb-2">
+            <div className="mb-4 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex justify-between text-sm mb-2" style={{ color: 'var(--text)' }}>
                 <span>Subtotal</span>
                 <span className="tabular-nums">{formatPriceServer(metadata.subtotalCLP || 0, config)}</span>
               </div>
-              <div className="flex justify-between text-sm mb-2">
+              <div className="flex justify-between text-sm mb-2" style={{ color: 'var(--text)' }}>
                 <span>Shipping</span>
                 <span className="tabular-nums">{formatPriceServer(metadata.shippingCLP, config)}</span>
               </div>
             </div>
           )}
 
-          <div className="border-t pt-4 flex justify-between font-bold">
+          <div 
+            className="border-t pt-4 flex justify-between font-bold"
+            style={{ 
+              borderColor: 'var(--border)',
+              color: 'var(--text)'
+            }}
+          >
             <span>Total</span>
             <span className="tabular-nums">{formatPriceServer(totalCLP, config)}</span>
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded">
-          <h2 className="font-semibold text-blue-900 mb-2">What's Next?</h2>
-          <p className="text-sm text-blue-800">
+        <div 
+          className="mt-6 p-4 border rounded"
+          style={{ 
+            background: 'color-mix(in oklab, var(--primary) 15%, transparent)',
+            borderColor: 'color-mix(in oklab, var(--primary) 30%, transparent)'
+          }}
+        >
+          <h2 className="font-semibold mb-2" style={{ color: 'var(--text)' }}>What's Next?</h2>
+          <p className="text-sm" style={{ color: 'var(--mutedText)' }}>
             We'll send you an email confirmation shortly. Your order will be processed and shipped as soon as possible.
           </p>
         </div>
@@ -213,9 +249,15 @@ export default async function CheckoutReturnPage({
       <div className="mx-auto max-w-3xl p-6">
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+            <div 
+              className="w-12 h-12 rounded-full flex items-center justify-center"
+              style={{ 
+                background: 'color-mix(in oklab, var(--danger) 20%, transparent)',
+                color: 'var(--danger)'
+              }}
+            >
               <svg
-                className="w-6 h-6 text-red-600"
+                className="w-6 h-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -228,26 +270,38 @@ export default async function CheckoutReturnPage({
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-semibold">Payment {order.status === 'failed' ? 'Failed' : 'Cancelled'}</h1>
+            <h1 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>Payment {order.status === 'failed' ? 'Failed' : 'Cancelled'}</h1>
           </div>
-          <p className="text-gray-600">
+          <p style={{ color: 'var(--mutedText)' }}>
             Your payment could not be processed. Please try again or contact support if the problem persists.
           </p>
         </div>
 
-        <div className="border rounded-lg p-6 bg-gray-50">
+        <div 
+          className="border rounded-lg p-6"
+          style={{ 
+            background: 'var(--card)',
+            borderColor: 'var(--border)'
+          }}
+        >
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
-              <div className="text-sm text-gray-600">Order ID</div>
-              <div className="font-mono text-sm">{order.id.slice(0, 12)}</div>
+              <div className="text-sm" style={{ color: 'var(--mutedText)' }}>Order ID</div>
+              <div className="font-mono text-sm" style={{ color: 'var(--text)' }}>{order.id.slice(0, 12)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-600">Date</div>
-              <div className="text-sm">{order.createdAt.toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+              <div className="text-sm" style={{ color: 'var(--mutedText)' }}>Date</div>
+              <div className="text-sm" style={{ color: 'var(--text)' }}>{order.createdAt.toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })}</div>
             </div>
           </div>
 
-          <div className="border-t pt-4 flex justify-between font-bold">
+          <div 
+            className="border-t pt-4 flex justify-between font-bold"
+            style={{ 
+              borderColor: 'var(--border)',
+              color: 'var(--text)'
+            }}
+          >
             <span>Total</span>
             <span className="tabular-nums">{formatPriceServer(totalCLP, config)}</span>
           </div>
@@ -270,9 +324,15 @@ export default async function CheckoutReturnPage({
     <div className="mx-auto max-w-3xl p-6">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+          <div 
+            className="w-12 h-12 rounded-full flex items-center justify-center"
+            style={{ 
+              background: 'color-mix(in oklab, var(--warning) 20%, transparent)',
+              color: 'var(--warning)'
+            }}
+          >
             <svg
-              className="w-6 h-6 text-yellow-600 animate-spin"
+              className="w-6 h-6 animate-spin"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -291,24 +351,36 @@ export default async function CheckoutReturnPage({
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold">Processing Payment</h1>
+          <h1 className="text-2xl font-semibold" style={{ color: 'var(--text)' }}>Processing Payment</h1>
         </div>
-        <p className="text-gray-600">We're verifying your payment. This may take a few moments.</p>
+        <p style={{ color: 'var(--mutedText)' }}>We're verifying your payment. This may take a few moments.</p>
       </div>
 
-      <div className="border rounded-lg p-6 bg-gray-50">
+      <div 
+        className="border rounded-lg p-6"
+        style={{ 
+          background: 'var(--card)',
+          borderColor: 'var(--border)'
+        }}
+      >
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <div className="text-sm text-gray-600">Order ID</div>
-            <div className="font-mono text-sm">{order.id.slice(0, 12)}</div>
+            <div className="text-sm" style={{ color: 'var(--mutedText)' }}>Order ID</div>
+            <div className="font-mono text-sm" style={{ color: 'var(--text)' }}>{order.id.slice(0, 12)}</div>
           </div>
           <div>
-            <div className="text-sm text-gray-600">Date</div>
-            <div className="text-sm">{order.createdAt.toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+            <div className="text-sm" style={{ color: 'var(--mutedText)' }}>Date</div>
+            <div className="text-sm" style={{ color: 'var(--text)' }}>{order.createdAt.toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })}</div>
           </div>
         </div>
 
-        <div className="border-t pt-4 flex justify-between font-bold">
+        <div 
+          className="border-t pt-4 flex justify-between font-bold"
+          style={{ 
+            borderColor: 'var(--border)',
+            color: 'var(--text)'
+          }}
+        >
           <span>Total</span>
           <span className="tabular-nums">{formatPriceServer(totalCLP, config)}</span>
         </div>
@@ -317,7 +389,7 @@ export default async function CheckoutReturnPage({
       {/* Client component that polls for order status */}
       <OrderStatusClient orderId={order.id} token={token} />
 
-      <div className="mt-6 text-sm text-gray-600">
+      <div className="mt-6 text-sm" style={{ color: 'var(--mutedText)' }}>
         <p>If this page doesn't update automatically, please refresh or contact support.</p>
       </div>
     </div>
