@@ -11,9 +11,10 @@ export async function POST(req: NextRequest) {
   try {
     const t0 = Date.now()
     let dbMs = 0
-    const body = await req.json().catch(() => ({})) as { action?: 'set' | 'inc' | 'remove', printingId?: string, quantity?: number }
+    const body = await req.json().catch(() => ({})) as { action?: 'set' | 'inc' | 'remove', printingId?: string, quantity?: number, finish?: string }
     const action = (body.action || 'set') as 'set' | 'inc' | 'remove'
     const printingId = String(body.printingId || '').trim()
+    const finish = (body.finish || 'normal') as 'normal' | 'foil' | 'etched'
     if (!printingId) return NextResponse.json({ error: 'invalid_printing' }, { status: 400 })
 
     // If authenticated, operate on the user's cart. Otherwise use guest cart via cookie.
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (!cartId) return NextResponse.json({ error: 'cart_not_found' }, { status: 404 })
 
     const t1 = Date.now()
-    const line = await prisma.cartItem.findFirst({ where: { cartId, printingId }, select: { id: true, quantity: true } })
+    const line = await prisma.cartItem.findFirst({ where: { cartId, printingId, finish }, select: { id: true, quantity: true } })
     dbMs += Date.now() - t1
     if (!line) return NextResponse.json({ error: 'line_not_found' }, { status: 404 })
 
@@ -52,12 +53,26 @@ export async function POST(req: NextRequest) {
       dbMs += Date.now() - t2
     }
 
-    // Return updated summary for instant reconciliation
+    // Return updated summary for instant reconciliation (using database aggregation for performance)
     const t3 = Date.now()
-    const items = await prisma.cartItem.findMany({ where: { cartId }, select: { quantity: true, unitPrice: true } })
+    const [aggregateResult, priceResult] = await Promise.all([
+      prisma.cartItem.aggregate({
+        where: { cartId },
+        _sum: { quantity: true },
+        _count: { id: true }
+      }),
+      // Use raw SQL for total price calculation - much faster than fetching all rows
+      prisma.$queryRaw<Array<{ total: number | null }>>`
+        SELECT COALESCE(SUM(quantity * CAST("unitPrice" AS DECIMAL)), 0) as total
+        FROM "CartItem"
+        WHERE "cartId" = ${cartId}
+      `
+    ])
     dbMs += Date.now() - t3
-    const totalPrice = items.reduce((sum, it) => sum + (Number(it.unitPrice ?? 0) * it.quantity), 0)
-    const totalCount = items.reduce((sum, it) => sum + it.quantity, 0)
+    
+    const totalPrice = Number(priceResult[0]?.total ?? 0)
+    const totalCount = aggregateResult._sum.quantity ?? 0
+    
     const res = NextResponse.json({ ok: true, totalCount, totalPrice })
     res.headers.set('X-Server-Timing', `db;dur=${dbMs},total;dur=${Date.now()-t0}`)
     return res

@@ -19,6 +19,14 @@ export default async function CheckoutReturnPage({
   const token = String(params.token || params.Token || params.token_payment || '')
   const status = String(params.status || params.Status || '')
 
+  // If status parameter indicates cancellation, redirect to cart immediately
+  const statusNum = status ? Number(status) : null
+  if (statusNum === 3 || statusNum === 4) {
+    // Redirect to cart for cancelled/failed payments
+    const { redirect } = await import('next/navigation')
+    redirect('/cart?payment=cancelled')
+  }
+
   // Get pricing configuration
   const config = await getPricingConfig()
 

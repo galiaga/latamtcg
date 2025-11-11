@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCart } from './CartProvider'
 import Spinner from './Spinner'
 
-export default function AddToCartButton({ printingId, size = 'md', title }: { printingId: string; size?: 'sm' | 'md' | 'lg' | 'xs'; title?: string }) {
+export default function AddToCartButton({ printingId, size = 'md', title, variant }: { printingId: string; size?: 'sm' | 'md' | 'lg' | 'xs'; title?: string; variant?: 'normal' | 'foil' | 'etched' }) {
   const [adding, setAdding] = useState(false)
   const [ok, setOk] = useState(false)
   const { mutate, addOptimisticThenReconcile } = useCart()
@@ -19,9 +19,10 @@ export default function AddToCartButton({ printingId, size = 'md', title }: { pr
 
   const add = useCallback(async () => {
     if (!printingId) return
+    const finish = variant || 'normal'
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {}, 250)
-    const key = `${printingId}:normal:normal`
+    const key = `${printingId}:${finish}`
     if (inFlightRef.current.has(key)) return
     inFlightRef.current.add(key)
     setAdding(true)
@@ -40,7 +41,7 @@ export default function AddToCartButton({ printingId, size = 'md', title }: { pr
       const postPromise = fetch('/api/cart/add', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ printingId, quantity: 1, requestId }),
+        body: JSON.stringify({ printingId, quantity: 1, requestId, finish }),
       }).then(async (r) => {
         if (!r.ok) {
           const errorData = await r.json().catch(() => ({}))
@@ -60,7 +61,7 @@ export default function AddToCartButton({ printingId, size = 'md', title }: { pr
       setAdding(false)
       inFlightRef.current.delete(key)
     }
-  }, [printingId, addOptimisticThenReconcile, mutate])
+  }, [printingId, variant, addOptimisticThenReconcile, mutate])
 
   // Use new styling for card tiles, fallback to old styling for other contexts
   const isCardTile = size === 'md' && title

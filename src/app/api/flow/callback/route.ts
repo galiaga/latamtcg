@@ -136,6 +136,27 @@ export async function POST(req: NextRequest) {
         },
       })
 
+      // Mark cart as checked out now that payment is confirmed
+      // Cart items are only removed when payment is 100% complete
+      try {
+        const orderWithMetadata = await prisma.order.findUnique({
+          where: { id: order.id },
+          select: { metadata: true },
+        })
+        const metadata = orderWithMetadata?.metadata as any
+        const cartId = metadata?.cartId
+        if (cartId) {
+          await prisma.cart.update({
+            where: { id: cartId },
+            data: { checkedOutAt: new Date() },
+          })
+          console.log(`[flow/callback] Cart ${cartId} marked as checked out for order ${order.id}`)
+        }
+      } catch (cartError) {
+        // Don't fail the payment confirmation if cart update fails
+        console.error(`[flow/callback] Failed to mark cart as checked out for order ${order.id}:`, cartError)
+      }
+
       // Log payment completion
       await prisma.paymentLog.create({
         data: {
