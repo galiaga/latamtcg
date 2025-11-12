@@ -3,6 +3,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { RELEASE_CUTOFF } from '@/lib/db/constants'
 
 // Helper function to safely create ANY() conditions
 function safeAnyCondition<T>(array: T[], column: string, transform?: (val: T) => string): Prisma.Sql {
@@ -237,9 +238,12 @@ export async function optimizedSearch(params: OptimizedSearchParams): Promise<Op
           COUNT(*) OVER() AS total_count
           FROM "public"."SearchIndex" si
           JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-          LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+          INNER JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
           ${sort === 'most-popular' ? Prisma.sql`LEFT JOIN public.item_popularity_mv ip ON ip.printing_id = si.id` : Prisma.sql``}
           WHERE si.game = 'mtg' AND si."isPaper" = true
+            AND s.released_at IS NOT NULL
+            AND s.released_at <= ${RELEASE_CUTOFF}
+            AND lower(s.set_name) NOT LIKE ${'%heroes of the realm%'}
           ${searchConditions}
           ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
           ${safeUpperAnyCondition(setList, 'si."setCode"')}

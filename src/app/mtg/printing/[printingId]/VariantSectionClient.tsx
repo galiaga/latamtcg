@@ -30,8 +30,12 @@ export function VariantSectionClient({
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(storageKey, selectedId);
+      // Dispatch custom event for shine effect
+      window.dispatchEvent(new CustomEvent('variant-changed', { 
+        detail: { printingId, variantId: selectedId } 
+      }));
     }
-  }, [selectedId, storageKey]);
+  }, [selectedId, storageKey, printingId]);
 
   const current = React.useMemo(
     () => variants.find(v => v.id === selectedId) ?? variants[0],

@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client'
 import type { SearchResult, SearchResultItem, SearchFacets } from '@/types/search'
 import { buildFacetsOptimized } from './facetsOptimized'
 import { optimizedSearch, optimizedFacets } from './searchOptimized'
+import { RELEASE_CUTOFF } from '@/lib/db/constants'
 
 // Helper function to safely create ANY() conditions
 function safeAnyCondition<T>(array: T[], column: string, transform?: (val: T) => string): Prisma.Sql {
@@ -352,9 +353,12 @@ export async function groupedSearchOriginal(params: GroupedParams): Promise<Grou
              CASE WHEN si."isPaper" THEN 1 ELSE 0 END) AS score
           FROM "public"."SearchIndex" si
           JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-          LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+          INNER JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
           ${sort === 'most-popular' ? Prisma.sql`LEFT JOIN public.item_popularity_mv ip ON ip.printing_id = si.id` : Prisma.sql``}
           WHERE si.game = 'mtg' AND si."isPaper" = true
+            AND s.released_at IS NOT NULL
+            AND s.released_at <= ${RELEASE_CUTOFF}
+            AND lower(s.set_name) NOT LIKE ${'%heroes of the realm%'}
             AND (${Prisma.join(wordBoundaryConditions, ' AND ')} OR ${Prisma.join(containsConditions, ' AND ')})
             ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
             ${safeUpperAnyCondition(setList, 'si."setCode"')}
@@ -580,8 +584,11 @@ async function searchExactMatchesGrouped({ qClean, groupId, setList, printing, r
         1000 AS score
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-      LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+      INNER JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
       WHERE si.game = 'mtg' AND si."isPaper" = true
+        AND s.released_at IS NOT NULL
+        AND s.released_at <= ${RELEASE_CUTOFF}
+        AND lower(s.set_name) NOT LIKE ${'%heroes of the realm%'}
         AND unaccent(lower(si.title)) = ${qClean}
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
         ${safeUpperAnyCondition(setList, 'si."setCode"')}
@@ -619,8 +626,11 @@ async function searchStartsWithMatchesGrouped({ tokens, groupId, setList, printi
         (CASE WHEN si."isPaper" THEN 1 ELSE 0 END) AS score
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-      LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+      INNER JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
       WHERE si.game = 'mtg' AND si."isPaper" = true
+        AND s.released_at IS NOT NULL
+        AND s.released_at <= ${RELEASE_CUTOFF}
+        AND lower(s.set_name) NOT LIKE ${'%heroes of the realm%'}
         AND (
           unaccent(lower(si.title)) LIKE ${qNorm + '%'}
           OR unaccent(lower(si.title)) LIKE ${first + '%'}
@@ -657,8 +667,11 @@ async function searchContainsMatchesGrouped({ tokens, groupId, setList, printing
          CASE WHEN si."isPaper" THEN 1 ELSE 0 END) AS score
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-      LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+      INNER JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
       WHERE si.game = 'mtg' AND si."isPaper" = true
+        AND s.released_at IS NOT NULL
+        AND s.released_at <= ${RELEASE_CUTOFF}
+        AND lower(s.set_name) NOT LIKE ${'%heroes of the realm%'}
         AND (${Prisma.join(containsConditions, ' AND ')})
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
         ${safeUpperAnyCondition(setList, 'si."setCode"')}
@@ -693,8 +706,11 @@ async function searchFuzzyMatchesGrouped({ tokens, groupId, setList, printing, r
          CASE WHEN si."isPaper" THEN 1 ELSE 0 END) AS score
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
-      LEFT JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
+      INNER JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
       WHERE si.game = 'mtg' AND si."isPaper" = true
+        AND s.released_at IS NOT NULL
+        AND s.released_at <= ${RELEASE_CUTOFF}
+        AND lower(s.set_name) NOT LIKE ${'%heroes of the realm%'}
         AND (${Prisma.join(similarityConditions, ' AND ')})
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
         ${safeUpperAnyCondition(setList, 'si."setCode"')}
