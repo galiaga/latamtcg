@@ -296,16 +296,28 @@ export function LeftCatalogMenu() {
                 >
                   <span>Rare / Mythic</span>
                 </Link>
-                <Link
-                  href="/mtg/search?sort=release_desc"
-                  onClick={() => {
-                    setMobileOpen(false)
-                    setDesktopOpen(false)
-                  }}
-                  className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors"
-                >
-                  <span>Recently Released</span>
-                </Link>
+                {(() => {
+                  // Get the two most recent sets
+                  const twoMostRecentSets = sets.slice(0, 2)
+                  // Build URL with set filters
+                  const setParams = twoMostRecentSets.map(set => `set=${encodeURIComponent(set.set_code)}`).join('&')
+                  const recentlyReleasedUrl = twoMostRecentSets.length > 0 
+                    ? `/mtg/search?${setParams}&sort=release_desc`
+                    : '/mtg/search?sort=release_desc'
+                  
+                  return (
+                    <Link
+                      href={recentlyReleasedUrl}
+                      onClick={() => {
+                        setMobileOpen(false)
+                        setDesktopOpen(false)
+                      }}
+                      className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors"
+                    >
+                      <span>Recently Released</span>
+                    </Link>
+                  )
+                })()}
               </nav>
             </AccordionContent>
           </AccordionItem>

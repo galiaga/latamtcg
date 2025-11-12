@@ -30,6 +30,8 @@
     "db:migrate:popularity": "tsx scripts/apply-popularity-migration.ts",
     "ingest:prices": "tsx scripts/ingest-scryfall-prices-secure.ts",
     "ingest:prices:local": "tsx src/scripts/local-ingest-prices.ts",
+    "ingest:card:local": "tsx src/scripts/local-ingest-card.ts",
+    "ingest:new-cards:local": "tsx src/scripts/local-ingest-new-cards.ts",
     "ingest:stage": "tsx scripts/ingest-stage.ts",
     "ingest:update": "tsx scripts/ingest-update.ts",
     "ingest:history": "tsx scripts/ingest-history.ts",
