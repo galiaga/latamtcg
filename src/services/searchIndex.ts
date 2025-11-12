@@ -316,6 +316,129 @@ export async function rebuildSearchIndex(): Promise<{ inserted: number }>
   return { inserted: totalInserted }
 }
 
+// Index a single card by scryfallId (for local ingestion)
+export async function indexSingleCard(scryfallId: string): Promise<boolean> {
+  const card = await prisma.mtgCard.findUnique({
+    where: { scryfallId },
+    select: {
+      scryfallId: true,
+      oracleId: true,
+      name: true,
+      flavorName: true,
+      setCode: true,
+      collectorNumber: true,
+      finishes: true,
+      frameEffects: true,
+      promoTypes: true,
+      borderColor: true,
+      fullArt: true,
+      lang: true,
+      isPaper: true,
+      releasedAt: true,
+      priceUsd: true,
+      priceUsdFoil: true,
+      priceUsdEtched: true,
+    },
+  })
+
+  if (!card) {
+    return false
+  }
+
+  const title = formatDisplayName(card.name || '', card.flavorName)
+  const originalFinishLabel = pickFinishLabel(card.finishes || [], card.promoTypes || [])
+  const finishLabel = getOverriddenFinishLabel(originalFinishLabel, card.priceUsdFoil ? Number(card.priceUsdFoil) : null)
+  
+  const variantLabel = variantFromTags(card.frameEffects || [], card.promoTypes || [], card.setCode, card.fullArt)
+  
+  const variant = formatCardVariant({
+    finishes: card.finishes || [],
+    promoTypes: card.promoTypes || [],
+    frameEffects: card.frameEffects || [],
+    borderColor: card.borderColor
+  })
+  
+  let variantSuffix = variant.suffix
+  if (finishLabel === 'Standard' && originalFinishLabel && originalFinishLabel !== 'Standard') {
+    const specialFinishPatterns = [
+      /\(Surge Foil\)/gi,
+      /\(Etched\)/gi,
+      /\(Halo\)/gi,
+      /\(Gilded\)/gi,
+      /\(Textured\)/gi,
+      /\(Rainbow\)/gi,
+      /\(Step-and-Compleat\)/gi,
+      /\(Mana Foil\)/gi,
+      /\(Serialized\)/gi,
+      /\(Double Rainbow\)/gi,
+      /\(Etched Foil\)/gi,
+      /\(Halo Foil\)/gi,
+      /\(Gilded Foil\)/gi,
+      /\(Textured Foil\)/gi
+    ]
+    
+    variantSuffix = specialFinishPatterns.reduce((suffix, pattern) => {
+      return suffix.replace(pattern, '').trim()
+    }, variant.suffix)
+    
+    variantSuffix = variantSuffix.replace(/\s+/g, ' ').trim()
+  }
+  
+  const subtitle = buildSubtitle(card.setCode, null, card.collectorNumber)
+  const keywordsText = buildKeywords({
+    name: title,
+    setCode: card.setCode,
+    setName: null,
+    collectorNumber: card.collectorNumber,
+    frameEffects: card.frameEffects,
+    promoTypes: card.promoTypes,
+  })
+  
+  const recency = card.releasedAt ? card.releasedAt.getTime() / 1_000_000_000 : 0
+  const finishPref = finishLabel === 'Nonfoil' ? 1.0 : finishLabel === 'Foil' ? 0.9 : finishLabel ? 0.8 : 0.5
+  const sortScore = recency + finishPref
+  
+  const fullDisplayName = title + (variant.suffix || '')
+  const nameSortKey = fullDisplayName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  
+  const indexRow = {
+    id: card.scryfallId,
+    groupId: card.oracleId,
+    game: 'mtg',
+    title: title,
+    subtitle,
+    keywordsText,
+    finishLabel: finishLabel ?? null,
+    variantLabel: variantLabel ?? null,
+    variantSuffix: variantSuffix,
+    lang: card.lang,
+    isPaper: Boolean(card.isPaper),
+    releasedAt: card.releasedAt ?? null,
+    sortScore,
+    setCode: card.setCode,
+    setName: null,
+    collectorNumber: card.collectorNumber,
+    imageNormalUrl: card.scryfallId ? getScryfallNormalUrl(card.scryfallId) : null,
+    name: title,
+    nameSortKey: nameSortKey,
+    nameSortKeyDesc: nameSortKey,
+  }
+
+  await prisma.searchIndex.upsert({
+    where: { id: card.scryfallId },
+    create: indexRow,
+    update: indexRow,
+  })
+
+  return true
+}
+
 async function withRetries<T>(fn: () => Promise<T>, attempts = 3, baseDelayMs = 300): Promise<T> {
   let lastErr: any
   for (let i = 0; i < attempts; i++) {
