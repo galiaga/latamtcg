@@ -8,8 +8,9 @@ import Link from 'next/link'
 import { printingHref } from '@/lib/routes'
 import { buildCacheKey } from '@/lib/cache'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import SkeletonCard from './SkeletonCard'
+import { GridCardSkeleton } from './ui/skeletons'
 import Spinner from './Spinner'
+import { useDelayedFlag } from '@/hooks/useDelayedFlag'
 import { usePricing } from './PricingProvider'
 import { getDisplayPrice, formatPrice } from '@/lib/pricingClient'
 
@@ -58,6 +59,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
     printing: Array.isArray(initialData?.facets?.printing) ? (initialData!.facets!.printing as any) : [],
   })
   const [loading, setLoading] = useState(false)
+  const showSkeleton = useDelayedFlag(150, loading && primary.length === 0)
   const hasAnyFilter = useMemo(() => {
     const sets = searchParams?.getAll('set') || []
     const rarity = searchParams?.getAll('rarity') || []
@@ -486,10 +488,10 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
       </div>
       {/* Always-visible compact filter controls */}
       {/* All-filters popover removed */}
-      {loading && primary.length === 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      {showSkeleton ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" aria-busy="true" aria-live="polite">
           {Array.from({ length: 20 }).map((_, i) => (
-            <SkeletonCard key={i} />
+            <GridCardSkeleton key={i} />
           ))}
         </div>
       ) : null}

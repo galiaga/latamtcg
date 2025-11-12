@@ -7,7 +7,8 @@ import { useCart } from '@/components/CartProvider'
 import { supabaseBrowser } from '@/lib/supabase-browser'
 import Image from 'next/image'
 import Link from 'next/link'
-import SkeletonCartRow from '@/components/SkeletonCartRow'
+import { CartPageSkeleton } from '@/components/ui/skeletons'
+import { useDelayedFlag } from '@/hooks/useDelayedFlag'
 import { usePricing } from '@/components/PricingProvider'
 import { calculateShipping, meetsMinimumOrder, amountToMinimum, amountToFreeShipping } from '@/lib/pricing'
 import { formatPrice } from '@/lib/pricingClient'
@@ -39,6 +40,7 @@ export default function CartPage() {
   const [authed, setAuthed] = useState<boolean | null>(null)
   const [redirecting, setRedirecting] = useState(false)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+  const showSkeleton = useDelayedFlag(150, loading && !hasLoadedOnce)
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.lineTotal, 0), [items])
   
   // Calculate shipping and totals
@@ -259,12 +261,8 @@ export default function CartPage() {
     <SWRConfig value={{ revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0, dedupingInterval: 4000 }}>
     <div className="mx-auto max-w-4xl p-2 md:p-6">
       <h1 className="text-xl font-semibold">Your Cart</h1>
-      {loading && !hasLoadedOnce ? (
-        <div className="mt-4 grid grid-cols-1 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <SkeletonCartRow key={i} />
-          ))}
-        </div>
+      {showSkeleton ? (
+        <CartPageSkeleton itemCount={3} />
       ) : null}
       {error ? <div className="mt-4 text-red-600">{error}</div> : null}
       {!loading && items.length === 0 ? (

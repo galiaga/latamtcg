@@ -9,7 +9,8 @@ import HeaderUser from "@/components/HeaderUser";
 import HeaderCart from "@/components/HeaderCart";
 import { CartProvider } from "@/components/CartProvider";
 import { PricingProvider } from "@/components/PricingProvider";
-import ProgressBar from "@/components/ProgressBar";
+import { LoadingProvider } from "@/components/ui/LoadingProvider";
+import GlobalProgress from "@/components/ui/GlobalProgress";
 import Footer from "@/components/Footer";
 import { LeftCatalogMenu } from "@/components/nav/LeftCatalogMenu";
 
@@ -58,9 +59,10 @@ export default function RootLayout({
         </Script>
         {/* Global providers and client-only sections */}
         <SafeClient>
-          <ProgressBar />
-          <PricingProvider>
-            <CartProvider>
+          <LoadingProvider>
+            <GlobalProgress />
+            <PricingProvider>
+              <CartProvider>
             {/* Global search section */}
             <header className="py-4">
               <div className="px-4">
@@ -105,8 +107,9 @@ export default function RootLayout({
               {children}
             </main>
             <Footer />
-            </CartProvider>
-          </PricingProvider>
+              </CartProvider>
+            </PricingProvider>
+          </LoadingProvider>
         </SafeClient>
       </body>
     </html>
