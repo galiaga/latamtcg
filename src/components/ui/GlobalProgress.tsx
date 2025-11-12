@@ -11,7 +11,6 @@ NProgress.configure({
   speed: 500,
   minimum: 0.1,
   trickleSpeed: 200,
-  trickleRate: 0.02,
 })
 
 /**
