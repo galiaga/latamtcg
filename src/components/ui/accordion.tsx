@@ -4,7 +4,7 @@ import * as React from 'react'
 
 interface AccordionContextValue {
   value: string[]
-  onValueChange: (value: string[]) => void
+  onValueChange: (value: string | string[]) => void
 }
 
 const AccordionContext = React.createContext<AccordionContextValue | undefined>(undefined)
@@ -41,21 +41,28 @@ export function Accordion({
     [isControlled, controlledOnValueChange]
   )
 
-  const handleItemClick = React.useCallback(
-    (itemValue: string) => {
-      if (type === 'single') {
-        onValueChange(value.includes(itemValue) ? [] : [itemValue])
+  const handleValueChange = React.useCallback(
+    (input: string | string[]) => {
+      if (typeof input === 'string') {
+        // Called from AccordionTrigger with a single item value
+        const itemValue = input
+        if (type === 'single') {
+          onValueChange(value.includes(itemValue) ? [] : [itemValue])
+        } else {
+          onValueChange(
+            value.includes(itemValue) ? value.filter((v) => v !== itemValue) : [...value, itemValue]
+          )
+        }
       } else {
-        onValueChange(
-          value.includes(itemValue) ? value.filter((v) => v !== itemValue) : [...value, itemValue]
-        )
+        // Called directly with an array (from external onValueChange prop)
+        onValueChange(input)
       }
     },
     [type, value, onValueChange]
   )
 
   return (
-    <AccordionContext.Provider value={{ value, onValueChange: handleItemClick }}>
+    <AccordionContext.Provider value={{ value, onValueChange: handleValueChange }}>
       <div className={className}>{children}</div>
     </AccordionContext.Provider>
   )
