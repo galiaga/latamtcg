@@ -9,10 +9,11 @@ import { formatDisplayName } from '@/lib/cardNames'
 const SHOW_HISTORY = process.env.NEXT_PUBLIC_PRICE_HISTORY_ENABLED === 'true'
 const PriceHistoryChart = SHOW_HISTORY ? (await import('@/components/PriceHistoryChart')).default : (null as any)
 import { getCurrentPrice } from '@/lib/prices'
-import { formatDateTime, formatUsd } from '@/lib/format'
+import { formatDateTime, formatUsd, formatCLP } from '@/lib/format'
 import { getVariantsForCard, resolveInitialVariant } from '@/helpers/pdpVariants'
 import { VariantSectionClient } from './VariantSectionClient'
 import { CardImageWithShine } from './CardImageWithShine'
+import ShareButtons from '@/components/ShareButtons'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -55,20 +56,67 @@ export async function generateMetadata(props: { params: Promise<{ printingId: st
       frameEffects: data.frameEffects,
       borderColor: data.borderColor
     })
-    const col = data.collectorNumber ? ` #${data.collectorNumber}` : ''
-    const setPart = `${(data.setCode || '').toUpperCase()}${col}`
-    const title = `${data.name}${variant.suffix} — ${setPart} | LatamTCG`
-    const canonical = `/mtg/printing/${printingId}`
+    
+    // Get product name with variant suffix
+    const productName = `${formatDisplayName(data.name, data.flavorName)}${variant.suffix}`
+    
+    // Get initial variant for price in description
+    const variants = await getVariantsForCard(data)
+    const initialVariant = resolveInitialVariant(variants)
+    const priceText = initialVariant.priceClp != null 
+      ? formatCLP(initialVariant.priceClp)
+      : formatUsd(data.priceUsd)
+    
+    // Build description with product type and price
+    const variantLabel = initialVariant.label || 'Card'
+    const setInfo = data.setName || (data.setCode || '').toUpperCase()
+    const description = `${variantLabel} Magic: The Gathering card from ${setInfo}. ${productName}. Price: ${priceText}.`
+    
+    // Build canonical URL
+    const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://latamtcg.com'
+    const canonical = `${baseUrl}/mtg/printing/${printingId}`
+    
+    // Get image URL for OG tags
+    const imageUrl = data.imageUrl || ''
+    
+    // Meta title: "{Product Name} | LatamTCG"
+    const title = `${productName} | LatamTCG`
+    
     return { 
-      title, 
+      title,
+      description,
       alternates: { canonical },
-      robots: { index: false, follow: false }
+      openGraph: {
+        title,
+        description,
+        url: canonical,
+        siteName: 'LatamTCG',
+        images: imageUrl ? [
+          {
+            url: imageUrl,
+            width: 488,
+            height: 680,
+            alt: productName,
+          }
+        ] : [],
+        type: 'website',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: imageUrl ? [imageUrl] : [],
+      },
+      robots: { index: true, follow: true }
     }
   } catch {
+    const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://latamtcg.com'
+    const canonical = `${baseUrl}/mtg/printing/${printingId}`
     return { 
-      title: 'Card', 
-      alternates: { canonical: `/mtg/printing/${printingId}` },
-      robots: { index: false, follow: false }
+      title: 'Card | LatamTCG', 
+      description: 'Magic: The Gathering card on LatamTCG',
+      alternates: { canonical },
+      robots: { index: true, follow: true }
     }
   }
 }
@@ -244,6 +292,35 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             {data.setName ? <span className="badge">{data.setName}</span> : null}
             {data.collectorNumber ? <span className="badge">#{data.collectorNumber}</span> : null}
             {data.language && data.language !== 'EN' ? <span className="badge">{data.language.toUpperCase()}</span> : null}
+          </div>
+          
+          {/* Share Buttons */}
+          <div className="mt-4">
+            {(() => {
+              const variant = formatCardVariant({
+                finishes: data.finishes,
+                promoTypes: data.promoTypes,
+                frameEffects: data.frameEffects,
+                borderColor: data.borderColor
+              })
+              const productName = `${formatDisplayName(data.name, data.flavorName)}${variant.suffix}`
+              const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://latamtcg.com'
+              const productUrl = `${baseUrl}/mtg/printing/${printingId}`
+              const variantLabel = initialVariant.label || 'Card'
+              const setInfo = data.setName || (data.setCode || '').toUpperCase()
+              const priceText = initialVariant.priceClp != null 
+                ? formatCLP(initialVariant.priceClp)
+                : formatUsd(data.priceUsd)
+              const shareDescription = `${variantLabel} Magic: The Gathering card from ${setInfo}. ${productName}. Price: ${priceText}.`
+              
+              return (
+                <ShareButtons
+                  title={productName}
+                  url={productUrl}
+                  description={shareDescription}
+                />
+              )
+            })()}
           </div>
           
           {/* Price: last update line or chart (flagged) */}

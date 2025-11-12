@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.37.0 — 2025-01-XX
+### Features
+- **SEO Metadata & Social Sharing**: Comprehensive SEO optimization for product detail pages
+  - **Meta Tags**: Unique meta title, description, and canonical URL for each product
+    - Meta title format: "{Product Name} | LatamTCG"
+    - Meta description includes product type, set information, and current price
+    - Canonical URLs for proper search engine indexing
+  - **Open Graph Tags**: Complete OG metadata for social media sharing
+    - Product title, description, and image for rich previews
+    - Proper image dimensions (488x680) matching card aspect ratio
+    - Site name and type metadata for consistent branding
+  - **Twitter Card**: Large image card support for Twitter sharing
+    - Summary large image card type for optimal Twitter display
+    - Product-specific images and descriptions
+  - **Social Share Buttons**: Direct sharing to Twitter and WhatsApp
+    - Twitter share button with pre-filled product information
+    - WhatsApp share button for easy mobile sharing
+    - Responsive design with icon-only labels on mobile
+    - Opens share dialogs in new windows with proper security attributes
+
+### Technical Improvements
+- **Metadata Generation**: Enhanced `generateMetadata` function with comprehensive SEO data
+  - Server-side price calculation for accurate descriptions
+  - Dynamic product name formatting with variant suffixes
+  - Proper base URL handling for canonical and OG URLs
+  - Graceful fallbacks for error cases
+- **Share Component**: New `ShareButtons` client component
+  - Memoized URL generation for optimal performance
+  - Accessible button design with proper ARIA labels
+  - Consistent styling with existing design system
+- **Performance**: Zero impact on rendering performance
+  - Share buttons are client components (no SSR overhead)
+  - Metadata generation runs separately from page rendering
+  - No additional data fetching required
+
+### SEO Enhancements
+- **Search Engine Optimization**: Changed robots meta from `noindex` to `index` for product pages
+  - Product pages now indexed by search engines
+  - Proper canonical URLs prevent duplicate content issues
+  - Rich snippets support through structured metadata
+
 ## v0.36.0 — 2025-11-12
 ### Features
 - **Comprehensive Loading System**: Complete overhaul of loading states and user feedback
