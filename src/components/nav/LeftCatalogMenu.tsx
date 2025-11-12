@@ -118,7 +118,7 @@ export function LeftCatalogMenu() {
 
       {/* Body */}
       <ScrollArea className="flex-1 p-3 md:p-4">
-        <Accordion type="single" value={accordionValue[0] || undefined} onValueChange={(value) => setAccordionValue(value ? [value] : [])}>
+        <Accordion type="single" value={accordionValue} onValueChange={(value) => setAccordionValue(value)}>
           {/* Shop Section */}
           <AccordionItem value="shop" className="mb-2">
             <AccordionTrigger className="text-sm font-semibold uppercase tracking-wide text-muted-foreground py-2">
