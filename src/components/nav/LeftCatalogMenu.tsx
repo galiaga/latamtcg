@@ -338,7 +338,7 @@ export function LeftCatalogMenu() {
               EN
             </button>
           </div>
-          <span>LatamTCG v0.35.0</span>
+          <span>LatamTCG v0.37.0</span>
         </div>
       </div>
     </div>
