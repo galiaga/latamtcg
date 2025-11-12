@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { RELEASE_CUTOFF } from '@/lib/db/constants'
 
 export async function GET() {
   try {
     const t0 = Date.now()
     
     // Get the top 24 cards by cart count
+    // Only include cards from sets within the release window
     const popularCards = await prisma.$queryRaw<Array<{
       scryfallId: string
       name: string
@@ -30,9 +32,13 @@ export async function GET() {
         mc.rarity,
         COUNT(ci.id) as "cartCount"
       FROM "MtgCard" mc
-      LEFT JOIN "Set" s ON upper(s.set_code) = upper(mc."setCode")
+      INNER JOIN "Set" s ON upper(s.set_code) = upper(mc."setCode")
       INNER JOIN "CartItem" ci ON ci."printingId" = mc."scryfallId"
-      WHERE mc."isPaper" = true AND mc.lang = 'en'
+      WHERE mc."isPaper" = true 
+        AND mc.lang = 'en'
+        AND s.released_at IS NOT NULL
+        AND s.released_at <= ${RELEASE_CUTOFF}
+        AND lower(s.set_name) NOT LIKE ${'%heroes of the realm%'}
         AND (mc."priceUsd" IS NOT NULL OR mc."priceUsdFoil" IS NOT NULL OR mc."priceUsdEtched" IS NOT NULL)
       GROUP BY mc."scryfallId", mc.name, mc."setCode", s.set_name, mc."collectorNumber", 
                mc."priceUsd", mc."priceUsdFoil", mc."priceUsdEtched", mc.rarity

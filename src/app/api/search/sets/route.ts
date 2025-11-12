@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { RELEASE_CUTOFF } from '@/lib/db/constants'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,10 +15,15 @@ export async function GET(req: NextRequest) {
     const rows: Array<{ setCode: string; setName: string | null; count: bigint }> = await prisma.$queryRaw(Prisma.sql`
       SELECT c."setCode" AS "setCode", MIN(s.set_name) AS "setName", COUNT(*)::bigint AS count
       FROM "public"."MtgCard" c
-      LEFT JOIN "public"."Set" s ON s.set_code = c."setCode"
-      WHERE c."isPaper" = true AND c."lang" = 'en'
+      INNER JOIN "public"."Set" s ON s.set_code = c."setCode"
+      WHERE c."isPaper" = true 
+        AND c."lang" = 'en'
+        AND s.released_at IS NOT NULL
+        AND s.released_at <= ${RELEASE_CUTOFF}
+        AND lower(s.set_name) NOT LIKE ${'%heroes of the realm%'}
         ${q ? Prisma.sql`AND (lower(c."setCode") LIKE ${'%' + q + '%'} OR lower(COALESCE(s.set_name, '')) LIKE ${'%' + q + '%'})` : Prisma.sql``}
       GROUP BY c."setCode"
+      HAVING COUNT(*) > 0
       ORDER BY MIN(COALESCE(s.set_name, '')) ASC, c."setCode" ASC
       LIMIT ${limit}
     `)

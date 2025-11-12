@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { buildCacheKey } from '@/lib/cache'
+import { RELEASE_CUTOFF } from '@/lib/db/constants'
 
 // Helper function to safely create ANY() conditions
 function safeAnyCondition<T>(array: T[], column: string, transform?: (val: T) => string): Prisma.Sql {
@@ -165,7 +166,11 @@ async function getCandidates(params: FacetParams): Promise<FacetCandidate[]> {
         mc.finishes
       FROM "public"."SearchIndex" si
       JOIN "public"."MtgCard" mc ON mc."scryfallId" = si.id
+      INNER JOIN "public"."Set" s ON upper(s.set_code) = upper(si."setCode")
       WHERE si.game = 'mtg' AND si."isPaper" = true
+        AND s.released_at IS NOT NULL
+        AND s.released_at <= ${RELEASE_CUTOFF}
+        AND lower(s.set_name) NOT LIKE ${'%heroes of the realm%'}
         AND (${Prisma.join(setsQuery, ' AND ')})
         ${groupId ? Prisma.sql`AND si."groupId" = ${groupId}` : Prisma.sql``}
         ${safeUpperAnyCondition(setList, 'si."setCode"')}

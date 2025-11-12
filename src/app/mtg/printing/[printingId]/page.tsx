@@ -1,4 +1,3 @@
-import TwoSidedImage from '@/components/TwoSidedImage'
 import Link from 'next/link'
 import { getPrintingById } from '@/lib/printings'
 import { prisma } from '@/lib/prisma'
@@ -13,6 +12,7 @@ import { getCurrentPrice } from '@/lib/prices'
 import { formatDateTime, formatUsd } from '@/lib/format'
 import { getVariantsForCard, resolveInitialVariant } from '@/helpers/pdpVariants'
 import { VariantSectionClient } from './VariantSectionClient'
+import { CardImageWithShine } from './CardImageWithShine'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -204,7 +204,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
         {/* Left: sticky image column */}
         <div className="self-center lg:self-start lg:sticky lg:top-24 w-[min(86vw,420px)] lg:w-[clamp(320px,28vw,440px)] xl:w-[clamp(360px,30vw,480px)]">
           {data.id ? (
-            <TwoSidedImage scryfallId={data.id} alt={data.name} mode="large" className="w-full" />
+            <CardImageWithShine scryfallId={data.id} alt={data.name} initialVariantId={initialVariant.id} />
           ) : (
             <div className="relative aspect-[63/88] w-full rounded-xl border overflow-hidden skeleton" style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)' }} />
           )}

@@ -11,6 +11,7 @@ import { CartProvider } from "@/components/CartProvider";
 import { PricingProvider } from "@/components/PricingProvider";
 import ProgressBar from "@/components/ProgressBar";
 import Footer from "@/components/Footer";
+import { LeftCatalogMenu } from "@/components/nav/LeftCatalogMenu";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,6 +66,7 @@ export default function RootLayout({
               <div className="px-4">
                 {/* Desktop layout */}
                 <div className="hidden md:flex items-center gap-4">
+                  <LeftCatalogMenu />
                   <h1 className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
                     <Link href="/">LatamTCG</Link>
                   </h1>
@@ -79,8 +81,9 @@ export default function RootLayout({
                 
                 {/* Mobile layout */}
                 <div className="md:hidden">
-                  {/* Row 1: Title + Cart + User */}
+                  {/* Row 1: Menu + Title + Cart + User */}
                   <div className="flex items-center justify-between mb-3">
+                    <LeftCatalogMenu />
                     <h1 className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
                       <Link href="/">LatamTCG</Link>
                     </h1>

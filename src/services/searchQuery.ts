@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
 import { formatDisplayName } from '@/lib/cardNames'
+import { RELEASE_CUTOFF } from '@/lib/db/constants'
 
 export type SearchParams = {
   q: string
@@ -264,6 +265,7 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
   if (langPref !== 'all') where.lang = 'en'
 
   // Fetch a reasonable candidate set
+  // Exclude "Heroes of the Realm" sets
   const candidates = await prisma.mtgCard.findMany({
     where: {
       AND: [
@@ -282,6 +284,19 @@ async function fallbackSearchFromMtgCard(args: { qNorm: string; first: string; g
             { priceUsdFoil: { not: null } },
             { priceUsdEtched: { not: null } },
           ],
+        },
+        {
+          set: {
+            set_name: {
+              not: {
+                contains: 'Heroes of the Realm',
+              },
+            },
+            released_at: {
+              lte: RELEASE_CUTOFF,
+              not: null,
+            },
+          },
         },
       ],
     },

@@ -1,5 +1,80 @@
 # Changelog
 
+## v0.35.0 — 2025-11-11
+### Features
+- **Left Navigation Menu Overhaul**: Complete redesign of the left catalog menu with modern, mobile-first UX
+  - **Accordion Behavior**: Changed to single-selection mode (only one section open at a time) for cleaner interface
+  - **Shop Section**: Singles link now points to `/mtg/search` (main search page)
+  - **Mass Entry Page**: Created temporary page at `/mass-entry` with "Coming Soon" message for future bulk card entry functionality
+  - **Sets Section**: Latest 8 sets displayed with set symbols, parent set fallback, and generic MTG symbol fallback
+  - **Quick Filters**: Fixed all filter links to use proper search parameters:
+    - Foil / Etched: `/mtg/search?printing=foil&printing=etched`
+    - Full Art / Showcase: `/mtg/search?q=full+art+OR+showcase+OR+borderless`
+    - Rare / Mythic: `/mtg/search?rarity=rare&rarity=mythic`
+    - Recently Released: `/mtg/search?sort=release_desc`
+  - **Advanced Search Page**: Comprehensive search interface at `/search/advanced` with:
+    - Search query input
+    - Multi-select set picker with searchable list and set symbols
+    - Rarity filters (Common, Uncommon, Rare, Mythic)
+    - Printing filters (Normal, Foil, Etched)
+    - Sort options (Relevance, Name, Price, Release Date, Most Popular)
+    - Show unavailable cards toggle
+- **All Sets Page Enhancement**: Updated `/mtg/sets` page to use set symbols instead of card images
+  - Uses Scryfall set symbol SVGs with intelligent fallback system
+  - Parent set symbol fallback for promo sets (e.g., "Marvel's Spider-Man Promos" uses "Marvel's Spider-Man" symbol)
+  - Generic MTG symbol fallback for sets without symbols
+  - Consistent with left menu set symbol display logic
+- **Foil Card Shine Effect**: Added visual enhancement for foil cards on product detail pages
+  - Static glow effect with radial gradient overlay when foil is selected
+  - Continuous animated shine sweep across the card (3-second cycle)
+  - Enhanced image filters (brightness, contrast, saturation) for premium appearance
+  - Smooth transitions when switching between Normal and Foil variants
+  - Event-based communication between variant selector and image component
+
+### Data Filtering & Quality
+- **Global Release Window Filter**: Implemented 14-day release window for all MTG sets
+  - Only sets with `released_at <= (today + 14 days)` are shown throughout the app
+  - Sets with `released_at = NULL` are excluded
+  - Applied to all queries reading from `Set` or `MtgCard` tables
+  - Centralized constant `RELEASE_CUTOFF` in `lib/db/constants.ts` for consistency
+- **Empty Set Exclusion**: Sets with 0 cards are now excluded from all queries
+  - Applied to set listings, search results, and all catalog pages
+  - Prevents display of sets like PH23 that have no available cards
+- **Heroes of the Realm Exclusion**: All "Heroes of the Realm" sets are excluded from the app
+  - 8 sets excluded: ph17, ph18, ph19, ph20, ph21, ph22, ph23, phtr
+  - Applied globally across all queries and search results
+  - Future "Heroes of the Realm" sets will be automatically excluded
+
+### UI/UX Improvements
+- **Set Symbol Display**: Enhanced set symbol system with intelligent fallbacks
+  - Primary: Set's own symbol from Scryfall
+  - Fallback 1: Parent set symbol (for promo sets)
+  - Fallback 2: Generic MTG symbol
+  - Applied consistently in left menu and All Sets page
+- **Left Menu Polish**: Improved visual consistency and alignment
+  - Advanced Search section properly aligned with other accordion headers
+  - Removed year display from sets list for cleaner interface
+  - Cache-busting for fresh set data on menu open
+
+### Technical Improvements
+- **Search Query Updates**: Enhanced all search services with release window and set exclusions
+  - Updated `searchOptimized.ts`, `searchQueryGroupedSimple.ts`, `facetsOptimized.ts`
+  - All search queries now filter by release date and exclude empty/Heroes sets
+- **API Route Updates**: Updated all relevant API routes with new filters
+  - `/api/search/sets`: Excludes empty sets and Heroes sets
+  - `/api/search/suggest`: Filters by release window and excludes Heroes sets
+  - `/api/popular-cards`: Only shows cards from sets within release window
+- **Component Architecture**: Created reusable components for set symbols
+  - `SetSymbol` component with fallback logic
+  - `CardImageWithShine` component for foil effect
+  - Proper event-based communication between components
+
+### Performance
+- **Query Optimization**: All set queries now use efficient filtering
+  - Prisma queries use relation filters (`cards: { some: { isPaper: true } }`)
+  - SQL queries use `INNER JOIN` with proper `WHERE` clauses
+  - Reduced unnecessary data processing
+
 ## v0.34.0 — 2025-11-11
 ### Features
 - **Cart Variant Support**: Enhanced cart to treat normal, foil, and etched versions as separate items
