@@ -39,6 +39,8 @@ type ScryfallCard = {
     usd?: string | null;
     usd_foil?: string | null;
     usd_etched?: string | null;
+    eur?: string | null;
+    tix?: string | null;
   };
   lang?: string;
   set_type?: string;
