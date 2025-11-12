@@ -184,9 +184,19 @@ body {
 .skeleton-card { background: color-mix(in oklab, var(--border) 40%, var(--bg)); border-radius: 1rem; }
 .skeleton-text { background: color-mix(in oklab, var(--border) 40%, var(--bg)); border-radius: 0.25rem; }
 
+/* Skeleton fade-out transition */
+[aria-busy="true"] {
+  transition: opacity 150ms ease-out;
+}
+[aria-busy="false"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: none; }
+  .skeleton, .skeleton-card, .skeleton-text { animation: none; opacity: 0.6; }
 }
 
 /* Card image clipping mask for tighter rounded corners */

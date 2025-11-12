@@ -1,5 +1,75 @@
 # Changelog
 
+## v0.36.0 — 2025-11-12
+### Features
+- **Comprehensive Loading System**: Complete overhaul of loading states and user feedback
+  - **Global Loading Provider**: Context-based loading state management with ref-counting
+    - `LoadingProvider` component with `useLoading()` hook for global loading state
+    - `withLoading()` helper to automatically manage loading state for async operations
+    - Ref-counted loading state supports multiple concurrent operations
+  - **Global Progress Indicator**: Slim top progress bar for route transitions and long operations
+    - Integrates with `LoadingProvider` to show progress during any loading state
+    - Automatically handles route changes via pathname detection
+    - Replaces old `ProgressBar` component with enhanced functionality
+  - **Delayed Flag Hook**: `useDelayedFlag()` prevents flicker while guaranteeing timely feedback
+    - Shows skeletons only if loading takes longer than 150ms
+    - Ensures visual feedback appears within 150ms threshold
+    - Prevents jarring skeleton flashes on fast loads
+
+- **Skeleton Component Library**: Comprehensive skeleton primitives and page-level skeletons
+  - **Primitives** (9 components): TextLine, Avatar, Card, ListItem, GridCard, Image, Badge, Price, Button
+    - All skeletons match final content dimensions to prevent layout shift (CLS)
+    - Configurable via props (size, lines, rounded, etc.)
+    - Proper ARIA attributes for accessibility
+  - **Page-Level Skeletons** (4 components):
+    - `SearchPageSkeleton`: Search/PLP with filter bar + responsive grid (8-12 items)
+    - `ProductDetailSkeleton`: PDP with image gallery, title, badges, price, CTA button
+    - `CartPageSkeleton`: Cart with items list, totals summary, checkout button
+    - `TablePageSkeleton`: Generic table/list pages with header + rows
+
+- **Enhanced User Experience**: Consistent loading feedback across all pages
+  - Search results show `GridCardSkeleton` during loading with 150ms delay
+  - Cart page uses `CartPageSkeleton` for initial load
+  - Product detail pages use `ProductDetailSkeleton` for route-level loading
+  - All skeletons fade out smoothly with 150ms transitions
+
+### Technical Improvements
+- **Accessibility Enhancements**:
+  - All skeletons use `aria-hidden="true"` (decorative)
+  - Loading containers use `aria-busy="true"` and `aria-live="polite"`
+  - Reduced motion support: animations disabled for `prefers-reduced-motion`
+  - Smooth fade-out transitions (150ms) for skeleton removal
+- **Route Transition Integration**:
+  - `GlobalProgress` automatically detects route changes via `usePathname()`
+  - Loading state properly managed during navigation
+  - No additional setup required in individual pages
+- **Component Architecture**:
+  - Centralized skeleton components in `src/components/ui/skeletons/`
+  - Barrel exports for easy importing
+  - Consistent styling using existing CSS variables and Tailwind classes
+
+### Performance
+- **Layout Stability**: All skeletons match final content dimensions (no CLS)
+- **Fast Feedback**: Visual feedback guaranteed within 150ms
+- **Smooth Transitions**: 150ms fade-out prevents jarring content swaps
+- **Optimized Rendering**: Skeletons only render when needed (delayed flag)
+
+### Documentation
+- **Comprehensive Guide**: Created `docs/loading.md` with:
+  - Architecture overview and component API documentation
+  - Usage examples for common patterns
+  - Best practices and migration guide
+  - Testing checklist and accessibility guidelines
+  - File structure reference
+
+### Refactors / Chore
+- **Updated Existing Components**:
+  - `SearchResultsGrid`: Now uses `GridCardSkeleton` with delayed flag
+  - `CartPage`: Updated to use `CartPageSkeleton`
+  - Product detail `loading.tsx`: Uses `ProductDetailSkeleton`
+- **Root Layout Integration**: `LoadingProvider` and `GlobalProgress` mounted globally
+- **CSS Enhancements**: Added skeleton fade-out transitions and reduced motion support
+
 ## v0.35.0 — 2025-11-11
 ### Features
 - **Left Navigation Menu Overhaul**: Complete redesign of the left catalog menu with modern, mobile-first UX
