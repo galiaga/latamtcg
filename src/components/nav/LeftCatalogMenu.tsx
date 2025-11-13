@@ -217,7 +217,7 @@ export function LeftCatalogMenu() {
                       <img
                         src={setSymbolUrl}
                         alt={`${set.set_name} symbol`}
-                        className="w-5 h-5 object-contain flex-shrink-0"
+                        className="w-5 h-5 object-contain flex-shrink-0 set-symbol"
                         onError={(e) => {
                           const img = e.currentTarget
                           // If parent symbol exists, try loading it

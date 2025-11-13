@@ -237,3 +237,9 @@ body {
     display: block;
   }
 }
+
+/* Set symbol visibility in dark mode */
+[data-theme="dark"] img[alt*="symbol"],
+[data-theme="dark"] .set-symbol {
+  filter: brightness(0) invert(1);
+}
