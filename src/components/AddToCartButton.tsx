@@ -65,19 +65,50 @@ export default function AddToCartButton({ printingId, size = 'md', title, varian
 
   // Use new styling for card tiles, fallback to old styling for other contexts
   const isCardTile = size === 'md' && title
-  const className = isCardTile 
-    ? 'px-3 py-1.5 text-sm font-semibold bg-brand-600 text-white transition-colors duration-150 hover:bg-brand-500 active:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 rounded-lg'
-    : size === 'xs' ? 'inline-flex items-center justify-center text-xs leading-none px-2 py-1 h-5 bg-brand-600 text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-all duration-200 rounded' : 
-      size === 'sm' ? 'px-3 py-1.5 text-sm font-medium bg-brand-600 text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-all duration-200 rounded-lg' : 
-      size === 'lg' ? 'px-4 py-2 text-base font-medium bg-brand-600 text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-all duration-200 rounded-lg' : 
-      'px-4 py-2 text-sm font-medium bg-brand-600 text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-all duration-200 rounded-lg'
+  const baseClasses = isCardTile 
+    ? 'inline-flex items-center justify-center px-3 py-1.5 text-sm font-semibold text-white transition-colors duration-150 active:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 rounded-lg'
+    : size === 'xs' ? 'inline-flex items-center justify-center text-xs leading-none px-2 py-1 h-5 text-white focus:outline-none focus:ring-2 transition-all duration-200 rounded' : 
+      size === 'sm' ? 'inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-white focus:outline-none focus:ring-2 transition-all duration-200 rounded-lg' : 
+      size === 'lg' ? 'inline-flex items-center justify-center px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 transition-all duration-200 rounded-lg' : 
+      'inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 transition-all duration-200 rounded-lg'
 
   const ariaLabel = title ? `Add to cart: ${title}` : 'Add to cart'
+
+  // Don't render if no printingId - but log for debugging
+  if (!printingId || printingId.trim() === '') {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      console.warn('[AddToCartButton] No printingId provided', { printingId, title })
+    }
+    return null
+  }
 
   return (
     <button 
       type="button" 
-      className={className} 
+      className={baseClasses}
+      style={{
+        backgroundColor: '#7c3aed', // brand-600 purple
+        color: '#ffffff',
+        border: '2px solid #7c3aed', // Add border for visibility
+        cursor: adding ? 'wait' : 'pointer',
+        display: 'inline-flex', // Force display
+        visibility: 'visible', // Force visibility
+        opacity: adding ? 0.6 : 1,
+        position: 'relative',
+        zIndex: 10,
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)', // Add shadow for visibility
+        whiteSpace: 'nowrap', // Prevent text wrapping
+      }}
+      onMouseEnter={(e) => {
+        if (!adding) {
+          e.currentTarget.style.backgroundColor = '#8b5cf6' // brand-500
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!adding) {
+          e.currentTarget.style.backgroundColor = '#7c3aed' // brand-600
+        }
+      }}
       disabled={adding} 
       aria-disabled={adding} 
       onClick={add} 

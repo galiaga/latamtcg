@@ -117,14 +117,18 @@ export default function CardTile({
         </Link>
         
         {/* Non-clickable area for price and add to cart */}
-        <div className="px-2 md:px-4 pb-3">
+        <div className="px-2 md:px-4 pb-3" style={{ position: 'relative', zIndex: 10 }}>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex flex-col">
+            <div className="flex flex-col flex-1 min-w-0">
               <span className="text-sm md:text-base font-semibold text-[var(--fg-strong)] tracking-tight">
                 {displayPrice ? formatPrice(displayPrice, config) : 'N/A'}
               </span>
             </div>
-            <AddToCartButton printingId={id} title={name} />
+            {id && id.trim() !== '' && (
+              <div className="flex-shrink-0" style={{ position: 'relative', zIndex: 20 }}>
+                <AddToCartButton printingId={id} title={name} />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -82,7 +82,7 @@ export function SetSymbol({ setCode, setName, allSets, className = '' }: SetSymb
     <img
       src={currentUrl}
       alt={`${setName} symbol`}
-      className={className}
+      className={`set-symbol ${className}`}
       onError={handleError}
     />
   )
