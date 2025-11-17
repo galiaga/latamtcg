@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getScryfallNormalUrl, getScryfallSmallUrl } from '@/lib/images'
 import { usePricing } from './PricingProvider'
 import { getDisplayPrice, formatPrice } from '@/lib/pricingClient'
+import { useTranslations } from 'next-intl'
 
 type PrintingItem = {
   id: string
@@ -21,7 +22,7 @@ type PrintingItem = {
 }
 
 export default function OtherPrintingsCarousel({
-  ariaLabel = 'Other printings',
+  ariaLabel,
   items,
   currentId,
   oracleId,
@@ -31,7 +32,9 @@ export default function OtherPrintingsCarousel({
   currentId?: string
   oracleId: string
 }) {
+  const t = useTranslations()
   const { config } = usePricing()
+  const defaultAriaLabel = ariaLabel || t('card.otherPrintings')
   const listRef = useRef<HTMLDivElement | null>(null)
   const filtered = (items || []).filter((s) => s && s.id && s.id !== currentId)
   const limited = filtered.slice(0, 16)
@@ -155,9 +158,9 @@ export default function OtherPrintingsCarousel({
   }, [])
 
   return (
-    <section aria-label={ariaLabel} className="relative mt-6">
+    <section aria-label={defaultAriaLabel} className="relative mt-6">
       <header className="mb-2 flex items-center justify-between">
-        <h3 className="text-base font-semibold" style={{ color: 'var(--text)' }}>See other printings</h3>
+        <h3 className="text-base font-semibold" style={{ color: 'var(--text)' }}>{t('card.seeOtherPrintings')}</h3>
       </header>
 
       <div className="relative">
@@ -169,7 +172,7 @@ export default function OtherPrintingsCarousel({
           ref={listRef}
           role="listbox"
           tabIndex={0}
-          aria-label={ariaLabel}
+          aria-label={defaultAriaLabel}
           data-dragging={dragging ? 'true' : 'false'}
           className="flex gap-3 overflow-x-auto scroll-px-3 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{ touchAction: 'pan-x', cursor: dragging ? 'grabbing' : 'grab' }}
@@ -243,13 +246,13 @@ export default function OtherPrintingsCarousel({
           {filtered.length > 16 ? (
             <Link href={`/mtg/${oracleId}`} role="option" className="snap-start flex min-w-[300px] items-center justify-center gap-3 rounded-2xl border px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
               style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)', color: 'var(--text)' }}>
-              View all printings
+              {t('card.viewAllPrintings')}
             </Link>
           ) : null}
         </div>
 
         <button
-          aria-label="Previous printings"
+          aria-label={t('card.previousPrintings')}
           aria-controls="printings-scroll"
           aria-hidden={!canLeft}
           disabled={!canLeft}
@@ -260,7 +263,7 @@ export default function OtherPrintingsCarousel({
           ‹
         </button>
         <button
-          aria-label="Next printings"
+          aria-label={t('card.nextPrintings')}
           aria-controls="printings-scroll"
           aria-hidden={!canRight}
           disabled={!canRight}

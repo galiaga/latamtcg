@@ -1,17 +1,19 @@
 import PopularCards from '@/components/PopularCards'
 import RandomButton from '@/components/RandomButton'
+import { getTranslations } from 'next-intl/server'
 
-export default function Home() {
+export default async function Home() {
+  const t = await getTranslations()
   return (
     <div className="py-8">
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <section className="text-center py-4 px-4">
           <h1 className="text-4xl md:text-5xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>
-            Welcome to LatamTCG
+            {t('home.welcome')}
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Discover and collect Magic: The Gathering cards with real-time pricing and seamless shopping experience.
+            {t('home.subtitle')}
           </p>
           <RandomButton />
         </section>

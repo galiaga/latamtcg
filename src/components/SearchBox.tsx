@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { printingHref, cardHref } from '@/lib/routes'
 import { fmtCollector } from '@/lib/format'
 import Spinner from './Spinner'
+import { useTranslations } from 'next-intl'
 
 type ApiItem = {
   kind: 'printing' | 'group'
@@ -30,9 +31,11 @@ type Props = {
   limit?: number
 }
 
-export default function SearchBox({ placeholder = 'Search printings…' }: Props) {
+export default function SearchBox({ placeholder }: Props) {
+  const t = useTranslations()
   const router = useRouter()
   const [query, setQuery] = useState('')
+  const defaultPlaceholder = placeholder || t('search.placeholder')
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [items, setItems] = useState<ApiItem[]>([])
@@ -427,7 +430,7 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
           <input
             ref={inputRef}
             className="input flex-1 transition-soft"
-            placeholder={placeholder}
+            placeholder={defaultPlaceholder}
             role="combobox"
             aria-controls={listboxId}
             aria-expanded={open}
@@ -462,8 +465,8 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
             }, 150) 
           }}
         />
-        <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-colors" aria-label="Search" disabled={!query.trim() || submitting} style={{ opacity: submitting ? 0.95 : undefined }}>
-          {submitting ? <Spinner size="sm" /> : 'Search'}
+        <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-colors" aria-label={t('common.search')} disabled={!query.trim() || submitting} style={{ opacity: submitting ? 0.95 : undefined }}>
+          {submitting ? <Spinner size="sm" /> : t('common.search')}
         </button>
       </form>
       {open && typeof document !== 'undefined' && createPortal(
@@ -486,10 +489,10 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
             }}
           >
             <li className="px-3 py-1" style={{ fontSize: '11px', color: 'var(--mutedText, #666)', borderBottom: '1px solid var(--divider, #ddd)' }}>
-              in Magic: The Gathering
+              {t('search.inMagicTheGathering')}
             </li>
             {items.length === 0 && !loading && (
-              <li className="px-3 py-2 text-zinc-500" style={{ fontSize: '14px' }}>No results</li>
+              <li className="px-3 py-2 text-zinc-500" style={{ fontSize: '14px' }}>{t('search.noResults')}</li>
             )}
             {items.map((item, idx) => (
               <li
@@ -530,7 +533,7 @@ export default function SearchBox({ placeholder = 'Search printings…' }: Props
             {loading && (
               <li className="px-3 py-2 flex items-center gap-2" style={{ color: 'var(--mutedText)', fontSize: '14px' }}>
                 <Spinner size="sm" />
-                <span>Searching...</span>
+                <span>{t('search.searching')}</span>
               </li>
             )}
           </ul>

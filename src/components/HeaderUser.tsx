@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabaseBrowser } from '@/lib/supabase-browser'
+import { useTranslations } from 'next-intl'
 
 type MinimalUser = { id: string; email: string | null }
 
 export default function HeaderUser() {
+  const t = useTranslations()
   const router = useRouter()
   const pathname = usePathname()
   const menuRef = useRef<HTMLDivElement>(null)
@@ -56,7 +58,7 @@ export default function HeaderUser() {
           try { await fetch('/api/cart/reset', { method: 'POST' }) } catch {}
           try { window.dispatchEvent(new CustomEvent('cart:refresh')) } catch {}
           
-          // Clear user-related localStorage data (keep theme preference)
+          // Clear user-related localStorage data
           try {
             localStorage.removeItem('latamtcg_guest_email')
             localStorage.removeItem('cart:pulse')
@@ -111,7 +113,7 @@ export default function HeaderUser() {
   if (!user) {
     return (
       <div className="ml-auto flex items-center gap-2">
-        <Link href="/auth" className="btn">Sign in</Link>
+        <Link href="/auth" className="btn">{t('header.signIn')}</Link>
       </div>
     )
   }
@@ -124,7 +126,7 @@ export default function HeaderUser() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
         {/* Email for desktop */}
-        <span className="hidden md:inline">{user.email || 'Account'}</span>
+        <span className="hidden md:inline">{user.email || t('header.account')}</span>
       </button>
       {menuOpen && (
         <div
@@ -145,7 +147,7 @@ export default function HeaderUser() {
               borderBottom: '1px solid var(--divider)'
             }}
           >
-            Orders
+            {t('header.orders')}
           </Link>
           <Link
             href="/how-it-works"
@@ -155,7 +157,7 @@ export default function HeaderUser() {
               borderBottom: '1px solid var(--divider)'
             }}
           >
-            How it works
+            {t('header.howItWorks')}
           </Link>
           <button
             type="button"
@@ -164,7 +166,7 @@ export default function HeaderUser() {
               setMenuOpen(false)
               try { 
                 await supabase?.auth.signOut()
-                // Clear user-related localStorage data (keep theme preference)
+                // Clear user-related localStorage data
                 try {
                   localStorage.removeItem('latamtcg_guest_email')
                   localStorage.removeItem('cart:pulse')
@@ -178,7 +180,7 @@ export default function HeaderUser() {
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'color-mix(in oklab, var(--chip-hover) 40%, transparent)' }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
           >
-            Sign out
+            {t('header.signOut')}
           </button>
         </div>
       )}

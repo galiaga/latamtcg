@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 export default function RandomButton() {
+  const t = useTranslations()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -20,7 +22,7 @@ export default function RandomButton() {
       }
     } catch (error) {
       console.error('Error fetching random item:', error)
-      alert('Unable to load a random item. Please try again.')
+      alert(t('errors.unableToLoadRandom'))
     } finally {
       setLoading(false)
     }
@@ -36,7 +38,7 @@ export default function RandomButton() {
       }}
       aria-label="Go to random card"
     >
-      {loading ? 'Loading...' : '🎲 Random Card'}
+      {loading ? t('common.loading') : t('home.randomCard')}
     </button>
   )
 }

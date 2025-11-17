@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Sheet } from '@/components/ui/sheet'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useTranslations } from 'next-intl'
 
 type Set = {
   set_code: string
@@ -13,6 +14,7 @@ type Set = {
 }
 
 export function LeftCatalogMenu() {
+  const t = useTranslations()
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [desktopOpen, setDesktopOpen] = React.useState(false)
   const [sets, setSets] = React.useState<Set[]>([])
@@ -107,7 +109,7 @@ export function LeftCatalogMenu() {
             type="button"
             onClick={() => setMobileOpen(false)}
             className="p-1 rounded hover:bg-accent"
-            aria-label="Close menu"
+            aria-label={t('nav.closeMenu')}
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -122,7 +124,7 @@ export function LeftCatalogMenu() {
           {/* Shop Section */}
           <AccordionItem value="shop" className="mb-2">
             <AccordionTrigger className="text-sm font-semibold uppercase tracking-wide text-muted-foreground py-2">
-              Shop
+              {t('nav.shop')}
             </AccordionTrigger>
             <AccordionContent className="pt-1">
               <nav className="space-y-1">
@@ -134,7 +136,7 @@ export function LeftCatalogMenu() {
                   }}
                   className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors"
                 >
-                  <span>Singles</span>
+                  <span>{t('nav.singles')}</span>
                 </Link>
                 <Link
                   href="/mass-entry"
@@ -144,7 +146,7 @@ export function LeftCatalogMenu() {
                   }}
                   className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors"
                 >
-                  <span>Mass Entry</span>
+                  <span>{t('nav.massEntry')}</span>
                 </Link>
               </nav>
             </AccordionContent>
@@ -153,7 +155,7 @@ export function LeftCatalogMenu() {
           {/* Sets Section */}
           <AccordionItem value="sets" className="mb-2">
             <AccordionTrigger className="text-sm font-semibold uppercase tracking-wide text-muted-foreground py-2">
-              Sets
+              {t('nav.sets')}
             </AccordionTrigger>
             <AccordionContent className="pt-1">
               <nav className="space-y-1">
@@ -253,7 +255,7 @@ export function LeftCatalogMenu() {
                   }}
                   className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground"
                 >
-                  <span>View all sets</span>
+                  <span>{t('nav.viewAllSets')}</span>
                 </Link>
               </nav>
             </AccordionContent>
@@ -262,7 +264,7 @@ export function LeftCatalogMenu() {
           {/* Quick Filters Section */}
           <AccordionItem value="filters" className="mb-2">
             <AccordionTrigger className="text-sm font-semibold uppercase tracking-wide text-muted-foreground py-2">
-              Quick Filters
+              {t('nav.quickFilters')}
             </AccordionTrigger>
             <AccordionContent className="pt-1">
               <nav className="space-y-1">
@@ -274,7 +276,7 @@ export function LeftCatalogMenu() {
                   }}
                   className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors"
                 >
-                  <span>Foil / Etched</span>
+                  <span>{t('nav.foilEtched')}</span>
                 </Link>
                 <Link
                   href="/mtg/search?q=full+art+OR+showcase+OR+borderless"
@@ -284,7 +286,7 @@ export function LeftCatalogMenu() {
                   }}
                   className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors"
                 >
-                  <span>Full Art / Showcase</span>
+                  <span>{t('nav.fullArtShowcase')}</span>
                 </Link>
                 <Link
                   href="/mtg/search?rarity=rare&rarity=mythic"
@@ -294,7 +296,7 @@ export function LeftCatalogMenu() {
                   }}
                   className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors"
                 >
-                  <span>Rare / Mythic</span>
+                  <span>{t('nav.rareMythic')}</span>
                 </Link>
                 {(() => {
                   // Get the two most recent sets
@@ -314,7 +316,7 @@ export function LeftCatalogMenu() {
                       }}
                       className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors"
                     >
-                      <span>Recently Released</span>
+                      <span>{t('nav.recentlyReleased')}</span>
                     </Link>
                   )
                 })()}
@@ -332,7 +334,7 @@ export function LeftCatalogMenu() {
               }}
               className="flex items-center justify-between h-11 px-2 rounded-lg hover:bg-accent transition-colors"
             >
-              <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground py-2">Advanced Search</span>
+              <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground py-2">{t('nav.advancedSearch')}</span>
             </Link>
           </div>
         </Accordion>
@@ -363,7 +365,7 @@ export function LeftCatalogMenu() {
         type="button"
         onClick={() => setMobileOpen(true)}
         className="md:hidden p-2 rounded hover:bg-accent"
-        aria-label="Open menu"
+        aria-label={t('nav.openMenu')}
       >
         <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -385,7 +387,7 @@ export function LeftCatalogMenu() {
           ref={triggerRef}
           type="button"
           className="p-2 rounded hover:bg-accent transition-colors"
-          aria-label="Open catalog menu"
+          aria-label={t('nav.openCatalogMenu')}
         >
           <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

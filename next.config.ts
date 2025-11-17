@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const host = process.env.SCRYFALL_IMAGE_HOST || 'cards.scryfall.io'
 const errorHost = process.env.SCRYFALL_ERROR_IMAGE_HOST || 'errors.scryfall.com'
@@ -50,4 +53,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

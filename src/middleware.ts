@@ -3,22 +3,33 @@
 // STUB: Advanced RBAC/tenancy scoped out for v0
 // ADDED: Bot blocking for GPTBot and AhrefsBot to reduce unwanted crawler traffic
 // ADDED: Cron API route bypass for authentication protection
+// ADDED: next-intl locale handling (defaults to 'es' for MVP)
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import createMiddleware from 'next-intl/middleware'
+import { routing } from './i18n/routing'
 
 // Block abusive bots that consume Vercel Image Transformations
 const BLOCKED_BOTS = /GPTBot|AhrefsBot/i
 
 console.log('[auth] middleware initialized - cron routes bypass enabled')
 
+// Create next-intl middleware (defaults to 'es' locale)
+const intlMiddleware = createMiddleware(routing)
+
 export async function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname
+  
   // Allow cron API routes to bypass all authentication/protection
-  if (req.nextUrl.pathname.startsWith('/api/cron/')) {
-    console.log(`[auth] Bypassing authentication for cron route: ${req.nextUrl.pathname}`)
+  if (pathname.startsWith('/api/cron/')) {
+    console.log(`[auth] Bypassing authentication for cron route: ${pathname}`)
     return NextResponse.next()
   }
 
+  // Skip i18n middleware for API routes (they don't need locale handling)
+  const isApiRoute = pathname.startsWith('/api/')
+  
   // Bot blocking: hard block abusive bots in production unless ALLOW_BOTS=true
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_BOTS !== 'true') {
     const ua = req.headers.get('user-agent') || ''
@@ -27,7 +38,24 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  const res = NextResponse.next()
+  // For MVP with localePrefix: 'never' and single locale, we can skip intl middleware
+  // Locale detection happens server-side via getRequestConfig
+  // This avoids any routing issues while still supporting translations
+  let res: NextResponse = NextResponse.next()
+  
+  // Only run intl middleware if we're not using 'never' prefix mode
+  // For now, skip it entirely since we have localePrefix: 'never'
+  // When adding multiple locales later, you can re-enable this
+  // if (routing.localePrefix !== 'never') {
+  //   try {
+  //     const intlResponse = intlMiddleware(req)
+  //     res = intlResponse instanceof NextResponse ? intlResponse : NextResponse.next()
+  //   } catch (error) {
+  //     console.warn('[middleware] intl middleware error:', error)
+  //   }
+  // }
+  
+  // Add user context headers
   try {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,11 +80,9 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Bot blocking: everything except static/internal assets
-    '/((?!_next/|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|assets/|images/).*)',
-    // User context: specific routes that need user headers
-    '/orders/:path*',
-    '/api/:path*',
+    // Exclude static files, API routes, and Next.js internal files
+    // This ensures middleware only runs on actual page routes
+    '/((?!api|_next|_vercel|.*\\..*|favicon.ico|robots.txt|sitemap.xml|manifest.*|assets|images).*)',
   ],
 }
 

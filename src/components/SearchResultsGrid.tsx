@@ -13,6 +13,7 @@ import Spinner from './Spinner'
 import { useDelayedFlag } from '@/hooks/useDelayedFlag'
 import { usePricing } from './PricingProvider'
 import { getDisplayPrice, formatPrice } from '@/lib/pricingClient'
+import { useTranslations } from 'next-intl'
 
 type Item = {
   kind: 'printing' | 'group'
@@ -42,6 +43,7 @@ type InitialData = {
 }
 
 export default function SearchResultsGrid({ initialQuery, initialData, initialKey }: { initialQuery?: string; initialData?: InitialData | null; initialKey?: string }) {
+  const t = useTranslations()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -279,13 +281,26 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
           const rarities = searchParams?.getAll('rarity') || []
           const setsSel = (searchParams?.getAll('set') || []).map((s) => s.toUpperCase())
           const setsLabel = (() => {
-            if (setsSel.length === 0) return 'Sets'
+            if (setsSel.length === 0) return t('search.sets')
             const first = (facets.sets || []).find((s) => setsSel[0] === s.code.toUpperCase())?.name || setsSel[0]
             const rest = setsSel.length - 1
             return rest > 0 ? `${first} +${rest}` : first
           })()
-          const rarityLabel = rarities.length === 0 ? 'Rarity' : `${rarities[0].charAt(0).toUpperCase() + rarities[0].slice(1)}${rarities.length > 1 ? ` +${rarities.length - 1}` : ''}`
-          const printLabel = printing.length === 0 ? 'Printings' : `${printing[0].charAt(0).toUpperCase() + printing[0].slice(1)}${printing.length > 1 ? ` +${printing.length - 1}` : ''}`
+          const rarityLabel = rarities.length === 0 ? t('search.rarity') : (() => {
+            const rarityKey = rarities[0]
+            const rarityTranslated = rarityKey === 'common' ? t('search.common') :
+                                    rarityKey === 'uncommon' ? t('search.uncommon') :
+                                    rarityKey === 'rare' ? t('search.rare') :
+                                    rarityKey === 'mythic' ? t('search.mythic') : rarityKey
+            return `${rarityTranslated}${rarities.length > 1 ? ` +${rarities.length - 1}` : ''}`
+          })()
+          const printLabel = printing.length === 0 ? t('search.printings') : (() => {
+            const printKey = printing[0]
+            const printTranslated = printKey === 'normal' ? t('search.normal') :
+                                   printKey === 'foil' ? t('search.foil') :
+                                   printKey === 'etched' ? t('search.etched') : printKey
+            return `${printTranslated}${printing.length > 1 ? ` +${printing.length - 1}` : ''}`
+          })()
           return (
             <>
               <div ref={setsRef} className="relative">
@@ -300,7 +315,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                   {loading ? (
                     <>
                       <Spinner size="sm" />
-                      <span className="ml-1">Sets</span>
+                      <span className="ml-1">{t('search.sets')}</span>
                     </>
                   ) : (
                     <>
@@ -311,8 +326,8 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                 {openFacet === 'sets' && (
                   <div id="facet-sets" className="absolute left-0 top-full mt-2 w-[min(360px,92vw)] popover p-3" style={{ zIndex: 1000 }}>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium">Sets</div>
-                      <button type="button" className="btn btn-ghost text-sm" onClick={() => updateFilter('set', [])}>Clear</button>
+                      <div className="text-sm font-medium">{t('search.sets')}</div>
+                      <button type="button" className="btn btn-ghost text-sm" onClick={() => updateFilter('set', [])}>{t('common.clear')}</button>
                     </div>
                     <div className="max-h-56 overflow-auto no-scrollbar flex flex-col gap-1">
                       {(facets.sets || []).map((s) => {
@@ -351,7 +366,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                   {loading ? (
                     <>
                       <Spinner size="sm" />
-                      <span className="ml-1">Rarity</span>
+                      <span className="ml-1">{t('search.rarity')}</span>
                     </>
                   ) : (
                     <>
@@ -361,13 +376,13 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                 </button>
                 {openFacet === 'rarity' && (
                   <div id="facet-rarity" className="absolute left-0 top-full mt-2 w-[min(280px,92vw)] popover p-3" style={{ zIndex: 1000 }}>
-                    <div className="flex items-center justify-between mb-2"><div className="text-sm font-medium">Rarity</div><button type="button" className="btn btn-ghost text-sm" onClick={() => updateFilter('rarity', [])}>Clear</button></div>
+                    <div className="flex items-center justify-between mb-2"><div className="text-sm font-medium">{t('search.rarity')}</div><button type="button" className="btn btn-ghost text-sm" onClick={() => updateFilter('rarity', [])}>{t('common.clear')}</button></div>
                     <div className="flex flex-col gap-1">
                       {[
-                        { key: 'common', label: 'Common' },
-                        { key: 'uncommon', label: 'Uncommon' },
-                        { key: 'rare', label: 'Rare' },
-                        { key: 'mythic', label: 'Mythic' },
+                        { key: 'common', label: t('search.common') },
+                        { key: 'uncommon', label: t('search.uncommon') },
+                        { key: 'rare', label: t('search.rare') },
+                        { key: 'mythic', label: t('search.mythic') },
                       ].map((opt) => {
                         const selected = (searchParams?.getAll('rarity') || []).includes(opt.key)
                         const toggle = () => {
@@ -400,7 +415,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                   {loading ? (
                     <>
                       <Spinner size="sm" />
-                      <span className="ml-1">Printings</span>
+                      <span className="ml-1">{t('search.printings')}</span>
                     </>
                   ) : (
                     <>
@@ -410,12 +425,12 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                 </button>
                 {openFacet === 'printing' && (
                   <div id="facet-printing" className="absolute left-0 top-full mt-2 w-[min(280px,92vw)] popover p-3" style={{ zIndex: 1000 }}>
-                    <div className="flex items-center justify-between mb-2"><div className="text-sm font-medium">Printings</div><button type="button" className="btn btn-ghost text-sm" onClick={() => updateFilter('printing', [])}>Clear</button></div>
+                    <div className="flex items-center justify-between mb-2"><div className="text-sm font-medium">{t('search.printings')}</div><button type="button" className="btn btn-ghost text-sm" onClick={() => updateFilter('printing', [])}>{t('common.clear')}</button></div>
                     <div className="flex flex-col gap-1">
                       {[
-                        { key: 'normal', label: 'Normal' },
-                        { key: 'foil', label: 'Foil' },
-                        { key: 'etched', label: 'Etched' },
+                        { key: 'normal', label: t('search.normal') },
+                        { key: 'foil', label: t('search.foil') },
+                        { key: 'etched', label: t('search.etched') },
                       ].map((opt) => {
                         const selected = (searchParams?.getAll('printing') || []).includes(opt.key)
                         const toggle = () => {
@@ -440,7 +455,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                           checked={searchParams?.get('showUnavailable') === 'true'} 
                           onChange={(e) => updateFilter('showUnavailable', e.target.checked ? ['true'] : [])} 
                         />
-                        Show unavailable items
+                        {t('search.showUnavailable')}
                       </label>
                     </div>
                   </div>
@@ -450,10 +465,10 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                 {loading ? (
                   <>
                     <Spinner size="sm" />
-                    <span className="ml-2">Clearing...</span>
+                    <span className="ml-2">{t('search.clearing')}</span>
                   </>
                 ) : (
-                  'Clear Filters'
+                  t('search.clearFilters')
                 )}
               </button>
               {/* Sort control moved to the right */}
@@ -463,21 +478,21 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
                 const current = String(searchParams?.get('sort') || 'most-popular')
                 return (
                   <div className="ml-auto flex items-center gap-2">
-                    <label htmlFor="sort-select" className="text-sm hidden md:block" style={{ color: 'var(--mutedText)' }}>Sort by:</label>
+                    <label htmlFor="sort-select" className="text-sm hidden md:block" style={{ color: 'var(--mutedText)' }}>{t('search.sortByLabel')}</label>
                     <select
                       id="sort-select"
                       className={`chip ${loading ? 'opacity-50' : ''}`}
                       value={current}
                       onChange={(e) => setSort(e.target.value as any)}
                       disabled={loading}
-                      aria-label="Sort results"
+                      aria-label={t('search.sortByLabel')}
                     >
-                      <option value="most-popular">Most Popular</option>
-                      <option value="relevance">Relevance</option>
-                      <option value="name_asc">Name: A → Z</option>
-                      <option value="name_desc">Name: Z → A</option>
-                      <option value="price_asc">Price: Low → High</option>
-                      <option value="price_desc">Price: High → Low</option>
+                      <option value="most-popular">{t('search.mostPopular')}</option>
+                      <option value="relevance">{t('search.relevance')}</option>
+                      <option value="name_asc">{t('search.nameAsc')}</option>
+                      <option value="name_desc">{t('search.nameDesc')}</option>
+                      <option value="price_asc">{t('search.priceAsc')}</option>
+                      <option value="price_desc">{t('search.priceDesc')}</option>
                     </select>
                   </div>
                 )
@@ -498,20 +513,20 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
       {!loading && meta.totalResults === 0 && q.trim() ? (
         <div className="text-center py-12">
           <div className="text-6xl mb-4" style={{ color: 'var(--mutedText)' }}>🔍</div>
-          <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text)' }}>No items found</h3>
+          <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text)' }}>{t('search.noItemsFound')}</h3>
           <p className="text-sm mb-4" style={{ color: 'var(--mutedText)' }}>
-            Looks like "<span className="font-medium">{q}</span>" got exiled from our collection! 📦
+            {t('search.exiledFromCollection')} "<span className="font-medium">{q}</span>" {t('search.exiledFromCollectionEnd')}
           </p>
           <div className="text-xs" style={{ color: 'var(--mutedText)' }}>
-            <p className="mb-2">Try these search strategies to find what you're looking for:</p>
+            <p className="mb-2">{t('search.tryTheseStrategies')}</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>Item name (e.g., "Lightning Bolt")</li>
-              <li>Partial name (e.g., "Lightning")</li>
-              <li>Set code (e.g., "SLD")</li>
-              <li>Artist or creator name</li>
+              <li>{t('search.itemName')}</li>
+              <li>{t('search.partialName')}</li>
+              <li>{t('search.setCode')}</li>
+              <li>{t('search.artistOrCreator')}</li>
             </ul>
             <p className="mt-3 text-xs italic" style={{ color: 'var(--mutedText)' }}>
-              💡 Pro tip: Sometimes the best cards are hiding in plain sight!
+              {t('search.proTip')}
             </p>
           </div>
         </div>
@@ -519,7 +534,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
       {/* Total results count */}
       {!loading && meta.totalResults > 0 && q.trim() ? (
         <div className="mb-4 text-sm" style={{ color: 'var(--mutedText)' }}>
-          Showing {primary.length} of {meta.totalResults.toLocaleString()} results
+          {t('search.showingResults', { current: primary.length, total: meta.totalResults.toLocaleString() })}
         </div>
       ) : null}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mt-6">
@@ -567,7 +582,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
       <div className="mt-4 flex items-center justify-end gap-2">
         <button
           className="btn btn-sm"
-          aria-label="Previous page"
+          aria-label={t('search.previousPage')}
           disabled={meta.page <= 1 || loading}
           onClick={() => setPage(meta.page - 1)}
         >
@@ -590,7 +605,7 @@ export default function SearchResultsGrid({ initialQuery, initialData, initialKe
         ))}
         <button
           className="btn btn-sm btn-gradient"
-          aria-label="Next page"
+          aria-label={t('search.nextPage')}
           disabled={loading || !meta.nextPageToken}
           onClick={() => setPage(meta.page + 1)}
         >

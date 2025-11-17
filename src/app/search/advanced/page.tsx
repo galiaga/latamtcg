@@ -1,15 +1,20 @@
 import { getAllSets } from '@/lib/sets'
 import { AdvancedSearchForm } from '@/components/AdvancedSearchForm'
+import { getTranslations } from 'next-intl/server'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
 
-export const metadata = {
-  title: 'Advanced Search - LatamTCG',
-  description: 'Advanced search for Magic: The Gathering cards',
+export async function generateMetadata() {
+  const t = await getTranslations()
+  return {
+    title: `${t('search.advancedSearch')} - LatamTCG`,
+    description: t('search.advancedSearchDescription'),
+  }
 }
 
 export default async function AdvancedSearchPage() {
+  const t = await getTranslations()
   // Fetch all sets for the set selector
   const sets = await getAllSets()
 
@@ -18,10 +23,10 @@ export default async function AdvancedSearchPage() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>
-            Advanced Search
+            {t('search.advancedSearch')}
           </h1>
           <p className="text-lg text-muted-foreground">
-            Search for Magic: The Gathering cards with advanced filters
+            {t('search.advancedSearchDescription')}
           </p>
         </div>
 

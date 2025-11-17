@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-[data-theme="light"], :root {
-  /* Light (default) deeper lilac palette */
+:root {
+  /* Light theme palette */
   --bg: #F3F0FA;                  /* canvas lilac */
   --bg-grad: linear-gradient(180deg, #F3F0FA 0%, #F8F6FC 100%);
   --surface: #FFFFFF;             /* maps to card */
@@ -54,34 +54,6 @@
   --color-brand-700: #6d28d9;
   --color-brand-800: #5b21b6;
   --color-brand-900: #4c1d95;
-}
-
-[data-theme="dark"] {
-  --bg: #0F0F14;
-  --bg-grad: none;
-  --surface: #16161D;
-  --surface-2: #1C1C25;
-
-  --text: #F3F3F7;
-  --mutedText: #B7B4C6;
-
-  --primary: #9B7BFF;
-  --primaryHover: #6E5AFF;
-  --primarySoft: #221C33;
-  --primaryGradientFrom: #6E5AFF;
-  --primaryGradientTo: #9B7BFF;
-
-  --success: #22c55e; /* green-500 */
-  --warning: #f59e0b; /* amber-500 */
-  --danger: #ef4444;  /* red-500 */
-
-  --border: #2A2A36;
-  --divider: #20202A;
-  --ring: #6E5AFF;
-
-  --card: #16161D;
-  --chip-active: #2A2240;
-  --chip-hover: #3A2E5A;
 }
 
 /* Typography & base */
@@ -238,8 +210,3 @@ body {
   }
 }
 
-/* Set symbol visibility in dark mode */
-[data-theme="dark"] img[alt*="symbol"],
-[data-theme="dark"] .set-symbol {
-  filter: brightness(0) invert(1);
-}

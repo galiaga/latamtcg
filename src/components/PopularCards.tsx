@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import CardTile from './CardTile'
+import { useTranslations } from 'next-intl'
 
 interface PopularCard {
   id: string
@@ -22,6 +23,7 @@ interface PopularCardsResponse {
 }
 
 export default function PopularCards() {
+  const t = useTranslations()
   const [cards, setCards] = useState<PopularCard[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +52,7 @@ export default function PopularCards() {
       <section className="px-4 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-2xl font-semibold">Popular Right Now</h2>
+            <h2 className="text-2xl font-semibold">{t('popularCards.title')}</h2>
             <span className="text-xl animate-pulse">🔥</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -72,11 +74,11 @@ export default function PopularCards() {
       <section className="px-4 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-2xl font-semibold">Popular Right Now</h2>
+            <h2 className="text-2xl font-semibold">{t('popularCards.title')}</h2>
             <span className="text-xl">🔥</span>
           </div>
           <div className="text-center py-8 text-gray-500">
-            Unable to load popular cards. Please try again later.
+            {t('popularCards.unableToLoad')}
           </div>
         </div>
       </section>
@@ -89,11 +91,11 @@ export default function PopularCards() {
 
   return (
     <section className="px-4 pt-2 pb-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-2 mb-6">
-          <h2 className="text-2xl font-semibold">Popular Right Now</h2>
-          <span className="text-xl animate-pulse">🔥</span>
-        </div>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-2 mb-6">
+            <h2 className="text-2xl font-semibold">{t('popularCards.title')}</h2>
+            <span className="text-xl animate-pulse">🔥</span>
+          </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {cards.map((card) => (

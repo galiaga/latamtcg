@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { SetSymbol } from './SetSymbol'
+import { useTranslations } from 'next-intl'
 
 interface Set {
   set_code: string
@@ -16,6 +17,7 @@ interface AdvancedSearchFormProps {
 }
 
 export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
+  const t = useTranslations()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = React.useState('')
   const [selectedSets, setSelectedSets] = React.useState<string[]>([])
@@ -26,26 +28,26 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
   const [setSearchTerm, setSetSearchTerm] = React.useState('')
 
   const rarityOptions = [
-    { value: 'common', label: 'Common' },
-    { value: 'uncommon', label: 'Uncommon' },
-    { value: 'rare', label: 'Rare' },
-    { value: 'mythic', label: 'Mythic' },
+    { value: 'common', label: t('search.common') },
+    { value: 'uncommon', label: t('search.uncommon') },
+    { value: 'rare', label: t('search.rare') },
+    { value: 'mythic', label: t('search.mythic') },
   ]
 
   const printingOptions = [
-    { value: 'normal', label: 'Normal' },
-    { value: 'foil', label: 'Foil' },
-    { value: 'etched', label: 'Etched' },
+    { value: 'normal', label: t('search.normal') },
+    { value: 'foil', label: t('search.foil') },
+    { value: 'etched', label: t('search.etched') },
   ]
 
   const sortOptions = [
-    { value: 'relevance', label: 'Relevance' },
-    { value: 'name_asc', label: 'Name (A-Z)' },
-    { value: 'name_desc', label: 'Name (Z-A)' },
-    { value: 'price_asc', label: 'Price (Low to High)' },
-    { value: 'price_desc', label: 'Price (High to Low)' },
-    { value: 'release_desc', label: 'Release Date (Newest)' },
-    { value: 'most-popular', label: 'Most Popular' },
+    { value: 'relevance', label: t('search.relevance') },
+    { value: 'name_asc', label: t('search.nameAZ') },
+    { value: 'name_desc', label: t('search.nameZA') },
+    { value: 'price_asc', label: t('search.priceLowToHigh') },
+    { value: 'price_desc', label: t('search.priceHighToLow') },
+    { value: 'release_desc', label: t('search.releaseDateNewest') },
+    { value: 'most-popular', label: t('search.mostPopular') },
   ]
 
   // Filter sets based on search term
@@ -136,14 +138,14 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
         {/* Search Query */}
         <div className="mb-6">
           <label htmlFor="search-query" className="block text-sm font-semibold mb-2">
-            Search Query
+            {t('search.searchQuery')}
           </label>
           <input
             id="search-query"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Enter card name, keywords, or leave empty for all cards"
+            placeholder={t('search.searchQueryPlaceholder')}
             className="w-full px-4 py-2 rounded-lg border"
             style={{
               background: 'var(--background)',
@@ -156,13 +158,13 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
         {/* Sets */}
         <div className="mb-6">
           <label className="block text-sm font-semibold mb-2">
-            Sets
+            {t('search.sets')}
           </label>
           <input
             type="text"
             value={setSearchTerm}
             onChange={(e) => setSetSearchTerm(e.target.value)}
-            placeholder="Search sets..."
+            placeholder={t('search.searchSets')}
             className="w-full px-4 py-2 rounded-lg border mb-3"
             style={{
               background: 'var(--background)',
@@ -172,7 +174,7 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
           />
           <div className="max-h-48 overflow-y-auto border rounded-lg p-2" style={{ borderColor: 'var(--border)' }}>
             {filteredSets.length === 0 ? (
-              <p className="text-sm text-muted-foreground p-2">No sets found</p>
+              <p className="text-sm text-muted-foreground p-2">{t('search.noSetsFound')}</p>
             ) : (
               <div className="space-y-1">
                 {filteredSets.slice(0, 50).map((set) => (
@@ -236,7 +238,7 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
         {/* Rarity */}
         <div className="mb-6">
           <label className="block text-sm font-semibold mb-2">
-            Rarity
+            {t('search.rarity')}
           </label>
           <div className="flex flex-wrap gap-2">
             {rarityOptions.map((option) => (
@@ -260,7 +262,7 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
         {/* Printing */}
         <div className="mb-6">
           <label className="block text-sm font-semibold mb-2">
-            Printing
+            {t('search.printing')}
           </label>
           <div className="flex flex-wrap gap-2">
             {printingOptions.map((option) => (
@@ -284,7 +286,7 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
         {/* Sort */}
         <div className="mb-6">
           <label htmlFor="sort-by" className="block text-sm font-semibold mb-2">
-            Sort By
+            {t('search.sortBy')}
           </label>
           <select
             id="sort-by"
@@ -314,7 +316,7 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
               onChange={(e) => setShowUnavailable(e.target.checked)}
               className="rounded"
             />
-            <span className="text-sm">Show unavailable cards</span>
+            <span className="text-sm">{t('search.showUnavailableCards')}</span>
           </label>
         </div>
 
@@ -328,7 +330,7 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
               color: 'var(--primaryForeground)',
             }}
           >
-            Search
+            {t('search.search')}
           </button>
           <button
             type="button"
@@ -336,7 +338,7 @@ export function AdvancedSearchForm({ sets }: AdvancedSearchFormProps) {
             className="px-6 py-3 rounded-lg border font-semibold transition-colors hover:bg-accent"
             style={{ borderColor: 'var(--border)' }}
           >
-            Clear
+            {t('search.clear')}
           </button>
         </div>
       </div>
