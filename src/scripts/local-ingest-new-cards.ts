@@ -135,6 +135,14 @@ async function processBatch(cards: ScryfallCard[], skipIndexing: boolean = false
   });
   const existingSet = new Set(existing.map((e) => e.scryfallId));
 
+  // Debug: Check for specific card if in batch
+  const targetCardId = 'd4bf05c4-a924-4006-835e-42f8468ba869';
+  if (ids.includes(targetCardId)) {
+    const inFiltered = filtered.some(c => String(c.id) === targetCardId);
+    const inExisting = existingSet.has(targetCardId);
+    console.log(`[local-ingest-new-cards] DEBUG: Card ${targetCardId}: inFiltered=${inFiltered}, inExisting=${inExisting}`);
+  }
+
   // Filter to only new cards (skip existing ones)
   const newCards = filtered.filter((card) => !existingSet.has(String(card.id)));
   
@@ -192,12 +200,50 @@ async function ingestNewCards(skipIndexing: boolean = false, setCode?: string) {
     const baseQuery = `game:paper lang:en -is:digital ${excludedSetTypesQuery}`;
     
     let queries: string[] = [];
+    let useSetSearchUri = false;
     
     if (setCode) {
-      // If set code is provided, search only that set
-      const setQuery = `set:${setCode} ${baseQuery}`;
-      queries = [setQuery];
-      console.log(`[local-ingest-new-cards] Searching for cards from set: ${setCode}`);
+      // If set code is provided, try to use the set's search_uri which includes extras and variations
+      // This ensures we get ALL cards including special printings that might be filtered by regular search
+      try {
+        const setResponse = await fetch(`https://api.scryfall.com/sets/${setCode.toLowerCase()}`, {
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store',
+        });
+        
+        if (setResponse.ok) {
+          const setData = await setResponse.json() as any;
+          if (setData.search_uri) {
+            // Use the set's search URI which includes extras and variations
+            // The set search_uri is a full URL like: https://api.scryfall.com/cards/search?include_extras=true&include_variations=true&order=set&q=e%3Atla&unique=prints
+            // We'll extract the base query and add our filters
+            const setSearchUri = new URL(setData.search_uri);
+            const existingQuery = setSearchUri.searchParams.get('q') || `e:${setCode}`;
+            // Add our filters to the existing query
+            const enhancedQuery = `${existingQuery} game:paper lang:en -is:digital ${excludedSetTypesQuery}`;
+            queries = [enhancedQuery];
+            useSetSearchUri = true;
+            console.log(`[local-ingest-new-cards] Using set search URI for ${setCode} (includes extras/variations)`);
+            console.log(`[local-ingest-new-cards] Set has ${setData.card_count || 'unknown'} total cards`);
+            console.log(`[local-ingest-new-cards] Enhanced query: ${enhancedQuery.substring(0, 100)}...`);
+          } else {
+            // Fallback to regular search
+            const setQuery = `set:${setCode} ${baseQuery}`;
+            queries = [setQuery];
+            console.log(`[local-ingest-new-cards] Searching for cards from set: ${setCode} (using regular search)`);
+          }
+        } else {
+          // Fallback to regular search if set endpoint fails
+          const setQuery = `set:${setCode} ${baseQuery}`;
+          queries = [setQuery];
+          console.log(`[local-ingest-new-cards] Searching for cards from set: ${setCode} (set endpoint failed, using regular search)`);
+        }
+      } catch (error) {
+        // Fallback to regular search on error
+        const setQuery = `set:${setCode} ${baseQuery}`;
+        queries = [setQuery];
+        console.log(`[local-ingest-new-cards] Searching for cards from set: ${setCode} (error fetching set info, using regular search)`);
+      }
     } else {
       // Otherwise, search recent months
       const now = new Date();
@@ -214,7 +260,12 @@ async function ingestNewCards(skipIndexing: boolean = false, setCode?: string) {
       console.log(`[local-ingest-new-cards] Will search ${queries.length} recent months`);
     }
     
-    console.log(`[local-ingest-new-cards] Will filter to cards with release date between ${startDate} and ${endDate} (RELEASE_CUTOFF)`);
+    if (setCode) {
+      console.log(`[local-ingest-new-cards] ⚠️  Date filtering DISABLED when using --set flag`);
+      console.log(`[local-ingest-new-cards]   Will ingest ALL cards from set ${setCode} regardless of release date`);
+    } else {
+      console.log(`[local-ingest-new-cards] Will filter to cards with release date between ${startDate} and ${endDate} (RELEASE_CUTOFF)`);
+    }
     console.log(`[local-ingest-new-cards] Excluded set types: ${EXCLUDED_SET_TYPES.join(', ')}`);
     console.log('');
 
@@ -224,7 +275,14 @@ async function ingestNewCards(skipIndexing: boolean = false, setCode?: string) {
     for (const query of queries) {
       console.log(`[local-ingest-new-cards] Searching: ${query.substring(0, 80)}...`);
       
-      let url = `${SCRYFALL_SEARCH_URL}?q=${encodeURIComponent(query)}&order=released`;
+      // If using set search URI, construct URL differently
+      let url: string;
+      if (useSetSearchUri && setCode) {
+        // Use the set's search URI format with our enhanced query
+        url = `${SCRYFALL_SEARCH_URL}?q=${encodeURIComponent(query)}&order=set&include_extras=true&include_variations=true&unique=prints`;
+      } else {
+        url = `${SCRYFALL_SEARCH_URL}?q=${encodeURIComponent(query)}&order=released`;
+      }
       let pageCount = 0;
 
       while (url) {
@@ -251,12 +309,15 @@ async function ingestNewCards(skipIndexing: boolean = false, setCode?: string) {
         console.log(`[local-ingest-new-cards]   Found ${result.data.length} cards on this page`);
 
         // Filter cards by release date (only keep those between startDate and RELEASE_CUTOFF)
-        const filteredByDate = result.data.filter((card) => {
-          if (!card.released_at) return false;
-          const cardReleaseDate = new Date(card.released_at);
-          const startDateObj = new Date(startDate);
-          return cardReleaseDate >= startDateObj && cardReleaseDate <= RELEASE_CUTOFF;
-        });
+        // BUT: if setCode is specified, skip date filtering to get ALL cards from that set
+        const filteredByDate = setCode 
+          ? result.data // When setCode is specified, include all cards regardless of date
+          : result.data.filter((card) => {
+              if (!card.released_at) return false;
+              const cardReleaseDate = new Date(card.released_at);
+              const startDateObj = new Date(startDate);
+              return cardReleaseDate >= startDateObj && cardReleaseDate <= RELEASE_CUTOFF;
+            });
 
         // Add to batch
         batch.push(...filteredByDate);
@@ -301,6 +362,14 @@ async function ingestNewCards(skipIndexing: boolean = false, setCode?: string) {
       if (result.inserted > 0 || skipped < batch.length) {
         console.log(`[local-ingest-new-cards]   Processed final batch: ${result.inserted} new, ${skipped} already exist`);
       }
+    }
+
+    // If using --set, also try to fetch any known missing cards by direct ID
+    // This handles cases where Scryfall search doesn't return certain cards (e.g., special printings)
+    if (setCode) {
+      console.log('');
+      console.log(`[local-ingest-new-cards] Note: Some cards may not appear in search results due to Scryfall API limitations.`);
+      console.log(`[local-ingest-new-cards] If you know a specific card ID that should be in set ${setCode}, use: npm run ingest:card:local -- <card-id>`);
     }
 
     // Batch index all new cards at the end (much faster than one-by-one)

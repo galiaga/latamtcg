@@ -2,12 +2,14 @@
 
 import { useCallback, useState } from 'react'
 import { track } from '@/lib/analytics'
+import { useTranslations } from 'next-intl'
 
 export interface UseGuestCheckoutOptions {
   onEmailCollected: (email: string) => Promise<void>
 }
 
 export function useGuestCheckout(opts: UseGuestCheckoutOptions) {
+  const t = useTranslations()
   const [isModalOpen, setOpen] = useState(false)
   const featureOn = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_FEATURE_GUEST_CHECKOUT_MODAL === 'true'
 
@@ -15,7 +17,7 @@ export function useGuestCheckout(opts: UseGuestCheckoutOptions) {
     try {
       if (!featureOn) {
         // Fallback to existing native prompt path
-        const email = window.prompt('Enter your email to checkout as guest') || ''
+        const email = window.prompt(t('checkout.enterEmailToCheckoutAsGuest')) || ''
         if (email) {
           await opts.onEmailCollected(email)
         }
@@ -28,12 +30,12 @@ export function useGuestCheckout(opts: UseGuestCheckoutOptions) {
     } catch (error) {
       // Fallback to native prompt on any error
       console.error('[useGuestCheckout] Error:', error)
-      const email = window.prompt('Enter your email to checkout as guest') || ''
+      const email = window.prompt(t('checkout.enterEmailToCheckoutAsGuest')) || ''
       if (email) {
         await opts.onEmailCollected(email)
       }
     }
-  }, [featureOn, opts])
+  }, [featureOn, opts, t])
 
   const closeModal = useCallback(() => {
     track('guest_modal_cancel')

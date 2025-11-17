@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-block px-2 py-0.5 text-xs rounded bg-zinc-200 dark:bg-zinc-800 mr-1 mb-1">
+    <span className="inline-block px-2 py-0.5 text-xs rounded bg-zinc-200 mr-1 mb-1">
       {children}
     </span>
   )
@@ -81,9 +81,9 @@ export default async function OraclePage(props: { params: Promise<{ oracleId: st
         <h1 className="text-xl font-semibold">{title}</h1>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-zinc-200 dark:border-zinc-800">
+      <div className="overflow-x-auto rounded-md border border-zinc-200">
         <table className="min-w-full text-sm">
-          <thead className="bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300">
+          <thead className="bg-zinc-50 text-zinc-600">
             <tr>
               <th className="p-2 text-left">Image</th>
               <th className="p-2 text-left">Set</th>
@@ -106,12 +106,12 @@ export default async function OraclePage(props: { params: Promise<{ oracleId: st
               const finishes = new Set(row.finishes || [])
               const imageUrl = row.scryfallId ? getScryfallNormalUrl(row.scryfallId) : ''
               return (
-                <tr key={row.scryfallId} className="odd:[background:var(--card)] even:[background:color-mix(in_oklab,var(--card)_92%,transparent)] dark:odd:bg-zinc-950 dark:even:bg-zinc-900">
+                <tr key={row.scryfallId} className="odd:[background:var(--card)] even:[background:color-mix(in_oklab,var(--card)_92%,transparent)]">
                   <td className="p-2">
                     {imageUrl ? (
                       <CardImage mode="thumb" src={imageUrl} alt={row.name} width={64} />
                     ) : (
-                      <div className="w-16 h-16 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                      <div className="w-16 h-16 bg-zinc-200 rounded" />
                     )}
                   </td>
                   <td className="p-2 align-top">

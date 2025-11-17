@@ -1,18 +1,24 @@
-export const metadata = {
-  title: 'Mass Entry - LatamTCG',
-  description: 'Bulk card entry and search functionality',
+import { getTranslations } from 'next-intl/server'
+
+export async function generateMetadata() {
+  const t = await getTranslations()
+  return {
+    title: `${t('massEntry.title')} - LatamTCG`,
+    description: t('massEntry.description'),
+  }
 }
 
-export default function MassEntryPage() {
+export default async function MassEntryPage() {
+  const t = await getTranslations()
   return (
     <div className="py-8">
       <div className="max-w-3xl mx-auto px-4">
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ letterSpacing: '-0.02em' }}>
-            Mass Entry
+            {t('massEntry.title')}
           </h1>
           <p className="text-lg text-muted-foreground">
-            Bulk card entry functionality coming soon
+            {t('massEntry.subtitle')}
           </p>
         </div>
 
@@ -39,19 +45,19 @@ export default function MassEntryPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-2xl font-semibold mb-4">Coming Soon</h2>
+            <h2 className="text-2xl font-semibold mb-4">{t('massEntry.comingSoon')}</h2>
             <p className="text-muted-foreground mb-6">
-              We're working on a mass entry feature that will allow you to quickly search and add multiple cards to your cart at once. This will be perfect for entering entire decklists or bulk card orders.
+              {t('massEntry.description')}
             </p>
             <p className="text-sm text-muted-foreground">
-              In the meantime, you can use our{' '}
+              {t('massEntry.inTheMeantime')}{' '}
               <a
                 href="/mtg/search"
                 className="text-primary hover:underline"
               >
-                search page
+                {t('massEntry.searchPage')}
               </a>
-              {' '}to find and add individual cards.
+              {' '}{t('massEntry.toFindAndAdd')}
             </p>
           </div>
         </div>

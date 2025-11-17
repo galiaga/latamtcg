@@ -20,11 +20,11 @@ export default function PostPurchaseInvite({ email, orderId }: PostPurchaseInvit
   }
 
   return (
-    <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-      <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+    <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+      <h3 className="font-semibold text-blue-900 mb-1">
         Create your account with one click
       </h3>
-      <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
+      <p className="text-sm text-blue-800 mb-3">
         Use the same email to save your data and track your orders.
       </p>
       <Link

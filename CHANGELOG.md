@@ -1,5 +1,91 @@
 # Changelog
 
+## v0.38.0 — 2025-11-17
+### Features
+- **Complete Internationalization (i18n) Implementation**: Full Spanish language support using `next-intl`
+  - **Translation Infrastructure**: Integrated `next-intl` library with Spanish (`es`) as the default locale
+    - Centralized translation file: `messages/es.json` with all UI text strings
+    - Clear naming convention: `"section.component.key": "Text shown to the user"`
+    - Structure prepared for easy addition of English (`en`) in the future
+  - **Server & Client Component Support**: Proper translation handling for both component types
+    - Server components use `getTranslations()` for metadata and static content
+    - Client components use `useTranslations()` hook for interactive elements
+    - `NextIntlClientProvider` wraps the entire app for client-side translation access
+  - **Routing Configuration**: Single-locale MVP without URL prefixes
+    - `localePrefix: 'never'` maintains existing URL structure (no `/es/` prefix)
+    - Locale detection happens server-side via `getRequestConfig`
+    - All existing routes remain unchanged: `/`, `/mtg/search`, `/mtg/printing/[id]`, etc.
+  - **Comprehensive Translation Coverage**: All UI text extracted and translated
+    - Header and navigation (user menu, cart badge, search box)
+    - Footer with all navigation links and copyright information
+    - Home page welcome message and random card button
+    - Left catalog menu with all sections and filters
+    - Advanced Search page with all form fields and labels
+    - Search results grid (filters, sort options, pagination, empty states)
+    - Product Detail Pages (PDP) with breadcrumbs, variant labels, and "See other printings" section
+    - Cart page with all actions, checkout flow, and guest checkout modal
+    - All static pages: Contact, FAQ, Returns, About, How It Works, Terms, Privacy, Orders, Mass Entry
+    - Error messages and loading states throughout the app
+
+### Technical Improvements
+- **Middleware Configuration**: Enhanced middleware to support i18n without breaking existing routes
+  - Excluded static assets and API routes from middleware processing
+  - Locale detection handled server-side to avoid routing conflicts
+  - Preserved existing authentication and bot blocking functionality
+- **Metadata Generation**: Dynamic SEO metadata using translations
+  - Page titles and descriptions generated from translation keys
+  - Consistent metadata across all translated pages
+  - Proper `lang` attribute on HTML element based on locale
+- **Translation Keys Organization**: Well-structured translation file
+  - Logical grouping by section (header, footer, search, cart, checkout, etc.)
+  - Consistent naming patterns for easy maintenance
+  - Support for parameterized translations (e.g., `{count}`, `{version}`)
+- **Component Refactoring**: Updated all components to use translation system
+  - Server components made `async` to support `getTranslations()`
+  - Client components updated to use `useTranslations()` hook
+  - Maintained all existing functionality and UI design
+  - Zero breaking changes to business logic or user experience
+
+### UX Improvements
+- **Consistent Spanish Experience**: All user-facing text now in Spanish
+  - No mixed languages or untranslated strings
+  - Professional, consistent terminology throughout
+  - Proper Chilean Spanish formatting for dates, numbers, and currency
+- **Guest Checkout Translation**: Complete translation of guest checkout flow
+  - Email collection modal fully translated
+  - Clear instructions and reassurance messages
+  - Error messages and validation feedback in Spanish
+- **Filter Translation**: All search filters and options translated
+  - Set names, rarity labels, printing types, sort options
+  - Filter actions (Clear filters, Show unavailable)
+  - Pagination controls and result counts
+
+### Fixes
+- **Routing Stability**: Resolved 404 errors caused by locale prefix attempts
+  - Fixed middleware to respect `localePrefix: 'never'` configuration
+  - Eliminated `/es/` route attempts that were causing 404s
+  - Static assets (manifest.json, etc.) now load correctly
+- **Translation Key Consistency**: Fixed missing translation keys
+  - Added all filter-related translations
+  - Completed pagination button aria-labels
+  - Ensured all error messages have corresponding translation keys
+
+### Configuration
+- **Environment Setup**: No additional environment variables required
+  - Uses default Spanish locale configuration
+  - Ready for future multi-locale expansion
+- **File Structure**: Clean organization of translation files
+  - `messages/es.json` for Spanish translations
+  - `src/i18n/routing.ts` for routing configuration
+  - `src/i18n/request.ts` for server-side message loading
+  - `next.config.ts` updated with `next-intl` plugin
+
+### Documentation
+- **Translation System**: Complete implementation ready for production
+  - All components documented with translation usage patterns
+  - Clear instructions for adding English support in the future
+  - Maintained backward compatibility with existing codebase
+
 ## v0.37.0 — 2025-01-XX
 ### Features
 - **SEO Metadata & Social Sharing**: Comprehensive SEO optimization for product detail pages

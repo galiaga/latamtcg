@@ -91,7 +91,7 @@ export default async function OrderConfirmationPage({ searchParams }: { searchPa
       </div>
 
       {!isLoggedIn && (
-        <div className="mt-6 p-4 rounded border bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+        <div className="mt-6 p-4 rounded border bg-blue-50 border-blue-200">
           <div className="font-medium">Create my account</div>
           <p className="text-sm mt-1" style={{ color: 'var(--mutedText)' }}>
             Create an account to track your orders and get updates. We’ll send you a magic link.

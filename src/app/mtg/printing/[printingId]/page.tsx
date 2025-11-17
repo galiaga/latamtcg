@@ -14,6 +14,7 @@ import { getVariantsForCard, resolveInitialVariant } from '@/helpers/pdpVariants
 import { VariantSectionClient } from './VariantSectionClient'
 import { CardImageWithShine } from './CardImageWithShine'
 import ShareButtons from '@/components/ShareButtons'
+import { getTranslations } from 'next-intl/server'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -48,6 +49,7 @@ function toStringOrNull(value: unknown): string | null {
 
 export async function generateMetadata(props: { params: Promise<{ printingId: string }> }) {
   const { printingId } = await props.params
+  const t = await getTranslations()
   try {
     const data = await getPrintingById(printingId)
     const variant = formatCardVariant({
@@ -62,15 +64,15 @@ export async function generateMetadata(props: { params: Promise<{ printingId: st
     
     // Get initial variant for price in description
     const variants = await getVariantsForCard(data)
-    const initialVariant = resolveInitialVariant(variants)
+    const initialVariant = await resolveInitialVariant(variants)
     const priceText = initialVariant.priceClp != null 
       ? formatCLP(initialVariant.priceClp)
       : formatUsd(data.priceUsd)
     
     // Build description with product type and price
-    const variantLabel = initialVariant.label || 'Card'
+    const variantLabel = initialVariant.label || t('card.card')
     const setInfo = data.setName || (data.setCode || '').toUpperCase()
-    const description = `${variantLabel} Magic: The Gathering card from ${setInfo}. ${productName}. Price: ${priceText}.`
+    const description = `${variantLabel} ${t('card.magicCardFrom')} ${setInfo}. ${productName}. ${t('card.price')}: ${priceText}.`
     
     // Build canonical URL
     const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://latamtcg.com'
@@ -110,11 +112,12 @@ export async function generateMetadata(props: { params: Promise<{ printingId: st
       robots: { index: true, follow: true }
     }
   } catch {
+    const t = await getTranslations()
     const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://latamtcg.com'
     const canonical = `${baseUrl}/mtg/printing/${printingId}`
     return { 
-      title: 'Card | LatamTCG', 
-      description: 'Magic: The Gathering card on LatamTCG',
+      title: `${t('card.card')} | LatamTCG`, 
+      description: t('card.magicCardOnLatamtcg'),
       alternates: { canonical },
       robots: { index: true, follow: true }
     }
@@ -123,13 +126,14 @@ export async function generateMetadata(props: { params: Promise<{ printingId: st
 
 export default async function PrintingPage(props: { params: Promise<{ printingId: string }> }) {
   const { printingId } = await props.params
+  const t = await getTranslations()
   const t0 = Date.now()
   if (process.env.NODE_ENV !== 'production') console.debug('[printing-page] rendering', printingId)
   const data = await getPrintingById(printingId)
 
   // Compute variants and resolve initial variant for PriceBlock
   const variants = await getVariantsForCard(data);
-  const initialVariant = resolveInitialVariant(variants);
+  const initialVariant = await resolveInitialVariant(variants);
 
   // Fetch current price to display last update when history is disabled
   const finish: 'nonfoil' | 'foil' | 'etched' = (data.finishes?.includes('nonfoil') ? 'nonfoil' : (data.finishes?.includes('foil') ? 'foil' : 'etched')) as any
@@ -198,7 +202,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
         {/* Mobile: Compact breadcrumb with ellipsis */}
         <div className="md:hidden">
           <ol className="flex items-center gap-1 text-xs">
-            <li><Link className="underline-offset-2 hover:underline" href="/">Home</Link></li>
+            <li><Link className="underline-offset-2 hover:underline" href="/">{t('common.home')}</Link></li>
             <li>›</li>
             <li><Link className="underline-offset-2 hover:underline" href="/mtg/search">MTG</Link></li>
             <li>›</li>
@@ -228,9 +232,9 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
         
         {/* Desktop: Full breadcrumb trail */}
         <ol className="hidden md:flex items-center gap-1">
-          <li><Link className="underline-offset-2 hover:underline" href="/">Home</Link></li>
+          <li><Link className="underline-offset-2 hover:underline" href="/">{t('common.home')}</Link></li>
           <li>›</li>
-          <li><Link className="underline-offset-2 hover:underline" href="/mtg/search">Magic: The Gathering</Link></li>
+          <li><Link className="underline-offset-2 hover:underline" href="/mtg/search">{t('footer.magicTheGathering')}</Link></li>
           <li>›</li>
           <li><Link className="underline-offset-2 hover:underline" href={`/mtg/search?set=${encodeURIComponent((data.setCode || '').toUpperCase())}`}>{data.setName ?? (data.setCode || '').toUpperCase()}</Link></li>
           <li>›</li>
@@ -257,7 +261,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
             <div className="relative aspect-[63/88] w-full rounded-xl border overflow-hidden skeleton" style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)' }} />
           )}
           <div className="mt-2 text-xs" style={{ color: 'var(--mutedText)' }}>
-            Data & Images © Scryfall
+            {t('card.dataImagesCopyright')}
           </div>
           
         </div>
@@ -306,12 +310,12 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
               const productName = `${formatDisplayName(data.name, data.flavorName)}${variant.suffix}`
               const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://latamtcg.com'
               const productUrl = `${baseUrl}/mtg/printing/${printingId}`
-              const variantLabel = initialVariant.label || 'Card'
+              const variantLabel = initialVariant.label || t('card.card')
               const setInfo = data.setName || (data.setCode || '').toUpperCase()
               const priceText = initialVariant.priceClp != null 
                 ? formatCLP(initialVariant.priceClp)
                 : formatUsd(data.priceUsd)
-              const shareDescription = `${variantLabel} Magic: The Gathering card from ${setInfo}. ${productName}. Price: ${priceText}.`
+              const shareDescription = `${variantLabel} ${t('card.magicCardFrom')} ${setInfo}. ${productName}. ${t('card.price')}: ${priceText}.`
               
               return (
                 <ShareButtons
@@ -327,7 +331,7 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
           {!SHOW_HISTORY ? (
             price != null ? (
               <p className="mt-4 text-sm" style={{ color: 'var(--mutedText)' }}>
-                Last price update: <strong>{formatUsd(price)}</strong>{price_at ? <> — {formatDateTime(price_at)}</> : null}
+                {t('printing.lastPriceUpdate')} <strong>{formatUsd(price)}</strong>{price_at ? <> — {formatDateTime(price_at)}</> : null}
               </p>
             ) : null
           ) : (

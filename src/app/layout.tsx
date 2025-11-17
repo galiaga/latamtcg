@@ -13,6 +13,8 @@ import { LoadingProvider } from "@/components/ui/LoadingProvider";
 import GlobalProgress from "@/components/ui/GlobalProgress";
 import Footer from "@/components/Footer";
 import { LeftCatalogMenu } from "@/components/nav/LeftCatalogMenu";
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,37 +34,32 @@ export const metadata: Metadata = {
   description: 'LatamTCG',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Get locale and messages for next-intl
+  // For MVP, we default to 'es' but structure supports future 'en' locale
+  const locale = await getLocale();
+  const messages = await getMessages();
+  
   return (
-    <html lang="en" suppressHydrationWarning className="text-fg">
+    <html lang={locale} suppressHydrationWarning className="text-fg">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-bg [background:var(--bg-grad)]`}
       >
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`
-            try {
-              var saved = localStorage.getItem('theme');
-              var theme = saved === 'light' || saved === 'dark' ? saved : 'light';
-              var d = document.documentElement;
-              d.setAttribute('data-theme', theme);
-              d.style.colorScheme = theme;
-            } catch (e) {}
-          `}
-        </Script>
         {/* Defer analytics and non-critical scripts */}
         <Script id="analytics" strategy="lazyOnload">
           {`/* placeholder for analytics init */`}
         </Script>
         {/* Global providers and client-only sections */}
-        <SafeClient>
-          <LoadingProvider>
-            <GlobalProgress />
-            <PricingProvider>
-              <CartProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <SafeClient>
+            <LoadingProvider>
+              <GlobalProgress />
+              <PricingProvider>
+                <CartProvider>
             {/* Global search section */}
             <header className="py-4">
               <div className="px-4">
@@ -107,10 +104,11 @@ export default function RootLayout({
               {children}
             </main>
             <Footer />
-              </CartProvider>
-            </PricingProvider>
-          </LoadingProvider>
-        </SafeClient>
+                </CartProvider>
+              </PricingProvider>
+            </LoadingProvider>
+          </SafeClient>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

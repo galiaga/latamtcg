@@ -1,4 +1,5 @@
 import { getPricingConfig, getDisplayPriceServer } from '@/lib/pricingData';
+import { getTranslations } from 'next-intl/server';
 
 export type VariantInfo = { 
   id: "normal" | "foil" | "etched"; 
@@ -13,6 +14,7 @@ export type VariantOption = VariantInfo;
 export async function getVariantsForCard(card: any): Promise<VariantInfo[]> {
   // Get pricing configuration to compute CLP prices
   const config = await getPricingConfig();
+  const t = await getTranslations();
   
   const variants: VariantInfo[] = [];
   
@@ -21,7 +23,7 @@ export async function getVariantsForCard(card: any): Promise<VariantInfo[]> {
     const priceClp = getDisplayPriceServer(card, config, ['normal']);
     variants.push({ 
       id: "normal", 
-      label: "Normal", 
+      label: t('search.normal'), 
       priceClp,
       available: true
     });
@@ -32,7 +34,7 @@ export async function getVariantsForCard(card: any): Promise<VariantInfo[]> {
     const priceClp = getDisplayPriceServer(card, config, ['foil']);
     variants.push({ 
       id: "foil", 
-      label: "Foil", 
+      label: t('search.foil'), 
       priceClp,
       available: true
     });
@@ -43,7 +45,7 @@ export async function getVariantsForCard(card: any): Promise<VariantInfo[]> {
     const priceClp = getDisplayPriceServer(card, config, ['etched']);
     variants.push({ 
       id: "etched", 
-      label: "Etched", 
+      label: t('search.etched'), 
       priceClp,
       available: true
     });
@@ -52,7 +54,7 @@ export async function getVariantsForCard(card: any): Promise<VariantInfo[]> {
   return variants;
 }
 
-export function resolveInitialVariant(variants: VariantInfo[]): VariantInfo {
+export async function resolveInitialVariant(variants: VariantInfo[]): Promise<VariantInfo> {
   // Prefer the one that actually has a price; fallback to the first available
   const withPrice = variants.find(v => v.available && typeof v.priceClp === "number" && v.priceClp > 0);
   if (withPrice) return withPrice;
@@ -62,5 +64,6 @@ export function resolveInitialVariant(variants: VariantInfo[]): VariantInfo {
   if (available) return available;
   
   // Last resort: return first variant (even if not available)
-  return variants[0] || { id: "normal", label: "Normal", priceClp: null, available: false };
+  const t = await getTranslations();
+  return variants[0] || { id: "normal", label: t('search.normal'), priceClp: null, available: false };
 }

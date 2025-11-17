@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { track } from '@/lib/analytics'
+import { useTranslations } from 'next-intl'
 
 interface GuestCheckoutModalProps {
   isOpen: boolean
@@ -26,6 +27,7 @@ export default function GuestCheckoutModal({
   onContinue,
   onCreateAccount,
 }: GuestCheckoutModalProps) {
+  const t = useTranslations()
   const {
     register,
     handleSubmit,
@@ -43,10 +45,10 @@ export default function GuestCheckoutModal({
 
   // Combine RHF ref with our ref
   const emailRegister = register('email', {
-    required: 'Enter a valid email',
+    required: t('checkout.enterValidEmail'),
     pattern: {
       value: EMAIL_PATTERN,
-      message: 'Enter a valid email',
+      message: t('checkout.enterValidEmail'),
     },
   })
   
@@ -147,16 +149,16 @@ export default function GuestCheckoutModal({
       {/* Modal card */}
       <div
         ref={modalRef}
-        className="relative z-10 w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700"
+        className="relative z-10 w-full max-w-md bg-white rounded-lg shadow-xl border border-gray-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
           {/* Header */}
           <h2 id="guest-checkout-title" className="text-xl font-semibold mb-2">
-            Checkout as guest
+            {t('checkout.checkoutAsGuest')}
           </h2>
-          <p id="guest-checkout-description" className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-            Enter your email to receive order summary and tracking.
+          <p id="guest-checkout-description" className="text-sm text-gray-600 mb-6">
+            {t('checkout.enterEmailForOrderSummary')}
           </p>
 
           {/* Form */}
@@ -164,7 +166,7 @@ export default function GuestCheckoutModal({
             {/* Email input */}
             <div>
               <label htmlFor="guest-email" className="block text-sm font-medium mb-1">
-                Email
+                {t('checkout.email')}
               </label>
               <input
                 id="guest-email"
@@ -179,25 +181,25 @@ export default function GuestCheckoutModal({
                 aria-describedby={errors.email ? 'email-error' : undefined}
               />
               {errors.email && (
-                <p id="email-error" className="mt-1 text-sm text-red-600 dark:text-red-400" role="alert">
+                <p id="email-error" className="mt-1 text-sm text-red-600" role="alert">
                   {errors.email.message}
                 </p>
               )}
             </div>
 
             {/* Reassurance row */}
-            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pt-2">
+            <div className="flex items-center gap-4 text-xs text-gray-500 pt-2">
               <div className="flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                <span>Payment protected by Flow</span>
+                <span>{t('checkout.paymentProtectedByFlow')}</span>
               </div>
               <div className="flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                <span>Shipping throughout Chile</span>
+                <span>{t('checkout.shippingThroughoutChile')}</span>
               </div>
             </div>
 
@@ -209,7 +211,7 @@ export default function GuestCheckoutModal({
                 className="btn btn-gradient flex-1"
                 aria-busy={isSubmitting}
               >
-                {isSubmitting ? 'Processing...' : 'Continue as guest'}
+                {isSubmitting ? t('common.processing') : t('checkout.continueAsGuest')}
               </button>
               {onCreateAccount && (
                 <button
@@ -224,7 +226,7 @@ export default function GuestCheckoutModal({
                   className="btn btn-ghost flex-1"
                   disabled={isSubmitting}
                 >
-                  Create account
+                  {t('checkout.createAccount')}
                 </button>
               )}
             </div>
@@ -234,11 +236,11 @@ export default function GuestCheckoutModal({
               <button
                 type="button"
                 onClick={onCancel}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                className="text-sm text-gray-600 hover:text-gray-900"
                 disabled={isSubmitting}
                 ref={lastFocusableRef}
               >
-                Cancel
+                {t('common.close')}
               </button>
             </div>
           </form>

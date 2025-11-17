@@ -75,17 +75,17 @@ const CustomTooltip = ({ active, payload, label, config }: any) => {
     const foilPrice = data.foilPrice
     
     return (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3">
-        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+        <div className="text-sm font-medium text-gray-900">
           {new Date(label).toLocaleDateString()}
         </div>
         {normalPrice && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-sm text-gray-600">
             Normal: {config?.useCLP ? `$${Math.round(normalPrice).toLocaleString('es-CL')}` : `$${Math.round(normalPrice)}`}
           </div>
         )}
         {foilPrice && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="text-sm text-gray-600">
             Foil: {config?.useCLP ? `$${Math.round(foilPrice).toLocaleString('es-CL')}` : `$${Math.round(foilPrice)}`}
           </div>
         )}

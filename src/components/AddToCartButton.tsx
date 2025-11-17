@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCart } from './CartProvider'
 import Spinner from './Spinner'
+import { useTranslations } from 'next-intl'
 
 export default function AddToCartButton({ printingId, size = 'md', title, variant }: { printingId: string; size?: 'sm' | 'md' | 'lg' | 'xs'; title?: string; variant?: 'normal' | 'foil' | 'etched' }) {
+  const t = useTranslations()
   const [adding, setAdding] = useState(false)
   const [ok, setOk] = useState(false)
   const { mutate, addOptimisticThenReconcile } = useCart()
@@ -47,7 +49,7 @@ export default function AddToCartButton({ printingId, size = 'md', title, varian
           const errorData = await r.json().catch(() => ({}))
           if (errorData.error === 'purchase_limit_exceeded') {
             // Show user-friendly error message for purchase limits
-            alert(errorData.message || 'Purchase limit exceeded')
+            alert(errorData.message || t('errors.purchaseLimitExceeded', { maxAllowed: 1 }))
             throw new Error('Purchase limit exceeded')
           }
           return {}
@@ -118,9 +120,9 @@ export default function AddToCartButton({ printingId, size = 'md', title, varian
       {adding ? (
         <span className="inline-flex items-center gap-2">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          Adding…
+          {t('common.adding')}
         </span>
-      ) : ok ? 'Added ✓' : 'Add to cart'}
+      ) : ok ? t('common.added') : t('common.addToCart')}
     </button>
   )
 }

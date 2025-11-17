@@ -14,6 +14,7 @@ import { calculateShipping, meetsMinimumOrder, amountToMinimum, amountToFreeShip
 import { formatPrice } from '@/lib/pricingClient'
 import { useGuestCheckout } from '@/hooks/useGuestCheckout'
 import GuestCheckoutModal from '@/components/checkout/GuestCheckoutModal'
+import { useTranslations } from 'next-intl'
 
 
 type CartItem = {
@@ -31,6 +32,7 @@ type CartItem = {
 }
 
 export default function CartPage() {
+  const t = useTranslations()
   const router = useRouter()
   const { mutate: mutateCart, addOptimisticThenReconcile } = useCart() as any
   const { config } = usePricing()
@@ -74,12 +76,12 @@ export default function CartPage() {
       const json = await res.json()
       setItems(Array.isArray(json?.items) ? json.items : [])
     } catch (e: any) {
-      setError(e?.message || 'Failed to load cart')
+      setError(e?.message || t('errors.failedToLoadCart'))
     }
     setLoading(false)
     setHasLoadedOnce(true)
     // No global pulses/events on reconcile to avoid loops
-  }, [hasLoadedOnce])
+  }, [hasLoadedOnce, t])
 
   useEffect(() => {
     // Detect auth via client (avoid hitting server route that touches DB)
@@ -149,7 +151,7 @@ export default function CartPage() {
             const errorData = await r.json().catch(() => ({}))
             if (errorData.error === 'purchase_limit_exceeded') {
               // Show user-friendly error message for purchase limits
-              alert(errorData.message || 'Purchase limit exceeded')
+              alert(errorData.message || t('errors.purchaseLimitExceeded', { maxAllowed: 1 }))
               throw new Error('Purchase limit exceeded')
             }
             return {}
@@ -180,24 +182,27 @@ export default function CartPage() {
         if (violations.length > 0) {
           const violation = violations[0] // Show first violation
           const limitInfo = violation.limitInfo
-          alert(`Purchase limit exceeded: You can only add ${limitInfo.maxAllowed} copies of this item to your cart. Please sign in for full policy enforcement.`)
+          alert(t('errors.purchaseLimitExceeded', { maxAllowed: limitInfo.maxAllowed }))
         } else {
-          alert('Some items exceed purchase limits. Please reduce quantities and try again.')
+          alert(t('errors.someItemsExceedLimits'))
         }
       } else if (json?.error === 'minimum_order_not_met') {
-        alert(`Minimum order is ${formatPrice(json.required || 0, config)}. Add ${formatPrice((json.required || 0) - (json.current || 0), config)} more to checkout.`)
+        alert(t('errors.minimumOrderNotMet', { 
+          required: formatPrice(json.required || 0, config), 
+          amount: formatPrice((json.required || 0) - (json.current || 0), config) 
+        }))
       } else if (json?.error === 'configuration_error') {
         // Show descriptive message for configuration errors
-        alert(json?.message || 'Payment system configuration error. Please contact support.')
+        alert(json?.message || t('errors.configurationError'))
       } else {
         // Prioritize message over error code for better UX
-        alert(json?.message || json?.error || 'Unable to checkout')
+        alert(json?.message || json?.error || t('errors.unableToCheckout'))
       }
     } catch (e: any) {
-      alert(e?.message || 'Unable to checkout')
+      alert(e?.message || t('errors.unableToCheckout'))
       throw e // Re-throw so modal can handle it
     }
-  }, [config])
+  }, [config, t])
 
   // Guest checkout hook
   const { isModalOpen, startGuestCheckout, closeModal, submit } = useGuestCheckout({
@@ -206,7 +211,10 @@ export default function CartPage() {
 
   async function checkoutGuest() {
     if (!meetsMinimum) {
-      alert(`Minimum order is ${formatPrice(config?.minOrderSubtotalClp || 0, config)}. Add ${formatPrice(amountToMin, config)} more to checkout.`)
+      alert(t('errors.minimumOrderNotMet', { 
+        required: formatPrice(config?.minOrderSubtotalClp || 0, config), 
+        amount: formatPrice(amountToMin, config) 
+      }))
       return
     }
     
@@ -216,7 +224,10 @@ export default function CartPage() {
 
   async function checkoutUser() {
     if (!meetsMinimum) {
-      alert(`Minimum order is ${formatPrice(config?.minOrderSubtotalClp || 0, config)}. Add ${formatPrice(amountToMin, config)} more to checkout.`)
+      alert(t('errors.minimumOrderNotMet', { 
+        required: formatPrice(config?.minOrderSubtotalClp || 0, config), 
+        amount: formatPrice(amountToMin, config) 
+      }))
       return
     }
     
@@ -237,21 +248,28 @@ export default function CartPage() {
         if (violations.length > 0) {
           const violation = violations[0] // Show first violation
           const limitInfo = violation.limitInfo
-          alert(`Purchase limit exceeded: You can only buy ${limitInfo.maxAllowed} copies of this item within ${limitInfo.windowDays} days. You already have ${limitInfo.alreadyCommitted} committed.`)
+          alert(t('errors.purchaseLimitExceededUser', { 
+            maxAllowed: limitInfo.maxAllowed, 
+            windowDays: limitInfo.windowDays, 
+            alreadyCommitted: limitInfo.alreadyCommitted 
+          }))
         } else {
-          alert('Some items exceed purchase limits. Please reduce quantities and try again.')
+          alert(t('errors.someItemsExceedLimits'))
         }
       } else if (json?.error === 'minimum_order_not_met') {
-        alert(`Minimum order is ${formatPrice(json.required || 0, config)}. Add ${formatPrice((json.required || 0) - (json.current || 0), config)} more to checkout.`)
+        alert(t('errors.minimumOrderNotMet', { 
+          required: formatPrice(json.required || 0, config), 
+          amount: formatPrice((json.required || 0) - (json.current || 0), config) 
+        }))
       } else if (json?.error === 'configuration_error') {
         // Show descriptive message for configuration errors
-        alert(json?.message || 'Payment system configuration error. Please contact support.')
+        alert(json?.message || t('errors.configurationError'))
       } else {
         // Prioritize message over error code for better UX
-        alert(json?.message || json?.error || 'Unable to checkout')
+        alert(json?.message || json?.error || t('errors.unableToCheckout'))
       }
     } catch (e: any) {
-      alert(e?.message || 'Unable to checkout')
+      alert(e?.message || t('errors.unableToCheckout'))
     } finally {
       setRedirecting(false)
     }
@@ -260,15 +278,15 @@ export default function CartPage() {
   return (
     <SWRConfig value={{ revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0, dedupingInterval: 4000 }}>
     <div className="mx-auto max-w-4xl p-2 md:p-6">
-      <h1 className="text-xl font-semibold">Your Cart</h1>
+      <h1 className="text-xl font-semibold">{t('cart.title')}</h1>
       {showSkeleton ? (
         <CartPageSkeleton itemCount={3} />
       ) : null}
       {error ? <div className="mt-4 text-red-600">{error}</div> : null}
       {!loading && items.length === 0 ? (
         <div className="mt-6">
-          <p>Your cart is empty.</p>
-          <div className="mt-4"><Link href="/mtg" className="btn">Browse cards</Link></div>
+          <p>{t('cart.empty')}</p>
+          <div className="mt-4"><Link href="/mtg" className="btn">{t('cart.browseCards')}</Link></div>
         </div>
       ) : null}
       {items.length > 0 && (
@@ -298,19 +316,19 @@ export default function CartPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1, it.finish)} aria-label="Decrease quantity">−</button>
+                  <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1, it.finish)} aria-label={t('cart.decreaseQuantity')}>−</button>
                   <div className="w-8 text-center tabular-nums">{it.quantity}</div>
                   <button 
                     className="btn btn-sm" 
                     onClick={() => update(it.printingId, 'inc', 1, it.finish)} 
-                    aria-label="Increase quantity"
+                    aria-label={t('cart.increaseQuantity')}
                     disabled={it.quantity >= 4}
                   >+</button>
                 </div>
                 <div className="w-20 text-right tabular-nums">{formatPrice(it.unitPrice, config)}</div>
                 <div className="w-24 text-right tabular-nums font-bold">{formatPrice(it.lineTotal, config)}</div>
                 <div>
-                  <button className="btn btn-ghost" onClick={() => update(it.printingId, 'remove', undefined, it.finish)}>Remove</button>
+                  <button className="btn btn-ghost" onClick={() => update(it.printingId, 'remove', undefined, it.finish)}>{t('common.remove')}</button>
                 </div>
               </div>
               
@@ -342,19 +360,19 @@ export default function CartPage() {
                 {/* Controls below content on mobile */}
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1, it.finish)} aria-label="Decrease quantity">−</button>
+                    <button className="btn btn-sm" onClick={() => update(it.printingId, 'inc', -1, it.finish)} aria-label={t('cart.decreaseQuantity')}>−</button>
                     <div className="w-8 text-center tabular-nums">{it.quantity}</div>
                     <button 
                       className="btn btn-sm" 
                       onClick={() => update(it.printingId, 'inc', 1, it.finish)} 
-                      aria-label="Increase quantity"
+                      aria-label={t('cart.increaseQuantity')}
                       disabled={it.quantity >= 4}
                     >+</button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-sm tabular-nums">{formatPrice(it.unitPrice, config)} each</div>
+                    <div className="text-sm tabular-nums">{formatPrice(it.unitPrice, config)} {t('cart.each')}</div>
                     <div className="text-lg font-bold tabular-nums">{formatPrice(it.lineTotal, config)}</div>
-                    <button className="btn btn-ghost btn-sm" onClick={() => update(it.printingId, 'remove', undefined, it.finish)}>Remove</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => update(it.printingId, 'remove', undefined, it.finish)}>{t('common.remove')}</button>
                   </div>
                 </div>
               </div>
@@ -368,34 +386,37 @@ export default function CartPage() {
           {/* Progress banners */}
           {!meetsMinimum && (
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
-              <div className="font-medium text-yellow-800">Minimum order required</div>
+              <div className="font-medium text-yellow-800">{t('cart.minimumOrderRequired')}</div>
               <div className="text-yellow-700">
-                Add {formatPrice(amountToMin, config)} to reach the minimum order of {formatPrice(config?.minOrderSubtotalClp || 0, config)}.
+                {t('cart.addAmountToReach', { 
+                  amount: formatPrice(amountToMin, config), 
+                  minimum: formatPrice(config?.minOrderSubtotalClp || 0, config) 
+                })}
               </div>
             </div>
           )}
           
           {config?.freeShippingThresholdClp && amountToFree > 0 && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-              <div className="font-medium text-blue-800">Free shipping available</div>
+              <div className="font-medium text-blue-800">{t('cart.freeShippingAvailable')}</div>
               <div className="text-blue-700">
-                Add {formatPrice(amountToFree, config)} to get free shipping.
+                {t('cart.addAmountForFreeShipping', { amount: formatPrice(amountToFree, config) })}
               </div>
             </div>
           )}
           
           <div className="flex justify-between">
-            <span>Subtotal</span>
+            <span>{t('cart.subtotal')}</span>
             <span className="tabular-nums">{formatPrice(subtotal, config)}</span>
           </div>
           {shipping > 0 && (
             <div className="flex justify-between">
-              <span>Shipping</span>
+              <span>{t('cart.shipping')}</span>
               <span className="tabular-nums">{formatPrice(shipping, config)}</span>
             </div>
           )}
           <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
-            <span>Total</span>
+            <span>{t('cart.total')}</span>
             <span className="tabular-nums">{formatPrice(total, config)}</span>
           </div>
           <div className="mt-4">
@@ -406,7 +427,7 @@ export default function CartPage() {
                 disabled={redirecting || !meetsMinimum} 
                 aria-busy={redirecting}
               >
-                {redirecting ? 'Processing…' : meetsMinimum ? 'Checkout' : 'Minimum order required'}
+                {redirecting ? t('common.processing') : meetsMinimum ? t('cart.checkout') : t('cart.minimumOrderRequired')}
               </button>
             ) : (
               <button 
@@ -414,7 +435,7 @@ export default function CartPage() {
                 onClick={checkoutGuest}
                 disabled={!meetsMinimum}
               >
-                {meetsMinimum ? 'Checkout as guest' : 'Minimum order required'}
+                {meetsMinimum ? t('cart.checkoutAsGuest') : t('cart.minimumOrderRequired')}
               </button>
             )}
           </div>
