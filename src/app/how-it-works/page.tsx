@@ -44,18 +44,21 @@ export default async function HowItWorksPage() {
         </Link>
       </header>
 
-      {/* How it works - 4 steps */}
-      <section className="py-12 md:py-16">
-        <h2 className="text-2xl md:text-3xl font-bold mb-12 text-center">{t('howItWorks.howItWorksTitle')}</h2>
+      {/* Section 1: How it works - 4 steps */}
+      <section id="how-it-works" className="py-12 md:py-16">
+        <h2 className="text-2xl md:text-3xl font-bold mb-12 text-center">{t('howItWorks.heroTitle')}</h2>
+        <p className="text-base md:text-lg mb-8 max-w-2xl mx-auto text-center" style={{ color: 'var(--mutedText)' }}>
+          {t('howItWorks.intro')}
+        </p>
         <div className="space-y-8">
           <div className="flex flex-col md:flex-row items-start gap-6">
             <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg" style={{ backgroundColor: '#9B7BFF' }}>
               1
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-semibold mb-3">{t('howItWorks.step1Title')}</h3>
+              <h3 className="text-xl font-semibold mb-3">{t('howItWorks.steps.step1.title')}</h3>
               <p style={{ color: 'var(--mutedText)' }}>
-                {t('howItWorks.step1Text')}
+                {t('howItWorks.steps.step1.body')}
               </p>
             </div>
           </div>
@@ -65,9 +68,9 @@ export default async function HowItWorksPage() {
               2
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-semibold mb-3">{t('howItWorks.step2Title')}</h3>
+              <h3 className="text-xl font-semibold mb-3">{t('howItWorks.steps.step2.title')}</h3>
               <p style={{ color: 'var(--mutedText)' }}>
-                {t('howItWorks.step2Text')}
+                {t('howItWorks.steps.step2.body')}
               </p>
             </div>
           </div>
@@ -77,9 +80,9 @@ export default async function HowItWorksPage() {
               3
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-semibold mb-3">{t('howItWorks.step3Title')}</h3>
+              <h3 className="text-xl font-semibold mb-3">{t('howItWorks.steps.step3.title')}</h3>
               <p style={{ color: 'var(--mutedText)' }}>
-                {t('howItWorks.step3Text')}
+                {t('howItWorks.steps.step3.body')}
               </p>
             </div>
           </div>
@@ -89,114 +92,186 @@ export default async function HowItWorksPage() {
               4
             </div>
             <div className="flex-1">
-              <h3 className="text-xl font-semibold mb-3">{t('howItWorks.step4Title')}</h3>
+              <h3 className="text-xl font-semibold mb-3">{t('howItWorks.steps.step4.title')}</h3>
               <p style={{ color: 'var(--mutedText)' }}>
-                {t('howItWorks.step4Text')}
+                {t('howItWorks.steps.step4.body')}
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Why trust us - 4-point grid */}
+      {/* Section 2: Why trust LatamTCG */}
       <section className="py-12 md:py-16">
-        <h2 className="text-2xl md:text-3xl font-bold mb-12 text-center">{t('howItWorks.whyTrustUs')}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(155, 123, 255, 0.1)' }}>
-              <svg className="w-8 h-8" style={{ color: '#9B7BFF' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.optimizedExperience')}</h3>
+        <div className="rounded-lg p-8" style={{ backgroundColor: 'rgba(155, 123, 255, 0.05)', border: '1px solid var(--border)' }}>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">{t('trust.why.title')}</h2>
+          <h3 className="text-xl font-semibold mb-4">{t('trust.why.subsection')}</h3>
+          <p className="text-base md:text-lg mb-3" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.why.body')}
+          </p>
+          <ul className="list-disc list-inside mb-4 space-y-1" style={{ color: 'var(--mutedText)' }}>
+            <li>{t('trust.why.option1')}</li>
+            <li>{t('trust.why.option2')}</li>
+          </ul>
+          <p className="text-base md:text-lg" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.why.body2')}
+          </p>
+        </div>
+      </section>
+
+      {/* Section 3: Who we are */}
+      <section id="about" className="py-12 md:py-16">
+        <div className="rounded-lg p-8" style={{ backgroundColor: 'rgba(155, 123, 255, 0.05)', border: '1px solid var(--border)' }}>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">{t('trust.whoWeAre.title')}</h2>
+          <p className="text-base md:text-lg mb-4" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.whoWeAre.body')}
+          </p>
+          <p className="text-base md:text-lg mb-4" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.whoWeAre.body2')}
+          </p>
+          <p className="text-sm" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.whoWeAre.contact')}
+          </p>
+        </div>
+      </section>
+
+      {/* Section 4: Payment Security */}
+      <section className="py-12 md:py-16">
+        <div className="rounded-lg p-8" style={{ backgroundColor: 'rgba(155, 123, 255, 0.05)', border: '1px solid var(--border)' }}>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">{t('trust.payment.title')}</h2>
+          <p className="text-base md:text-lg mb-4" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.payment.body')}
+          </p>
+          <ul className="list-disc list-inside mb-4 space-y-2" style={{ color: 'var(--mutedText)' }}>
+            <li>{t('trust.payment.bullet1')}</li>
+            <li>{t('trust.payment.bullet2')}</li>
+            <li>{t('trust.payment.bullet3')}</li>
+          </ul>
+          <p className="text-base md:text-lg" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.payment.closing')}
+          </p>
+        </div>
+      </section>
+
+      {/* Section 5: Return Policy Summary */}
+      <section id="returns" className="py-12 md:py-16">
+        <div className="rounded-lg p-8" style={{ backgroundColor: 'rgba(155, 123, 255, 0.05)', border: '1px solid var(--border)' }}>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">{t('trust.returns.title')}</h2>
+          <p className="text-base md:text-lg mb-3" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.returns.body')}
+          </p>
+          <ul className="list-disc list-inside mb-4 space-y-1" style={{ color: 'var(--mutedText)' }}>
+            <li>{t('trust.returns.point1')}</li>
+            <li>{t('trust.returns.point2')}</li>
+            <li>{t('trust.returns.point3')}</li>
+          </ul>
+          <p className="text-base md:text-lg mb-2" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.returns.body2')}
+          </p>
+          <p className="text-base md:text-lg mb-2" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.returns.body3')}
+          </p>
+          <p className="text-sm" style={{ color: 'var(--mutedText)' }}>
+            {t('trust.returns.fullDetails')}{' '}
+            <Link href="/returns" className="underline hover:opacity-80" style={{ color: '#9B7BFF' }}>
+              {t('trust.returns.policyLink')}
+            </Link>
+            {t('trust.returns.fullDetailsEnd', { defaultValue: '' })}
+          </p>
+        </div>
+      </section>
+
+      {/* Section 6: FAQ */}
+      <section id="faq" className="py-12 md:py-16">
+        <h2 className="text-2xl md:text-3xl font-bold mb-12 text-center">{t('faq.title')}</h2>
+        <div className="space-y-6">
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">{t('faq.items.tracking.question')}</h3>
             <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.optimizedText')}
+              {t('faq.items.tracking.answer')}
             </p>
           </div>
 
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(155, 123, 255, 0.1)' }}>
-              <svg className="w-8 h-8" style={{ color: '#9B7BFF' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.payInClp')}</h3>
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">{t('faq.items.chileanCard.question')}</h3>
             <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.payInClpText')}
+              {t('faq.items.chileanCard.answer')}
             </p>
           </div>
 
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(155, 123, 255, 0.1)' }}>
-              <svg className="w-8 h-8" style={{ color: '#9B7BFF' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.safeGuaranteedDelivery')}</h3>
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">{t('faq.items.customs.question')}</h3>
+            <p className="mb-2" style={{ color: 'var(--mutedText)' }}>
+              {t('faq.items.customs.answer')}
+            </p>
+            <ul className="list-disc list-inside space-y-1" style={{ color: 'var(--mutedText)' }}>
+              <li>{t('faq.items.customs.list1')}</li>
+              <li>{t('faq.items.customs.list2')}</li>
+              <li>{t('faq.items.customs.list3')}</li>
+              <li>{t('faq.items.customs.list4')}</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">{t('faq.items.newOrUsed.question')}</h3>
             <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.safeDeliveryText')}
+              {t('faq.items.newOrUsed.answer')}
             </p>
           </div>
 
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(155, 123, 255, 0.1)' }}>
-              <svg className="w-8 h-8" style={{ color: '#9B7BFF' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.builtByPlayers')}</h3>
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">{t('faq.items.cantSecure.question')}</h3>
             <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.builtByPlayersText')}
+              {t('faq.items.cantSecure.answer')}
+            </p>
+          </div>
+
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">{t('faq.items.help.question')}</h3>
+            <p style={{ color: 'var(--mutedText)' }}>
+              {t('faq.items.help.answer')}
             </p>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-12 md:py-16">
-        <h2 className="text-2xl md:text-3xl font-bold mb-12 text-center">{t('howItWorks.faq')}</h2>
-        <div className="space-y-6">
-          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.howLongDelivery')}</h3>
-            <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.deliveryTimeText')}
-            </p>
+      {/* Quick Contact */}
+      <section id="contact" className="py-12 md:py-16">
+        <div className="rounded-lg p-8 text-center" style={{ backgroundColor: 'rgba(155, 123, 255, 0.05)', border: '1px solid var(--border)' }}>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">{t('contact.quick.title')}</h2>
+          <p className="text-base md:text-lg mb-2" style={{ color: 'var(--mutedText)' }}>
+            {t('contact.quick.text')}{' '}
+            <a href="mailto:hola@latamtcg.com" className="underline hover:opacity-80" style={{ color: '#9B7BFF' }}>
+              {t('contact.quick.email')}
+            </a>.
+          </p>
+          <p className="text-sm" style={{ color: 'var(--mutedText)' }}>
+            {t('contact.getBackWithin24')}
+          </p>
+          <div className="mt-6">
+            <Link 
+              href="/contact" 
+              className="inline-flex items-center px-5 py-3 font-medium rounded-xl transition hover:opacity-90"
+              style={{ backgroundColor: '#9B7BFF', color: 'white' }}
+            >
+              {t('contact.title')}
+            </Link>
           </div>
+        </div>
+      </section>
 
-          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.areCardsNewOrUsed')}</h3>
-            <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.newOrUsedText')}
-            </p>
-          </div>
-
-          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.whatIfCantSecure')}</h3>
-            <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.cantSecureText')}
-            </p>
-          </div>
-
-          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.canTrackOrder')}</h3>
-            <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.trackOrderText')}
-            </p>
-          </div>
-
-          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.whyPricesInClp')}</h3>
-            <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.whyPricesClpText')}
-            </p>
-          </div>
-
-          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
-            <h3 className="text-lg font-semibold mb-3">{t('howItWorks.howPricesCalculated')}</h3>
-            <p style={{ color: 'var(--mutedText)' }}>
-              {t('howItWorks.howPricesCalcText')}
-            </p>
-          </div>
+      {/* Legal Pages Links */}
+      <section className="py-8 border-t" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex flex-wrap justify-center gap-6 text-sm">
+          <Link href="/terms" className="hover:opacity-80 underline" style={{ color: 'var(--mutedText)' }}>
+            {t('footer.termsConditions')}
+          </Link>
+          <Link href="/privacy" className="hover:opacity-80 underline" style={{ color: 'var(--mutedText)' }}>
+            {t('footer.privacyPolicy')}
+          </Link>
+          <Link href="/returns" className="hover:opacity-80 underline" style={{ color: 'var(--mutedText)' }}>
+            {t('footer.refundsReturns')}
+          </Link>
         </div>
       </section>
 

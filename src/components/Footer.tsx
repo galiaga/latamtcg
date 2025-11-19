@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import pkg from '../../package.json';
 import { getTranslations } from 'next-intl/server';
+import FooterLanguageSwitcher from './FooterLanguageSwitcher';
 
 export default async function Footer() {
   const t = await getTranslations();
@@ -43,7 +44,7 @@ export default async function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link 
-                  href="/contact" 
+                  href="/how-it-works#contact" 
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.contactUs')}
@@ -51,7 +52,7 @@ export default async function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/help" 
+                  href="/how-it-works#faq" 
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.faq')}
@@ -59,7 +60,7 @@ export default async function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/returns" 
+                  href="/how-it-works#returns" 
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.refundsReturns')}
@@ -74,7 +75,7 @@ export default async function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link 
-                  href="/about" 
+                  href="/how-it-works#about" 
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.aboutUs')}
@@ -82,7 +83,7 @@ export default async function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/how-it-works" 
+                  href="/how-it-works#how-it-works" 
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.howItWorks')}
@@ -115,12 +116,15 @@ export default async function Footer() {
               <p>{t('footer.copyright', { year: currentYear })}</p>
               <p className="mt-1">{t('footer.version', { version })}</p>
             </div>
-            <div className="text-xs text-gray-300">
-              <p>
-                {t('footer.trademark')}
-                <br />
-                {t('footer.notAffiliated')}
-              </p>
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <FooterLanguageSwitcher />
+              <div className="text-xs text-gray-300">
+                <p>
+                  {t('footer.trademark')}
+                  <br />
+                  {t('footer.notAffiliated')}
+                </p>
+              </div>
             </div>
           </div>
         </div>
