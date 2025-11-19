@@ -1,5 +1,73 @@
 # Changelog
 
+## v0.39.0 — 2025-11-19
+### Features
+- **Trust Hub Redesign**: Complete reorganization of `/how-it-works` page as the main trust and information hub
+  - **New Trust Sections**: Added comprehensive trust-building content including:
+    - "How LatamTCG Works" with updated 4-step process
+    - "Why Trust LatamTCG" with buyer protection guarantees
+    - "Who We Are" section with company background and location
+    - "Secure Payments with Flow" with detailed payment security information
+    - "Delivery Guarantee" with shipping protection details
+    - "Short Return Summary" with quick policy overview
+    - Expanded FAQ section with 6 key questions
+    - Quick contact section with email and response time
+  - **Content Consolidation**: Merged information from `/help` and `/about` pages into `/how-it-works`
+    - `/help` and `/about` now redirect to `/how-it-works`
+    - All user-facing information accessible from single trust hub
+  - **Section Anchors**: Added anchor links (`#faq`, `#contact`, `#returns`, `#about`, `#how-it-works`) for direct navigation
+    - Footer links updated to point to specific sections within `/how-it-works`
+    - Improved navigation and user experience
+- **Language Switching**: Full bilingual support (Spanish/English)
+  - **Language Switcher**: Added ES/EN language selector in hamburger menu and footer
+    - Cookie-based locale preference storage (1 year expiration)
+    - Seamless language switching with page refresh
+    - Active language highlighted in UI
+  - **English Translations**: Complete English translation file (`messages/en.json`)
+    - All content available in both Spanish (default) and English
+    - Consistent translation key structure across both languages
+  - **Routing Configuration**: Enabled dual-locale support (`es`, `en`)
+    - Locale detection via cookies with server-side fallback
+    - Maintains URL structure without locale prefixes
+
+### Improvements
+- **Returns Policy Update**: Updated refund policy documentation with Flow-specific information
+  - **Flow Integration Details**: Added payment processor-specific refund information
+    - Debit card refunds: 1-3 business days
+    - Credit card refunds: 10 business days
+    - 10-day customer acceptance window for refunds
+  - **Refund Fees**: Documented Flow's refund fee structure ($202 + IVA = $240 CLP)
+    - Clear fee disclosure in returns policy page
+    - Highlighted fee information box for visibility
+  - **Updated Processing Times**: Aligned refund processing times with Flow's actual service levels
+- **Navigation Improvements**: Enhanced footer and menu navigation
+  - Footer links now use anchor links to specific sections
+  - Improved information architecture with single source of truth
+  - Better user flow for finding information
+
+### Technical Changes
+- **Component Updates**: 
+  - Created `FooterLanguageSwitcher` component for footer language selection
+  - Updated `LeftCatalogMenu` with functional ES/EN language switcher
+  - Removed language switcher from header (moved to menu and footer)
+- **Translation Keys**: Added new translation keys for trust sections
+  - `trust.*` namespace for trust-building content
+  - `faq.*` namespace for frequently asked questions
+  - Updated `returns.*` keys with Flow-specific information
+- **API Routes**: Added `/api/locale` route for locale preference management
+  - POST endpoint for setting locale cookie
+  - Secure cookie handling with proper expiration
+
+### UX Enhancements
+- **Information Architecture**: Streamlined user information access
+  - Single trust hub page reduces cognitive load
+  - Clear section organization with anchor links
+  - Progressive disclosure: summary on main page, details on legal pages
+- **Bilingual Experience**: Complete Spanish and English support
+  - Language preference persists across sessions
+  - Consistent terminology and messaging in both languages
+  - Easy language switching from multiple locations
+
 ## v0.38.0 — 2025-11-17
 ### Features
 - **Complete Internationalization (i18n) Implementation**: Full Spanish language support using `next-intl`

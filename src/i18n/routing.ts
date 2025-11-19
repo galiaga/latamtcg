@@ -3,14 +3,13 @@ import { createNavigation } from 'next-intl/navigation';
 
 export const routing = defineRouting({
   // A list of all locales that are supported
-  locales: ['es'],
+  locales: ['es', 'en'],
 
   // Used when no locale matches
   defaultLocale: 'es',
   
   // Disable locale prefixes in URLs - keep routes as-is (no /es/ prefix)
-  // This is perfect for MVP with single locale
-  // When adding English later, you can change this to 'as-needed' or 'always'
+  // Locale preference is stored in cookies and detected server-side
   localePrefix: 'never'
 });
 

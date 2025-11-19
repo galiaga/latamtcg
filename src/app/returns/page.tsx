@@ -107,6 +107,10 @@ export default async function ReturnsPage() {
             <li>• <strong>{t('returns.refundMethod2')}</strong></li>
             <li>• <strong>{t('returns.refundMethod3')}</strong></li>
           </ul>
+          <div className="bg-surface border border-border rounded-lg p-4 mt-4">
+            <h3 className="text-lg font-semibold text-text mb-2">{t('returns.refundFee')}</h3>
+            <p className="text-mutedText">{t('returns.refundFeeText')}</p>
+          </div>
           <blockquote className="border-l-4 border-primary pl-4 italic text-mutedText mt-4">
             {t('returns.refundNote')}
           </blockquote>

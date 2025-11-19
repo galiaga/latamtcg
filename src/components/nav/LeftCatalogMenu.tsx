@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { Sheet } from '@/components/ui/sheet'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { useTransition } from 'react'
+import pkg from '../../../package.json'
 
 type Set = {
   set_code: string
@@ -15,6 +18,9 @@ type Set = {
 
 export function LeftCatalogMenu() {
   const t = useTranslations()
+  const locale = useLocale()
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [desktopOpen, setDesktopOpen] = React.useState(false)
   const [sets, setSets] = React.useState<Set[]>([])
@@ -22,6 +28,22 @@ export function LeftCatalogMenu() {
   const desktopTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
   const triggerRef = React.useRef<HTMLButtonElement>(null)
   const panelRef = React.useRef<HTMLDivElement>(null)
+
+  const handleLanguageChange = async (newLocale: string) => {
+    if (newLocale === locale) return
+
+    // Set the locale cookie
+    await fetch('/api/locale', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locale: newLocale }),
+    })
+
+    // Refresh the page to apply the new locale
+    startTransition(() => {
+      router.refresh()
+    })
+  }
 
   // Load accordion state from localStorage
   React.useEffect(() => {
@@ -344,15 +366,25 @@ export function LeftCatalogMenu() {
       <div className="border-t p-3 md:p-4" style={{ borderColor: 'var(--border)' }}>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <button type="button" className="hover:text-foreground transition-colors">
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('es')}
+              className={`hover:text-foreground transition-colors ${locale === 'es' ? 'font-semibold text-foreground' : ''}`}
+              disabled={isPending}
+            >
               ES
             </button>
             <span>/</span>
-            <button type="button" className="hover:text-foreground transition-colors">
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('en')}
+              className={`hover:text-foreground transition-colors ${locale === 'en' ? 'font-semibold text-foreground' : ''}`}
+              disabled={isPending}
+            >
               EN
             </button>
           </div>
-          <span>LatamTCG v0.37.0</span>
+          <span>LatamTCG v{pkg.version}</span>
         </div>
       </div>
     </div>

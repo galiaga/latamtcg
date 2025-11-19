@@ -8,6 +8,7 @@
     "account": "Cuenta",
     "orders": "Pedidos",
     "home": "Inicio",
+    "language": "Idioma",
     "loading": "Cargando...",
     "addToCart": "Agregar",
     "added": "Agregado ✓",
@@ -70,8 +71,6 @@
     "nameDesc": "Nombre: Z → A",
     "priceAsc": "Precio: Bajo → Alto",
     "priceDesc": "Precio: Alto → Bajo",
-    "sets": "Sets",
-    "rarity": "Rareza",
     "printings": "Impresiones",
     "normal": "Normal",
     "foil": "Foil",
@@ -219,7 +218,7 @@
   },
   "contact": {
     "title": "Contáctanos",
-    "description": "¿Necesitas ayuda o tienes preguntas? Estamos aquí para ayudarte con tus necesidades de cartas de Magic: The Gathering.",
+    "description": "¿Necesitas ayuda o tienes preguntas? Estamos aquí para ayudarte con lo que necesites sobre cartas de Magic: The Gathering.",
     "getInTouch": "Ponerse en contacto",
     "emailUs": "Envíanos un correo a",
     "getBackWithin24": "y te responderemos dentro de 24 horas.",
@@ -230,13 +229,18 @@
     "technicalSupport": "Soporte técnico para el sitio web",
     "partnershipOpportunities": "Oportunidades de asociación",
     "businessHours": "Horario comercial",
-    "mondayFriday": "Lunes - Viernes: 9:00 AM - 6:00 PM (GMT-3)",
-    "saturday": "Sábado: 10:00 AM - 2:00 PM (GMT-3)",
-    "sunday": "Domingo: Cerrado"
+    "mondayFriday": "Lunes - Viernes: 9:00 - 18:00 (GMT-3)",
+    "saturday": "Sábado: 10:00 - 14:00 (GMT-3)",
+    "sunday": "Domingo: Cerrado",
+    "quick": {
+      "title": "Contacto rápido",
+      "text": "¿Necesitas ayuda? Escríbenos a",
+      "email": "hola@latamtcg.com"
+    }
   },
   "returns": {
     "title": "Política de reembolso y devolución — LatamTCG (Chile, MVP)",
-    "lastUpdated": "Última actualización: 16 de octubre de 2025 (America/Santiago)",
+    "lastUpdated": "Última actualización: 19 de noviembre de 2025 (America/Santiago)",
     "summary": "Resumen (TL;DR)",
     "summaryPoint1": "Aceptamos devoluciones solo para: elemento incorrecto, daño en el envío o defecto en producto sellado.",
     "summaryPoint2": "Reporta problemas dentro de 48 horas de la entrega (defectos sellados: dentro de 7 días).",
@@ -259,7 +263,7 @@
     "claimStep2a": "El elemento tal como se recibió (vista frontal)",
     "claimStep2b": "El empaque externo y la etiqueta de envío/guía de despacho",
     "claimStep3": "Revisamos dentro de 48 horas. Si se aprueba, enviaremos una Autorización de Devolución (RMA) o pasos de resolución inmediata.",
-    "claimStep4": "Los reembolsos/reemplazos se procesan dentro de 5-7 días hábiles después de la verificación y, cuando corresponda, después de la inspección del elemento devuelto.",
+    "claimStep4": "Los reembolsos/reemplazos se procesan a través de Flow después de la verificación y, cuando corresponda, después de la inspección del elemento devuelto. El tiempo de procesamiento depende del método de pago original (ver sección 'Métodos de reembolso').",
     "dispatchEvidence": "Evidencia de despacho: LatamTCG puede capturar una foto al despacho (producto + etiqueta de envío/guía de despacho). Tu reclamo será verificado contra este registro.",
     "returnConditions": "Condiciones de devolución",
     "returnCondition1": "Los elementos deben devolverse en su condición original, sin alterar y en su empaque.",
@@ -276,10 +280,12 @@
     "fraudPrevention": "Prevención de fraude y falsificaciones",
     "fraudPreventionText": "Para proteger nuestra comunidad, todos los reclamos están sujetos a verificación. LatamTCG puede denegar o revocar reembolsos en casos de fraude sospechado, devoluciones falsificadas o alteración de elementos, y puede restringir el acceso a la cuenta y/o presentar disputas de pago.",
     "refundMethods": "Métodos de reembolso",
-    "refundMethodsText": "Los reembolsos se emiten en CLP usando el método de pago original:",
-    "refundMethod1": "Tarjeta de crédito/débito: 5-7 días hábiles",
-    "refundMethod2": "Transferencia bancaria: 7-10 días hábiles",
-    "refundMethod3": "PayPal: 3-5 días hábiles",
+    "refundMethodsText": "Los reembolsos se procesan a través de Flow, nuestro proveedor de pagos, y se emiten en CLP usando el método de pago original:",
+    "refundMethod1": "Tarjeta de débito: 1-3 días hábiles",
+    "refundMethod2": "Tarjeta de crédito: 10 días hábiles",
+    "refundMethod3": "El cliente tiene 10 días corridos para aceptar el reembolso desde la notificación. Si no se acepta, el dinero será devuelto en la siguiente liquidación.",
+    "refundFee": "Tarifa de reembolso",
+    "refundFeeText": "Cada reembolso tiene un costo de $202 + IVA ($240 CLP), que será descontado de la siguiente liquidación y facturado una vez que el reembolso haya sido aceptado por el cliente.",
     "refundNote": "Las tarifas de envío iniciales se reembolsan solo cuando el problema es atribuible a LatamTCG (elemento incorrecto, daño en el envío, defecto sellado).",
     "questions": "Preguntas",
     "questionsText": "Estamos aquí para ayudar: {email}"
@@ -311,7 +317,7 @@
     "pricingText4b": "La información proporcionada es precisa y completa",
     "pricingText4c": "Nos autorizas a cobrar el método de pago por tu compra",
     "shippingDelivery": "Envío y entrega",
-    "shippingText1": "Enviamos a direcciones dentro de América Latina. Los costos de envío y tiempos de entrega varían según la ubicación. El riesgo de pérdida y la transferencia de título pasan al comprador al entregar al transportista. LatamTCG no es responsable de los retrasos del mensajero pero ayudará a resolver problemas de entrega cuando sea posible. Los reclamos por daño o elemento incorrecto deben reportarse dentro de 48 horas de recepción con evidencia de apoyo.",
+    "shippingText1": "Enviamos a direcciones dentro de Chile. Los costos de envío y tiempos de entrega varían según la ubicación. El riesgo de pérdida y la transferencia de título pasan al comprador al entregar al transportista. LatamTCG no es responsable de los retrasos del mensajero pero ayudará a resolver problemas de entrega cuando sea posible. Los reclamos por daño o elemento incorrecto deben reportarse dentro de 48 horas de recepción con evidencia de apoyo.",
     "shippingResponsibilities": "Responsabilidades de envío",
     "shippingResp1": "Somos responsables de empaquetar elementos de forma segura",
     "shippingResp2": "Eres responsable de proporcionar direcciones de envío precisas",
@@ -455,42 +461,99 @@
   },
   "howItWorks": {
     "title": "Cómo funciona",
-    "heroTitle": "Tu carta favorita, sin fronteras.",
-    "heroSubtitle": "LatamTCG te permite obtener cualquier carta de Magic: The Gathering al mejor precio disponible, con total comodidad. Tú realizas el pedido, nosotros nos encargamos del resto.",
+    "heroTitle": "Cómo funciona LatamTCG",
+    "heroSubtitle": "LatamTCG te permite pedir cartas de TCG desde tiendas verificadas en el extranjero, recibiéndolas directamente en tu casa en Chile.",
     "browseCards": "Explorar cartas",
-    "howItWorksTitle": "Cómo funciona",
-    "step1Title": "Encuentra tu carta",
-    "step1Text": "Busca por nombre, set o variante. Mantenemos el catálogo oficial actualizado.",
-    "step2Title": "Realiza tu pedido",
-    "step2Text": "Agrega las cartas que quieres al carrito, paga con métodos de pago familiares y confirma tu compra. No se requieren tarjetas internacionales, sin tarifas ocultas.",
-    "step3Title": "Nosotros la aseguramos para ti",
-    "step3Text": "Nuestro equipo obtiene tu pedido directamente de los mejores proveedores globales para conseguir tus cartas al mejor precio y en perfectas condiciones.",
-    "step4Title": "Recíbela en tu puerta",
-    "step4Text": "Te mantendremos informado en cada paso. Las entregas generalmente tardan 10-15 días hábiles, dependiendo de la disponibilidad. Si algo no se puede asegurar, te notificaremos y ofreceremos un reembolso o un reemplazo.",
-    "whyTrustUs": "Por qué confiar en nosotros",
-    "optimizedExperience": "Experiencia optimizada",
-    "optimizedText": "Sin complicaciones ni papeleo. Hacemos el trabajo pesado por ti.",
-    "payInClp": "Paga facilmente",
-    "payInClpText": "Paga sin dolores de cabeza de cambio de moneda o proveedores internacionales.",
-    "safeGuaranteedDelivery": "Entrega segura y garantizada",
-    "safeDeliveryText": "Te apoyamos hasta que el pedido esté en tus manos.",
-    "builtByPlayers": "Construido por y para jugadores",
-    "builtByPlayersText": "Somos parte de la comunidad TCG Chilena. Sabemos lo que esperas y necesitas.",
-    "faq": "Preguntas frecuentes",
-    "howLongDelivery": "¿Cuánto tarda la entrega?",
-    "deliveryTimeText": "Típicamente 10-15 días hábiles. Te notificaremos en cada etapa.",
-    "areCardsNewOrUsed": "¿Las cartas son nuevas o usadas?",
-    "newOrUsedText": "Todas las cartas provienen de tiendas verificadas que siguen estándares internacionales para condición y autenticidad de cartas.",
-    "whatIfCantSecure": "¿Qué pasa si un elemento no se puede asegurar?",
-    "cantSecureText": "Te notificaremos y puedes elegir un reemplazo o un reembolso completo.",
-    "canTrackOrder": "¿Puedo rastrear el estado de mi pedido?",
-    "trackOrderText": "Sí. Recibirás actualizaciones por correo electrónico y puedes verificar el estado de tu pedido en tu cuenta de LatamTCG.",
-    "whyPricesInClp": "¿Por qué los precios están en Pesos Chilenos (CLP)?",
-    "whyPricesClpText": "Nuestros precios se muestran en Pesos Chilenos (CLP) e incluyen costos de consolidación e importación. Los precios se redondean a múltiplos de $500 CLP para simplicidad. Esto asegura precios transparentes que reflejan el costo real de traer cartas a Chile, incluyendo envío, IVA, aduanas y tarifas de manejo.",
-    "howPricesCalculated": "¿Cómo se calculan los precios?",
-    "howPricesCalcText": "Nuestra fórmula de precios considera el precio USD de TCGPlayer, tipos de cambio actuales, margen escalonado basado en el valor de la carta y costos diarios de envío. Las cartas bajo $5 USD tienen un margen del 90%, las cartas entre $5-20 USD tienen un margen del 70%, y las cartas sobre $20 USD tienen un margen del 50%. Todos los precios incluyen un mínimo de $500 CLP por carta.",
+    "intro": "LatamTCG te permite pedir cartas de TCG desde tiendas verificadas en el extranjero, recibiéndolas directamente en tu casa en Chile.",
+    "steps": {
+      "step1": {
+        "title": "Paso 1: Busca tus cartas",
+        "body": "Explora nuestro catálogo y añade las cartas que quieres al carrito."
+      },
+      "step2": {
+        "title": "Paso 2: Haz tu pedido en CLP",
+        "body": "Pagas en pesos chilenos, sin tasas ocultas ni cargos extras al recibir."
+      },
+      "step3": {
+        "title": "Paso 3: Nosotros gestionamos la compra e importación",
+        "body": "Realizamos la compra en tiendas verificadas, consolidamos el envío y nos encargamos de la importación de forma segura."
+      },
+      "step4": {
+        "title": "Paso 4: Recibe tus cartas en tu casa",
+        "body": "En promedio, el pedido llega entre 10 y 15 días hábiles. Te avisamos siempre que haya novedades en tu envío."
+      }
+    },
     "closingCta": "LatamTCG te conecta con el mercado global de Magic, sin fronteras ni complicaciones. Miles de cartas, un clic y la tranquilidad de obtener exactamente lo que quieres.",
     "startSearchingCards": "Comenzar a buscar cartas"
+  },
+  "trust": {
+    "why": {
+      "title": "¿Por qué confiar en LatamTCG?",
+      "subsection": "Entrega siempre protegida",
+      "body": "Si el vendedor no puede asegurar tu pedido, te contactamos de inmediato y te ofrecemos:",
+      "option1": "Reembolso total, o",
+      "option2": "Ayuda para elegir reemplazos",
+      "body2": "Si el paquete se retrasa, se pierde o llega incompleto, revisamos cada caso y lo resolvemos con reembolso o reemplazo."
+    },
+    "whoWeAre": {
+      "title": "Quiénes somos",
+      "body": "LatamTCG es un proyecto chileno independiente, creado por jugadores y para jugadores. Operamos desde Providencia, Santiago, Región Metropolitana.",
+      "body2": "Nos encanta la comunidad TCG y queremos facilitar el acceso a cartas del extranjero sin preocupaciones, sin sorpresas y sin trámites complejos.",
+      "contact": "Si necesitas ayuda, escríbenos a hola@latamtcg.com."
+    },
+    "payment": {
+      "title": "Pagos seguros con Flow",
+      "body": "Procesamos tus pagos a través de Flow, un proveedor de pagos chileno confiable.",
+      "bullet1": "Todas las transacciones están encriptadas (HTTPS).",
+      "bullet2": "Nosotros nunca vemos ni almacenamos los datos de tu tarjeta.",
+      "bullet3": "Pagas directamente en CLP.",
+      "closing": "Todo el proceso de pago es manejado por Flow."
+    },
+    "returns": {
+      "title": "Política corta de devoluciones",
+      "body": "Si alguna carta llega:",
+      "point1": "dañada,",
+      "point2": "en peor condición a la indicada, o",
+      "point3": "no coincide con lo que pediste,",
+      "body2": "simplemente contáctanos dentro de 3 días desde la entrega.",
+      "body3": "Revisamos tu caso y te ayudamos con reemplazo o reembolso.",
+      "fullDetails": "Si necesitas más detalles, revisa nuestra",
+      "policyLink": "Política de Devoluciones",
+      "fullDetailsEnd": "."
+    }
+  },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "items": {
+      "tracking": {
+        "question": "¿Los pedidos tienen seguimiento?",
+        "answer": "Sí. Todos los pedidos incluyen tracking, y enviamos el código apenas se despachan."
+      },
+      "chileanCard": {
+        "question": "¿Puedo pagar con tarjeta chilena?",
+        "answer": "Sí. Todo el proceso se hace en pesos chilenos mediante Flow."
+      },
+      "customs": {
+        "question": "¿Debo pagar aduanas al recibir?",
+        "answer": "No. El precio que ves ya incluye todo:",
+        "list1": "impuestos,",
+        "list2": "costos de importación,",
+        "list3": "tarifas de manejo,",
+        "list4": "envío internacional."
+      },
+      "newOrUsed": {
+        "question": "¿Las cartas son nuevas o usadas?",
+        "answer": "Depende del vendedor. Mostramos la condición (NM, LP, etc.) tal como la entregan las tiendas verificadas."
+      },
+      "cantSecure": {
+        "question": "¿Qué pasa si un pedido no puede ser asegurado?",
+        "answer": "Te avisamos inmediatamente y te devolvemos tu dinero o te ayudamos con reemplazos."
+      },
+      "help": {
+        "question": "¿Qué pasa si necesito ayuda?",
+        "answer": "Escríbenos a hola@latamtcg.com."
+      }
+    }
   },
   "massEntry": {
     "title": "Entrada masiva",
@@ -522,15 +585,6 @@
     "enterEmailToCheckoutAsGuest": "Ingresa tu correo electrónico para pagar como invitado",
     "paymentProtectedByFlow": "Pago protegido por Flow",
     "shippingThroughoutChile": "Envío a todo Chile"
-  },
-  "massEntry": {
-    "title": "Entrada masiva",
-    "subtitle": "Funcionalidad de entrada masiva de cartas próximamente",
-    "description": "Estamos trabajando en una función de entrada masiva que te permitirá buscar y agregar múltiples cartas a tu carrito a la vez. Esto será perfecto para ingresar listas de mazos completos u órdenes de cartas a granel.",
-    "comingSoon": "Próximamente",
-    "inTheMeantime": "Mientras tanto, puedes usar nuestra",
-    "searchPage": "página de búsqueda",
-    "toFindAndAdd": "para encontrar y agregar cartas individuales."
   },
   "errors": {
     "unableToLoadRandom": "No se puede cargar un elemento aleatorio. Por favor, intenta de nuevo.",

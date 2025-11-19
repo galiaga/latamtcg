@@ -1,0 +1,393 @@
+{
+  "common": {
+    "appName": "LatamTCG",
+    "search": "Search",
+    "cart": "Cart",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "account": "Account",
+    "orders": "Orders",
+    "home": "Home",
+    "language": "Language",
+    "loading": "Loading...",
+    "addToCart": "Add",
+    "added": "Added ✓",
+    "adding": "Adding…",
+    "remove": "Remove",
+    "close": "Close",
+    "clear": "Clear",
+    "noResults": "No results",
+    "searching": "Searching...",
+    "processing": "Processing…",
+    "browseCards": "Browse cards",
+    "viewAll": "View all",
+    "allRightsReserved": "All rights reserved",
+    "version": "Version"
+  },
+  "header": {
+    "signIn": "Sign in",
+    "account": "Account",
+    "orders": "Orders",
+    "howItWorks": "How it works",
+    "signOut": "Sign out"
+  },
+  "footer": {
+    "shop": "Shop",
+    "magicTheGathering": "Magic: The Gathering",
+    "viewAllProducts": "View all products",
+    "support": "Support",
+    "contactUs": "Contact us",
+    "faq": "FAQ",
+    "refundsReturns": "Refunds & Returns",
+    "aboutLatamtcg": "About LatamTCG",
+    "aboutUs": "About us",
+    "howItWorks": "How it works",
+    "termsConditions": "Terms & Conditions",
+    "privacyPolicy": "Privacy Policy",
+    "copyright": "© {year} LatamTCG. All rights reserved.",
+    "version": "Version {version}",
+    "trademark": "Magic: The Gathering™ is a trademark of Wizards of the Coast LLC.",
+    "notAffiliated": "LatamTCG is not affiliated with Wizards of the Coast."
+  },
+  "search": {
+    "placeholder": "Search printings…",
+    "inMagicTheGathering": "in Magic: The Gathering",
+    "noResults": "No results",
+    "searching": "Searching...",
+    "noItemsFound": "No items found",
+    "exiledFromCollection": "Looks like",
+    "exiledFromCollectionEnd": "got exiled from our collection! 📦",
+    "tryTheseStrategies": "Try these search strategies to find what you're looking for:",
+    "itemName": "Item name (e.g., \"Lightning Bolt\")",
+    "partialName": "Partial name (e.g., \"Lightning\")",
+    "setCode": "Set code (e.g., \"SLD\")",
+    "artistOrCreator": "Artist or creator name",
+    "proTip": "💡 Pro tip: Sometimes the best cards are hidden in plain sight!",
+    "showingResults": "Showing {current} of {total} results",
+    "sortByLabel": "Sort by:",
+    "mostPopular": "Most Popular",
+    "relevance": "Relevance",
+    "nameAsc": "Name: A → Z",
+    "nameDesc": "Name: Z → A",
+    "priceAsc": "Price: Low → High",
+    "priceDesc": "Price: High → Low",
+    "sets": "Sets",
+    "rarity": "Rarity",
+    "printings": "Printings",
+    "normal": "Normal",
+    "foil": "Foil",
+    "etched": "Etched",
+    "common": "Common",
+    "uncommon": "Uncommon",
+    "rare": "Rare",
+    "mythic": "Mythic",
+    "showUnavailable": "Show unavailable items",
+    "clearFilters": "Clear filters",
+    "clearing": "Clearing...",
+    "advancedSearch": "Advanced Search",
+    "advancedSearchDescription": "Search Magic: The Gathering cards with advanced filters",
+    "searchQuery": "Search query",
+    "searchQueryPlaceholder": "Enter card name, keywords, or leave empty for all cards",
+    "searchSets": "Search sets...",
+    "noSetsFound": "No sets found",
+    "printing": "Printings",
+    "sortBy": "Sort by",
+    "showUnavailableCards": "Show unavailable cards",
+    "search": "Search",
+    "clear": "Clear",
+    "nameAZ": "Name (A-Z)",
+    "nameZA": "Name (Z-A)",
+    "priceLowToHigh": "Price (Low to High)",
+    "priceHighToLow": "Price (High to Low)",
+    "releaseDateNewest": "Release Date (Newest)",
+    "previousPage": "Previous page",
+    "nextPage": "Next page"
+  },
+  "home": {
+    "welcome": "Welcome to LatamTCG",
+    "subtitle": "Discover and collect Magic: The Gathering cards with real-time pricing and a seamless shopping experience.",
+    "randomCard": "🎲 Random Card",
+    "popularRightNow": "Popular Right Now",
+    "loadingRandom": "Loading..."
+  },
+  "cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty.",
+    "browseCards": "Browse cards",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "total": "Total",
+    "checkout": "Checkout",
+    "checkoutAsGuest": "Checkout as guest",
+    "minimumOrderRequired": "Minimum order required",
+    "addAmountToReach": "Add {amount} to reach the minimum order of {minimum}.",
+    "freeShippingAvailable": "Free shipping available",
+    "addAmountForFreeShipping": "Add {amount} to get free shipping.",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
+    "each": "each",
+    "itemsInCart": "{count} items in cart",
+    "cartBadge": "Cart ({count})"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "continueWithGoogle": "Continue with Google",
+    "or": "or",
+    "emailPlaceholder": "you@example.com",
+    "emailMagicLink": "Send magic link via email",
+    "magicLinkSent": "Magic link sent",
+    "authenticationNotConfigured": "Authentication is not configured. Set up NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+    "failedToStartGoogleSignIn": "Failed to start Google sign in.",
+    "failedToSendMagicLink": "Failed to send magic link."
+  },
+  "orders": {
+    "title": "Orders",
+    "yourOrders": "Your orders",
+    "pleaseSignIn": "Please sign in to view your orders.",
+    "noOrdersYet": "No orders yet.",
+    "status": "Status: {status}",
+    "total": "Total: {total}"
+  },
+  "nav": {
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "openCatalogMenu": "Open catalog menu",
+    "shop": "Shop",
+    "singles": "Singles",
+    "massEntry": "Mass entry",
+    "sets": "Sets",
+    "viewAllSets": "View all sets",
+    "quickFilters": "Quick filters",
+    "foilEtched": "Foil / Etched",
+    "fullArtShowcase": "Full Art / Showcase",
+    "rareMythic": "Rare / Mythic",
+    "recentlyReleased": "Recently released",
+    "advancedSearch": "Advanced Search"
+  },
+  "card": {
+    "addToCart": "Add",
+    "notAvailable": "N/A",
+    "dataImagesCopyright": "Data & Images © Scryfall",
+    "card": "Card",
+    "magicCardFrom": "Magic: The Gathering card from",
+    "magicCardOnLatamtcg": "Magic: The Gathering card on LatamTCG",
+    "price": "Price",
+    "seeOtherPrintings": "See other printings",
+    "otherPrintings": "Other printings",
+    "viewAllPrintings": "View all printings",
+    "previousPrintings": "Previous printings",
+    "nextPrintings": "Next printings"
+  },
+  "howItWorks": {
+    "title": "How it works",
+    "heroTitle": "How LatamTCG Works",
+    "heroSubtitle": "LatamTCG lets you order TCG cards from verified international stores and receive them directly at your home in Chile.",
+    "browseCards": "Browse cards",
+    "intro": "LatamTCG lets you order TCG cards from verified international stores and receive them directly at your home in Chile.",
+    "steps": {
+      "step1": {
+        "title": "Step 1: Find your cards",
+        "body": "Browse the catalog and add the items you want to your cart."
+      },
+      "step2": {
+        "title": "Step 2: Pay in CLP",
+        "body": "You pay in Chilean Pesos, with no hidden fees or extra charges upon delivery."
+      },
+      "step3": {
+        "title": "Step 3: We manage the purchase and import",
+        "body": "We buy from verified sellers, consolidate shipments, and handle the import process safely."
+      },
+      "step4": {
+        "title": "Step 4: Receive your cards at home",
+        "body": "Orders typically arrive within 10–15 business days. We notify you whenever there's an update on your shipment."
+      }
+    },
+    "closingCta": "LatamTCG connects you with the global Magic market, without borders or complications. Thousands of cards, one click, and the peace of mind of getting exactly what you want.",
+    "startSearchingCards": "Start searching for cards"
+  },
+  "trust": {
+    "why": {
+      "title": "Why trust LatamTCG?",
+      "subsection": "Protected delivery, always",
+      "body": "If a seller cannot secure your order, we immediately contact you and offer:",
+      "option1": "a full refund, or",
+      "option2": "help choosing replacements.",
+      "body2": "If your package is delayed, lost, or arrives incomplete, we review the case and resolve it with a refund or replacement."
+    },
+    "whoWeAre": {
+      "title": "Who we are",
+      "body": "LatamTCG is an independent project created by TCG players for TCG players. We operate from Providencia, Santiago, Metropolitan Region (Chile).",
+      "body2": "We love our local community and want to make international card purchasing simple, affordable, and worry-free.",
+      "contact": "For help, contact us at hola@latamtcg.com."
+    },
+    "payment": {
+      "title": "Secure payments with Flow",
+      "body": "All payments are processed through Flow, a trusted Chilean payment provider.",
+      "bullet1": "All transactions are encrypted (HTTPS)",
+      "bullet2": "We never see or store your card details",
+      "bullet3": "You pay directly in CLP",
+      "closing": "Flow handles the entire checkout process."
+    },
+    "returns": {
+      "title": "Short return summary",
+      "body": "If a card arrives:",
+      "point1": "damaged,",
+      "point2": "in worse condition than expected, or",
+      "point3": "different from what you ordered,",
+      "body2": "just contact us within 3 days of delivery.",
+      "body3": "We will review your case and help with a refund or replacement.",
+      "fullDetails": "See the full",
+      "policyLink": "Return Policy",
+      "fullDetailsEnd": " for more details."
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "items": {
+      "tracking": {
+        "question": "Do orders have tracking?",
+        "answer": "Yes. Every order includes tracking, and we send the code as soon as it ships."
+      },
+      "chileanCard": {
+        "question": "Can I pay with a Chilean card?",
+        "answer": "Yes. All payments are in CLP via Flow."
+      },
+      "customs": {
+        "question": "Do I need to pay import taxes upon delivery?",
+        "answer": "No. The price you see already includes:",
+        "list1": "taxes",
+        "list2": "import fees",
+        "list3": "handling",
+        "list4": "international shipping"
+      },
+      "newOrUsed": {
+        "question": "Are the cards new or used?",
+        "answer": "It depends on the seller. We show each card's condition exactly as provided by verified vendors."
+      },
+      "cantSecure": {
+        "question": "What happens if a seller cannot secure the items?",
+        "answer": "We notify you immediately and issue a full refund or help with replacements."
+      },
+      "help": {
+        "question": "How do I contact support?",
+        "answer": "Email us anytime at hola@latamtcg.com."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact us",
+    "description": "Need help or have questions? We're here to help you with your Magic: The Gathering card needs.",
+    "getInTouch": "Get in touch",
+    "emailUs": "Send us an email at",
+    "getBackWithin24": "and we'll get back to you within 24 hours.",
+    "commonQuestions": "Common questions",
+    "orderStatusShipping": "Order status and shipping inquiries",
+    "cardConditionAuthenticity": "Card condition and authenticity questions",
+    "bulkOrderRequests": "Bulk order requests",
+    "technicalSupport": "Technical support for the website",
+    "partnershipOpportunities": "Partnership opportunities",
+    "businessHours": "Business hours",
+    "mondayFriday": "Monday - Friday: 9:00 AM - 6:00 PM (GMT-3)",
+    "saturday": "Saturday: 10:00 AM - 2:00 PM (GMT-3)",
+    "sunday": "Sunday: Closed",
+    "quick": {
+      "title": "Quick contact",
+      "text": "Need help? Reach us at",
+      "email": "hola@latamtcg.com"
+    }
+  },
+  "massEntry": {
+    "title": "Mass Entry",
+    "subtitle": "Mass card entry functionality coming soon",
+    "comingSoon": "Coming Soon",
+    "comingSoonText": "We're working on a mass entry feature that will let you search and add multiple cards to your cart at once. This will be perfect for entering complete deck lists or bulk card orders.",
+    "inTheMeantime": "In the meantime, you can use our",
+    "searchPage": "search page",
+    "toFindAndAdd": "to find and add individual cards."
+  },
+  "popularCards": {
+    "title": "Popular Right Now",
+    "unableToLoad": "Unable to load popular cards. Please try again later."
+  },
+  "printing": {
+    "home": "Home",
+    "mtg": "MTG",
+    "magicTheGathering": "Magic: The Gathering",
+    "lastPriceUpdate": "Last price update:",
+    "dataImagesCopyright": "Data & Images © Scryfall"
+  },
+  "checkout": {
+    "checkoutAsGuest": "Checkout as guest",
+    "enterEmailForOrderSummary": "Enter your email to receive order summary and tracking.",
+    "email": "Email",
+    "enterValidEmail": "Enter a valid email",
+    "continueAsGuest": "Continue as guest",
+    "createAccount": "Create account",
+    "enterEmailToCheckoutAsGuest": "Enter your email to checkout as guest",
+    "paymentProtectedByFlow": "Payment protected by Flow",
+    "shippingThroughoutChile": "Shipping throughout Chile"
+  },
+  "errors": {
+    "unableToLoadRandom": "Unable to load a random item. Please try again.",
+    "purchaseLimitExceeded": "Purchase limit exceeded: You can only add {maxAllowed} copies of this item to your cart. Please sign in for full policy application.",
+    "purchaseLimitExceededUser": "Purchase limit exceeded: You can only buy {maxAllowed} copies of this item within {windowDays} days. You already have {alreadyCommitted} committed.",
+    "someItemsExceedLimits": "Some items exceed purchase limits. Please reduce quantities and try again.",
+    "minimumOrderNotMet": "Minimum order is {required}. Add {amount} more to checkout.",
+    "configurationError": "Payment system configuration error. Please contact support.",
+    "unableToCheckout": "Unable to checkout",
+    "failedToLoadCart": "Failed to load cart"
+  },
+  "returns": {
+    "title": "Refund and Return Policy — LatamTCG (Chile, MVP)",
+    "lastUpdated": "Last updated: November 19, 2025 (America/Santiago)",
+    "summary": "Summary (TL;DR)",
+    "summaryPoint1": "We accept returns only for: incorrect item, shipping damage, or sealed product defect.",
+    "summaryPoint2": "Report issues within 48 hours of delivery (sealed defects: within 7 days).",
+    "summaryPoint3": "Returns are not accepted for change of mind on individual cards.",
+    "summaryPoint4": "LatamTCG captures a photo at dispatch for each qualified order; we will compare with your evidence.",
+    "summaryPoint5": "Refunds are issued after verification (and, if necessary, after inspecting the returned item).",
+    "eligibility": "Eligibility",
+    "eligibilityText": "We accept returns/refunds only in these cases:",
+    "eligibility1": "Incorrect item received (printing/version different from what your order confirms).",
+    "eligibility2": "Item damaged in transit (visible damage to product/packaging upon arrival).",
+    "eligibility3": "Defect in sealed product (e.g., altered seal).",
+    "eligibilityNote": "We do not accept returns for individual cards once opened/handled, except when there is clear proof of shipping damage or incorrect item.",
+    "timeframes": "Timeframes",
+    "timeframe1": "Incorrect item / shipping damage: notify us within 48 hours of delivery.",
+    "timeframe2": "Sealed product defect: notify us within 7 days of delivery.",
+    "timeframeNote": "After these periods, we cannot process returns or refunds.",
+    "howToStartClaim": "How to start a claim",
+    "claimStep1": "Send an email to {email} within the valid timeframe and include your order number.",
+    "claimStep2": "Attach evidence photos:",
+    "claimStep2a": "The item as received (front view)",
+    "claimStep2b": "The external packaging and shipping label/dispatch guide",
+    "claimStep3": "We review within 48 hours. If approved, we will send a Return Authorization (RMA) or immediate resolution steps.",
+    "claimStep4": "Refunds/replacements are processed through Flow after verification and, when applicable, after inspection of the returned item. Processing time depends on the original payment method (see 'Refund Methods' section).",
+    "dispatchEvidence": "Dispatch evidence: LatamTCG may capture a photo at dispatch (product + shipping label/dispatch guide). Your claim will be verified against this record.",
+    "returnConditions": "Return conditions",
+    "returnCondition1": "Items must be returned in their original condition, unaltered and in their packaging.",
+    "returnCondition2": "Returns must be authorized in advance with an RMA.",
+    "mayDenyRefunds": "We may deny refunds when:",
+    "denyReason1": "There are signs of use/handling after delivery.",
+    "denyReason2": "The received item does not match what we sent.",
+    "denyReason3": "Evidence is insufficient or inconsistent with our dispatch records.",
+    "denyReason4": "Timeframes are missed.",
+    "shippingCosts": "Shipping and costs",
+    "shippingCost1": "LatamTCG error / shipping damage / sealed defect: we cover return shipping.",
+    "shippingCost2": "Unauthorized or ineligible returns: customer covers shipping; package may be rejected.",
+    "shippingCost3": "For high-value orders (threshold defined by LatamTCG), we may require tracked shipping and delivery signature.",
+    "fraudPrevention": "Fraud and forgery prevention",
+    "fraudPreventionText": "To protect our community, all claims are subject to verification. LatamTCG may deny or revoke refunds in cases of suspected fraud, forged returns, or item alteration, and may restrict account access and/or file payment disputes.",
+    "refundMethods": "Refund methods",
+    "refundMethodsText": "Refunds are processed through Flow, our payment provider, and issued in CLP using the original payment method:",
+    "refundMethod1": "Debit card: 1-3 business days",
+    "refundMethod2": "Credit card: 10 business days",
+    "refundMethod3": "The customer has 10 calendar days to accept the refund from notification. If not accepted, the money will be returned in the next settlement.",
+    "refundFee": "Refund fee",
+    "refundFeeText": "Each refund has a cost of $202 + VAT ($240 CLP), which will be deducted from the next settlement and invoiced once the refund has been accepted by the customer.",
+    "refundNote": "Initial shipping fees are refunded only when the problem is attributable to LatamTCG (incorrect item, shipping damage, sealed defect).",
+    "questions": "Questions",
+    "questionsText": "We're here to help: {email}"
+  }
+}
+
