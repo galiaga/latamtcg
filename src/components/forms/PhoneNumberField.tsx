@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
-import { isValidPhoneNumber, type CountryCode } from 'react-phone-number-input'
+import { isValidPhoneNumber } from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
 
 // Dynamically import PhoneInput to avoid SSR issues
