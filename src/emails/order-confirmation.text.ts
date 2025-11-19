@@ -12,6 +12,7 @@ export type OrderEmailData = {
   supportEmail: string;
   orderUrl?: string;
   locale?: Locale;
+  deliveryMethod?: 'pickup' | 'courier';
 };
 
 export function renderOrderText(d: OrderEmailData) {
@@ -34,13 +35,23 @@ export function renderOrderText(d: OrderEmailData) {
   lines.push('');
 
   lines.push(`${t('subtotal', locale)}: ${formatCLP(d.subtotalCLP, locale)}`);
-  if (d.shippingCLP != null) lines.push(`${t('shipping', locale)}: ${formatCLP(d.shippingCLP, locale)}`);
+  if (d.shippingCLP != null) {
+    const shippingLabel = d.deliveryMethod === 'courier' ? t('shippingChilexpress', locale) : t('shipping', locale);
+    lines.push(`${shippingLabel}: ${formatCLP(d.shippingCLP, locale)}`);
+  }
   if (d.taxesCLP != null) lines.push(`${t('taxes', locale)}: ${formatCLP(d.taxesCLP, locale)}`);
   lines.push(`${t('totalPaid', locale)}: ${formatCLP(d.totalCLP, locale)}`);
   if (d.orderUrl) lines.push(`${t('viewOrder', locale)}: ${d.orderUrl}`);
   lines.push('');
 
-  lines.push(t('next', locale));
+  // Delivery method-specific next steps
+  if (d.deliveryMethod === 'pickup') {
+    lines.push(t('nextPickup', locale));
+  } else if (d.deliveryMethod === 'courier') {
+    lines.push(t('nextCourier', locale));
+  } else {
+    lines.push(t('next', locale));
+  }
   lines.push(messages[locale].help(d.supportEmail));
   lines.push(messages[locale].footer(new Date().getFullYear()));
 

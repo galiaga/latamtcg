@@ -23,14 +23,32 @@ export function renderOrderHtml(d: OrderEmailData) {
     return `<li style="${css.li}"><strong>${i.name}</strong>${finishText} ×${i.quantity} — <strong>${formatCLP(i.priceCLP, locale)}</strong></li>`;
   }).join('');
 
+  const shippingLabel = d.deliveryMethod === 'courier' && d.shippingCLP != null 
+    ? t('shippingChilexpress', locale) 
+    : t('shipping', locale);
+  
   const totals = `
     <p style="${css.p}"><strong>${t('subtotal', locale)}:</strong> ${formatCLP(d.subtotalCLP, locale)}</p>
-    ${d.shippingCLP != null ? `<p style="${css.p}"><strong>${t('shipping', locale)}:</strong> ${formatCLP(d.shippingCLP, locale)}</p>` : ''}
+    ${d.shippingCLP != null ? `<p style="${css.p}"><strong>${shippingLabel}:</strong> ${formatCLP(d.shippingCLP, locale)}</p>` : ''}
     ${d.taxesCLP != null ? `<p style="${css.p}"><strong>${t('taxes', locale)}:</strong> ${formatCLP(d.taxesCLP, locale)}</p>` : ''}
     <p style="${css.total}"><strong>${t('totalPaid', locale)}:</strong> ${formatCLP(d.totalCLP, locale)}</p>
   `;
 
+  const deliveryMethodInfo = d.deliveryMethod 
+    ? `<p style="${css.p}"><strong>${t('deliveryMethod', locale)}:</strong> ${d.deliveryMethod === 'pickup' ? t('deliveryMethodPickup', locale) : t('deliveryMethodCourier', locale)}</p>`
+    : '';
+
   const cta = d.orderUrl ? `<p><a href="${d.orderUrl}" style="${css.btn}">${t('viewOrder', locale)} →</a></p>` : '';
+
+  // Delivery method-specific next steps
+  let nextSteps = '';
+  if (d.deliveryMethod === 'pickup') {
+    nextSteps = `<p style="${css.p}">${t('nextPickup', locale)}</p>`;
+  } else if (d.deliveryMethod === 'courier') {
+    nextSteps = `<p style="${css.p}">${t('nextCourier', locale)}</p>`;
+  } else {
+    nextSteps = `<p style="${css.p}">${t('next', locale)}</p>`;
+  }
 
   return `<!doctype html>
 <html>
@@ -46,12 +64,13 @@ export function renderOrderHtml(d: OrderEmailData) {
       <p style="${css.p}"><strong>${t('orderNo', locale)}:</strong> ${d.orderId}</p>
       <p style="${css.p}"><strong>${t('date', locale)}:</strong> ${formatDate(d.orderDateISO, locale)}</p>
       <p style="${css.p}">${t('statusReceived', locale)}</p>
+      ${deliveryMethodInfo}
     </div>
     <h2 style="font-size:16px;margin:16px 0 8px 0;">${t('items', locale)}</h2>
     <ul style="padding-left:18px;margin:0 0 12px 0;">${itemsHtml}</ul>
     ${totals}
     ${cta}
-    <p style="${css.p}">${t('next', locale)}</p>
+    ${nextSteps}
     <p style="${css.small}">${messages[locale].help(d.supportEmail)}</p>
     <p style="${css.small}">${messages[locale].footer(year)}</p>
   </div>

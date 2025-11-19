@@ -1,6 +1,6 @@
 {
   "name": "latamtcg",
-  "version": "0.39.0",
+  "version": "0.40.0",
   "private": true,
   "scripts": {
     "dev": "NEXT_FORCE_WEBPACK=1 next dev",
@@ -63,6 +63,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.66.0",
+    "react-phone-number-input": "^3.4.14",
     "recharts": "^3.3.0",
     "resend": "^6.4.1",
     "stream-json": "^1.7.5",

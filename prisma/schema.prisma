@@ -182,25 +182,41 @@ model CartItem {
 }
 
 model Order {
-  id                String      @id @default(cuid())
+  id                String         @id @default(cuid())
   userId            String?
   email             String?
-  totalAmount       Decimal?    @db.Decimal(10, 2)
-  amountCLP         Int?        // Amount in CLP for Flow payments
-  status            OrderStatus @default(pending)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  totalAmount       Decimal?       @db.Decimal(10, 2)
+  amountCLP         Int?           // Amount in CLP for Flow payments
+  status            OrderStatus    @default(pending)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
   shippingAddressId String?
   billingAddressId  String?
   // Flow payment fields
-  flowToken         String?     @unique // Flow payment token
-  flowOrder         String?     // Flow order identifier
-  flowPaymentId     String?     // Flow payment ID after completion
-  paidAt            DateTime?   // When payment was completed
-  metadata          Json?       // Additional order metadata
-  billingAddress    Address?    @relation("OrderBillingAddress", fields: [billingAddressId], references: [id])
-  shippingAddress   Address?    @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
-  user              User?       @relation(fields: [userId], references: [id])
+  flowToken         String?        @unique // Flow payment token
+  flowOrder         String?        // Flow order identifier
+  flowPaymentId     String?        // Flow payment ID after completion
+  paidAt            DateTime?       // When payment was completed
+  metadata          Json?          // Additional order metadata
+  // Delivery fields
+  deliveryMethod    DeliveryMethod @default(courier)
+  deliveryStatus    DeliveryStatus @default(pending)
+  shippingCourier   String?        // e.g., "Chilexpress"
+  shippingCost      Int?           // Shipping cost in CLP
+  shippingRegion    String?        // Region for shipping cost calculation
+  shippingAddressLine1 String?
+  shippingAddressLine2 String?
+  shippingCity      String?
+  shippingCommune   String?
+  shippingPostalCode String?
+  shippingInstructions String?     // Optional reference/details
+  trackingCode      String?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  pickupNotes       String?        // For pickup orders (e.g., agreed time/place)
+  billingAddress    Address?       @relation("OrderBillingAddress", fields: [billingAddressId], references: [id])
+  shippingAddress   Address?       @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
+  user              User?          @relation(fields: [userId], references: [id])
   items             OrderItem[]
   paymentLogs       PaymentLog[]
 
@@ -208,6 +224,8 @@ model Order {
   @@index([createdAt])
   @@index([flowToken])
   @@index([status])
+  @@index([deliveryMethod])
+  @@index([deliveryStatus])
 }
 
 enum OrderStatus {
@@ -215,6 +233,20 @@ enum OrderStatus {
   paid
   failed
   cancelled
+}
+
+enum DeliveryMethod {
+  pickup
+  courier
+}
+
+enum DeliveryStatus {
+  pending
+  preparing
+  shipped
+  delivered
+  ready_for_pickup
+  picked_up
 }
 
 model OrderItem {

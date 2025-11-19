@@ -82,6 +82,8 @@ Models:
 ### Environment variables
 
 - `DATABASE_URL`: PostgreSQL connection string (Prisma)
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous/public key
 - `CRON_SECRET`: shared bearer token for the job endpoint
 - Optional: `SCRYFALL_BATCH_SIZE` (default 500)
 - Optional: `SCRYFALL_EXCLUDE_SET_TYPES` (default `token,memorabilia,alchemy,minigame`)
@@ -89,6 +91,12 @@ Models:
 - Optional: `SEARCH_LANGS` = `en` | `all` (default `en`)
 - Optional: `SEARCH_SUGGESTION_LIMIT` (default 15)
 - Optional: `SCRYFALL_IMAGE_HOST` (default `cards.scryfall.io`)
+
+### Google OAuth Setup
+
+To configure Google OAuth to show "LatamTCG" instead of the Supabase domain, see [GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md) for complete instructions.
+
+Quick verification: `./scripts/verify-google-oauth.sh`
 
 ### Flow Payment Gateway
 

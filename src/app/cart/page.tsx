@@ -15,6 +15,8 @@ import { formatPrice } from '@/lib/pricingClient'
 import { useGuestCheckout } from '@/hooks/useGuestCheckout'
 import GuestCheckoutModal from '@/components/checkout/GuestCheckoutModal'
 import { useTranslations } from 'next-intl'
+import DeliveryMethodSelector, { type DeliveryFormData } from '@/components/checkout/DeliveryMethodSelector'
+import { calculateChilexpressShipping } from '@/lib/shipping/chilexpress'
 
 
 type CartItem = {
@@ -42,14 +44,24 @@ export default function CartPage() {
   const [authed, setAuthed] = useState<boolean | null>(null)
   const [redirecting, setRedirecting] = useState(false)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
+  const [deliveryData, setDeliveryData] = useState<DeliveryFormData>({
+    deliveryMethod: 'courier',
+  })
   const showSkeleton = useDelayedFlag(150, loading && !hasLoadedOnce)
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.lineTotal, 0), [items])
   
-  // Calculate shipping and totals
+  // Calculate shipping cost based on delivery method
   const shipping = useMemo(() => {
-    if (!config) return 0
-    return calculateShipping(subtotal, config.shippingFlatClp, config.freeShippingThresholdClp)
-  }, [subtotal, config])
+    if (deliveryData.deliveryMethod === 'pickup') {
+      return 0
+    }
+    if (deliveryData.deliveryMethod === 'courier' && deliveryData.shippingRegion) {
+      const quote = calculateChilexpressShipping({ region: deliveryData.shippingRegion })
+      return quote.cost
+    }
+    // Default: return 0 if no region selected yet (will be calculated on checkout)
+    return 0
+  }, [deliveryData])
   
   const total = useMemo(() => subtotal + shipping, [subtotal, shipping])
   
@@ -166,8 +178,61 @@ export default function CartPage() {
 
   // Guest checkout handler (extracted for reuse)
   const handleGuestEmailCollected = useCallback(async (email: string) => {
+    // Validate delivery data before proceeding
+    if (!deliveryData.firstName || !deliveryData.firstName.trim()) {
+      alert(t('checkout.delivery.validation.firstNameRequired'))
+      return
+    }
+    if (!deliveryData.lastName || !deliveryData.lastName.trim()) {
+      alert(t('checkout.delivery.validation.lastNameRequired'))
+      return
+    }
+    if (deliveryData.deliveryMethod === 'pickup') {
+      if (!deliveryData.contactPhone) {
+        alert(t('checkout.delivery.contact.phoneRequired'))
+        return
+      }
+      // Validate Chilean phone format
+      if (deliveryData.contactPhone.startsWith('+56')) {
+        const digitsAfterCode = deliveryData.contactPhone.replace('+56', '')
+        if (digitsAfterCode.length !== 9 || !/^\d{9}$/.test(digitsAfterCode)) {
+          alert(t('checkout.delivery.contact.phoneInvalidChile'))
+          return
+        }
+      }
+    }
+    if (deliveryData.deliveryMethod === 'courier') {
+      if (!deliveryData.shippingRegion) {
+        alert(t('checkout.delivery.validation.regionRequired'))
+        return
+      }
+      if (!deliveryData.shippingCommune) {
+        alert(t('checkout.delivery.validation.communeRequired'))
+        return
+      }
+      if (!deliveryData.shippingAddressLine1) {
+        alert(t('checkout.delivery.validation.addressRequired'))
+        return
+      }
+    }
+    
+    // Validate email (required for all guest checkouts)
+    if (!email || email.trim() === '') {
+      alert(t('checkout.enterValidEmail'))
+      return
+    }
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailPattern.test(email.trim())) {
+      alert(t('checkout.enterValidEmail'))
+      return
+    }
+    
     try {
-      const res = await fetch('/api/checkout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }) })
+      const res = await fetch('/api/checkout', { 
+        method: 'POST', 
+        headers: { 'content-type': 'application/json' }, 
+        body: JSON.stringify({ email: email.trim(), ...deliveryData }) 
+      })
       const json = await res.json()
       
       if (res.ok && json?.paymentUrl) {
@@ -218,7 +283,83 @@ export default function CartPage() {
       return
     }
     
-    // Use hook to start guest checkout (handles feature flag and fallback)
+    // Validate delivery data first
+    if (!deliveryData.firstName || !deliveryData.firstName.trim()) {
+      alert(t('checkout.delivery.validation.firstNameRequired'))
+      return
+    }
+    if (!deliveryData.lastName || !deliveryData.lastName.trim()) {
+      alert(t('checkout.delivery.validation.lastNameRequired'))
+      return
+    }
+    
+    // For pickup orders, check if email is already in deliveryData
+    if (deliveryData.deliveryMethod === 'pickup') {
+      if (!deliveryData.contactPhone) {
+        alert(t('checkout.delivery.contact.phoneRequired'))
+        return
+      }
+      // Validate Chilean phone format
+      if (deliveryData.contactPhone.startsWith('+56')) {
+        const digitsAfterCode = deliveryData.contactPhone.replace('+56', '')
+        if (digitsAfterCode.length !== 9 || !/^\d{9}$/.test(digitsAfterCode)) {
+          alert(t('checkout.delivery.contact.phoneInvalidChile'))
+          return
+        }
+      }
+      
+      // Check if email is provided in the form
+      if (deliveryData.email && deliveryData.email.trim()) {
+        // Validate email format
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailPattern.test(deliveryData.email.trim())) {
+          alert(t('checkout.enterValidEmail'))
+          return
+        }
+        // Email is in the form, proceed directly
+        await handleGuestEmailCollected(deliveryData.email.trim())
+        return
+      } else {
+        // Email not provided, show error
+        alert(t('checkout.enterValidEmail'))
+        return
+      }
+    }
+    
+    // For courier orders, check if email is provided in the form
+    if (deliveryData.deliveryMethod === 'courier') {
+      if (!deliveryData.shippingRegion) {
+        alert(t('checkout.delivery.validation.regionRequired'))
+        return
+      }
+      if (!deliveryData.shippingCommune) {
+        alert(t('checkout.delivery.validation.communeRequired'))
+        return
+      }
+      if (!deliveryData.shippingAddressLine1) {
+        alert(t('checkout.delivery.validation.addressRequired'))
+        return
+      }
+      
+      // Check if email is provided in the form
+      if (deliveryData.email && deliveryData.email.trim()) {
+        // Validate email format
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailPattern.test(deliveryData.email.trim())) {
+          alert(t('checkout.enterValidEmail'))
+          return
+        }
+        // Email is in the form, proceed directly
+        await handleGuestEmailCollected(deliveryData.email.trim())
+        return
+      } else {
+        // Email not provided, show error
+        alert(t('checkout.enterValidEmail'))
+        return
+      }
+    }
+    
+    // Fallback: use modal/prompt if email not in form (shouldn't happen with new flow)
     await startGuestCheckout()
   }
 
@@ -231,9 +372,55 @@ export default function CartPage() {
       return
     }
     
+    // Validate delivery data
+    if (!deliveryData.firstName || !deliveryData.firstName.trim()) {
+      alert(t('checkout.delivery.validation.firstNameRequired'))
+      return
+    }
+    if (!deliveryData.lastName || !deliveryData.lastName.trim()) {
+      alert(t('checkout.delivery.validation.lastNameRequired'))
+      return
+    }
+    if (deliveryData.deliveryMethod === 'pickup') {
+      if (!deliveryData.contactPhone) {
+        alert(t('checkout.delivery.contact.phoneRequired'))
+        return
+      }
+      // Validate Chilean phone format
+      if (deliveryData.contactPhone.startsWith('+56')) {
+        const digitsAfterCode = deliveryData.contactPhone.replace('+56', '')
+        if (digitsAfterCode.length !== 9 || !/^\d{9}$/.test(digitsAfterCode)) {
+          alert(t('checkout.delivery.contact.phoneInvalidChile'))
+          return
+        }
+      }
+    }
+    if (deliveryData.deliveryMethod === 'courier') {
+      if (!deliveryData.shippingRegion) {
+        alert(t('checkout.delivery.validation.regionRequired'))
+        return
+      }
+      if (!deliveryData.shippingCity) {
+        alert(t('checkout.delivery.validation.cityRequired'))
+        return
+      }
+      if (!deliveryData.shippingCommune) {
+        alert(t('checkout.delivery.validation.communeRequired'))
+        return
+      }
+      if (!deliveryData.shippingAddressLine1) {
+        alert(t('checkout.delivery.validation.addressRequired'))
+        return
+      }
+    }
+    
     try {
       setRedirecting(true)
-      const res = await fetch('/api/checkout', { method: 'POST', headers: { 'content-type': 'application/json' } })
+      const res = await fetch('/api/checkout', { 
+        method: 'POST', 
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(deliveryData),
+      })
       const json = await res.json()
       if (res.ok && json?.paymentUrl) {
         // Redirect to Flow payment page
@@ -278,7 +465,7 @@ export default function CartPage() {
   return (
     <SWRConfig value={{ revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0, dedupingInterval: 4000 }}>
     <div className="mx-auto max-w-4xl p-2 md:p-6">
-      <h1 className="text-xl font-semibold">{t('cart.title')}</h1>
+      <h1 className="text-3xl font-bold mb-6">{t('cart.title')}</h1>
       {showSkeleton ? (
         <CartPageSkeleton itemCount={3} />
       ) : null}
@@ -290,6 +477,16 @@ export default function CartPage() {
         </div>
       ) : null}
       {items.length > 0 && (
+        <>
+          {/* Cards Subtotal Summary */}
+          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-semibold">{t('cart.cardsSubtotal')}</span>
+              <span className="text-2xl font-bold tabular-nums">{formatPrice(subtotal, config)}</span>
+            </div>
+          </div>
+          
+          {/* Card Items List */}
         <div className="mt-4 grid grid-cols-1 gap-4">
           {items.map((it) => (
             <div key={`${it.printingId}-${it.finish || 'normal'}`} className="border rounded p-3">
@@ -378,68 +575,79 @@ export default function CartPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       {items.length > 0 && (
-        <div className="mt-6 ml-auto max-w-sm border rounded p-4">
-          {/* Progress banners */}
-          {!meetsMinimum && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
-              <div className="font-medium text-yellow-800">{t('cart.minimumOrderRequired')}</div>
-              <div className="text-yellow-700">
-                {t('cart.addAmountToReach', { 
-                  amount: formatPrice(amountToMin, config), 
-                  minimum: formatPrice(config?.minOrderSubtotalClp || 0, config) 
-                })}
-              </div>
-            </div>
-          )}
+        <>
+          {/* Delivery Method Selection */}
+          <DeliveryMethodSelector
+            value={deliveryData}
+            onChange={setDeliveryData}
+            shippingCost={deliveryData.deliveryMethod === 'courier' && deliveryData.shippingRegion ? shipping : undefined}
+            isGuest={!authed}
+          />
           
-          {config?.freeShippingThresholdClp && amountToFree > 0 && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-              <div className="font-medium text-blue-800">{t('cart.freeShippingAvailable')}</div>
-              <div className="text-blue-700">
-                {t('cart.addAmountForFreeShipping', { amount: formatPrice(amountToFree, config) })}
+          <div className="mt-6 ml-auto max-w-sm border rounded p-4">
+            {/* Progress banners */}
+            {!meetsMinimum && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                <div className="font-medium text-yellow-800">{t('cart.minimumOrderRequired')}</div>
+                <div className="text-yellow-700">
+                  {t('cart.addAmountToReach', { 
+                    amount: formatPrice(amountToMin, config), 
+                    minimum: formatPrice(config?.minOrderSubtotalClp || 0, config) 
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-          
-          <div className="flex justify-between">
-            <span>{t('cart.subtotal')}</span>
-            <span className="tabular-nums">{formatPrice(subtotal, config)}</span>
-          </div>
-          {shipping > 0 && (
-            <div className="flex justify-between">
-              <span>{t('cart.shipping')}</span>
-              <span className="tabular-nums">{formatPrice(shipping, config)}</span>
-            </div>
-          )}
-          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
-            <span>{t('cart.total')}</span>
-            <span className="tabular-nums">{formatPrice(total, config)}</span>
-          </div>
-          <div className="mt-4">
-            {authed ? (
-              <button 
-                className="btn btn-gradient w-full" 
-                onClick={checkoutUser} 
-                disabled={redirecting || !meetsMinimum} 
-                aria-busy={redirecting}
-              >
-                {redirecting ? t('common.processing') : meetsMinimum ? t('cart.checkout') : t('cart.minimumOrderRequired')}
-              </button>
-            ) : (
-              <button 
-                className="btn btn-gradient w-full" 
-                onClick={checkoutGuest}
-                disabled={!meetsMinimum}
-              >
-                {meetsMinimum ? t('cart.checkoutAsGuest') : t('cart.minimumOrderRequired')}
-              </button>
             )}
+            
+            {config?.freeShippingThresholdClp && amountToFree > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+                <div className="font-medium text-blue-800">{t('cart.freeShippingAvailable')}</div>
+                <div className="text-blue-700">
+                  {t('cart.addAmountForFreeShipping', { amount: formatPrice(amountToFree, config) })}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-between">
+              <span>{t('cart.subtotal')}</span>
+              <span className="tabular-nums">{formatPrice(subtotal, config)}</span>
+            </div>
+            {shipping > 0 && (
+              <div className="flex justify-between">
+                <span>{deliveryData.deliveryMethod === 'courier' ? t('cart.shippingChilexpress') : t('cart.shipping')}</span>
+                <span className="tabular-nums">{formatPrice(shipping, config)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
+              <span>{t('cart.total')}</span>
+              <span className="tabular-nums">{formatPrice(total, config)}</span>
+            </div>
+            <div className="mt-4">
+              {authed ? (
+                <button 
+                  className="btn btn-gradient w-full" 
+                  onClick={checkoutUser} 
+                  disabled={redirecting || !meetsMinimum} 
+                  aria-busy={redirecting}
+                >
+                  {redirecting ? t('common.processing') : meetsMinimum ? t('cart.checkout') : t('cart.minimumOrderRequired')}
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-gradient w-full" 
+                  onClick={checkoutGuest}
+                  disabled={!meetsMinimum}
+                >
+                  {meetsMinimum ? t('cart.checkoutAsGuest') : t('cart.minimumOrderRequired')}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Guest Checkout Modal */}

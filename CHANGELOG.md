@@ -1,5 +1,129 @@
 # Changelog
 
+## v0.40.0 — 2025-01-15
+### Features
+- **Complete Delivery Workflow**: Full implementation of delivery options for LatamTCG
+  - **Dual Delivery Methods**: Users can choose between local pickup and Chilexpress shipping
+    - Local pickup in Providencia, Santiago with WhatsApp/email coordination
+    - Chilexpress shipping to all regions of Chile with tracking
+  - **Delivery Method Selection**: New `DeliveryMethodSelector` component with radio button selection
+    - Clear descriptions for each delivery method in both English and Spanish
+    - Real-time shipping cost calculation based on selected region
+    - Conditional form fields based on selected delivery method
+  - **Database Schema Extensions**: Extended Order model with comprehensive delivery fields
+    - `deliveryMethod` enum (pickup/courier) with default to courier
+    - `deliveryStatus` enum (pending/preparing/shipped/delivered/ready_for_pickup/picked_up)
+    - Shipping fields: `shippingCourier`, `shippingCost`, `shippingRegion`, `shippingCity`, `shippingCommune`, `shippingAddressLine1`, `shippingAddressLine2`, `shippingPostalCode`, `shippingInstructions`, `trackingCode`, `shippedAt`, `deliveredAt`
+    - Pickup fields: `pickupNotes` for coordination details
+  - **Shipping Cost Calculation**: Configurable Chilexpress shipping cost system
+    - Region Metropolitana: 3,000 CLP
+    - Other regions: 4,000 CLP
+    - Centralized configuration in `src/lib/shipping/chilexpress.ts` for easy updates
+  - **Enhanced Contact Information**: Improved contact data collection
+    - Split name field into `firstName` and `lastName` (required for both delivery methods)
+    - International phone number input with country flag selector
+    - Defaults to Chile (+56) with validation for 9-digit Chilean numbers
+    - E.164 format storage for phone numbers
+    - Email field integrated into delivery form for guest users (no popup modal)
+  - **Chilean Address System**: Comprehensive address collection for courier delivery
+    - Region dropdown with all 16 Chilean regions
+    - Commune dropdown dynamically populated based on selected region
+    - All communes sorted alphabetically and validated against correct regions
+    - City field (optional), Address Line 1 (required), Address Line 2 (optional)
+    - Postal code and optional shipping instructions
+  - **Email Templates**: Delivery method-specific order confirmation emails
+    - Different subject lines and content for pickup vs. courier orders
+    - Bilingual support (English and Spanish) for all email content
+    - Clear next steps based on delivery method
+    - Shipping notification template for when orders are dispatched
+  - **Server-Side Validation**: Comprehensive validation at API level
+    - Required field validation for all delivery methods
+    - Region-specific validation for courier orders
+    - Name validation (first and last name required)
+    - Phone number format validation
+    - Email validation for guest checkout
+  - **How It Works Page Updates**: Updated trust hub with delivery information
+    - Updated 4-step process to include delivery method selection
+    - Expanded delivery guarantee section with Chilexpress details
+    - New FAQ entries for local pickup and shipping
+    - Clear explanation of pickup coordination via WhatsApp/email near Metro station
+
+### Improvements
+- **Cart Page Enhancements**: Improved shopping cart user experience
+  - Changed title from "Your cart" to "Shopping Cart" / "Carrito de Compras"
+  - Increased title size to `text-3xl` with bold styling
+  - Added cards subtotal summary box before item details
+  - Clear visual separation between subtotal and individual items
+- **Phone Number Input**: Professional international phone number component
+  - `PhoneNumberField` component using `react-phone-number-input` library
+  - Country flag selector with default to Chile
+  - International calling code display
+  - Custom validation for Chilean numbers (9 digits after +56)
+  - i18n error messages for validation failures
+  - SSR-safe dynamic import to prevent hydration issues
+- **Form Validation**: Enhanced validation across delivery forms
+  - Required field indicators (red asterisks) for all mandatory fields
+  - Client-side validation before API calls
+  - Server-side validation in checkout API route
+  - Clear, localized error messages
+- **Guest Checkout Flow**: Streamlined guest checkout experience
+  - Email field integrated directly into delivery form (no popup modal)
+  - Email required for both pickup and courier delivery methods
+  - Seamless form experience for guest users
+
+### Technical Changes
+- **New Components**:
+  - `DeliveryMethodSelector`: Comprehensive delivery method and address form component
+  - `PhoneNumberField`: Reusable international phone number input component
+- **New Modules**:
+  - `src/lib/shipping/chilexpress.ts`: Shipping cost calculation module
+- **Database Migrations**: 
+  - Added `DeliveryMethod` and `DeliveryStatus` enums
+  - Extended Order model with 15+ new delivery-related fields
+  - Added indexes for `deliveryMethod` and `deliveryStatus` for query performance
+- **API Updates**:
+  - Enhanced `/api/checkout` route with delivery data validation and storage
+  - Updated Flow callback to include delivery method in email notifications
+- **Translation Keys**: Added 50+ new translation keys for delivery workflow
+  - `checkout.delivery.*` namespace for all delivery-related UI text
+  - `checkout.delivery.validation.*` for validation messages
+  - Updated `howItWorks.*` keys with delivery information
+  - Updated `faq.*` keys with delivery-related questions
+- **Documentation**: 
+  - Created `GOOGLE_OAUTH_SETUP.md`: Comprehensive guide for configuring Google OAuth
+  - Created `GOOGLE_OAUTH_QUICK_START.md`: Quick reference for OAuth setup
+  - Added verification script: `scripts/verify-google-oauth.sh`
+
+### UX Enhancements
+- **Delivery Experience**: Clear, step-by-step delivery selection process
+  - Visual distinction between pickup and shipping options
+  - Real-time shipping cost display
+  - Contextual help text and descriptions
+  - Required field indicators for clarity
+- **Address Input**: User-friendly address collection
+  - Region-based commune dropdown prevents invalid selections
+  - Alphabetically sorted commune lists for easy navigation
+  - Clear field labels and placeholders
+  - Optional vs. required fields clearly marked
+- **Form Flow**: Improved form completion experience
+  - All delivery information collected in one place
+  - No popup modals interrupting the flow
+  - Clear validation feedback
+  - Responsive design for mobile and desktop
+
+### Bug Fixes
+- **Add to Cart Button**: Fixed button click handler
+  - Added event.preventDefault() and event.stopPropagation() to prevent parent handlers from intercepting
+  - Fixed dependency array in useCallback to include translation function
+  - Added pointer-events style to ensure button is clickable
+- **Commune Dropdown**: Fixed React rendering issue
+  - Added key prop to select element to force re-render when region changes
+  - Prevents stale commune options from appearing for wrong regions
+- **Phone Number Validation**: Fixed validation logic
+  - Proper E.164 format validation
+  - Chilean number format validation (9 digits after +56)
+  - Clear error messages in both languages
+
 ## v0.39.0 — 2025-11-19
 ### Features
 - **Trust Hub Redesign**: Complete reorganization of `/how-it-works` page as the main trust and information hub

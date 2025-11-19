@@ -153,7 +153,54 @@ export default async function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Section 5: Return Policy Summary */}
+      {/* Section 5: Delivery & Shipping */}
+      <section id="delivery" className="py-12 md:py-16">
+        <div className="rounded-lg p-8" style={{ backgroundColor: 'rgba(155, 123, 255, 0.05)', border: '1px solid var(--border)' }}>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">{t('howItWorks.delivery.title')}</h2>
+          <p className="text-base md:text-lg mb-6" style={{ color: 'var(--mutedText)' }}>
+            {t('howItWorks.delivery.intro')}
+          </p>
+          
+          <div className="space-y-6 mb-6">
+            <div>
+              <h3 className="text-xl font-semibold mb-2">{t('howItWorks.delivery.pickup.title')}</h3>
+              <p className="text-base" style={{ color: 'var(--mutedText)' }}>
+                {t('howItWorks.delivery.pickup.description')}
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="text-xl font-semibold mb-2">{t('howItWorks.delivery.courier.title')}</h3>
+              <p className="text-base" style={{ color: 'var(--mutedText)' }}>
+                {t('howItWorks.delivery.courier.description')}
+              </p>
+            </div>
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold mb-2">{t('howItWorks.delivery.protection.title')}</h3>
+            <p className="text-base" style={{ color: 'var(--mutedText)' }}>
+              {t('howItWorks.delivery.protection.body')}{' '}
+              <Link href="/returns" className="underline hover:opacity-80" style={{ color: '#9B7BFF' }}>
+                {t('howItWorks.delivery.protection.link')}
+              </Link>
+              .
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="text-xl font-semibold mb-2">{t('howItWorks.delivery.timing.title')}</h3>
+            <p className="text-base mb-2" style={{ color: 'var(--mutedText)' }}>
+              {t('howItWorks.delivery.timing.pickup')}
+            </p>
+            <p className="text-base" style={{ color: 'var(--mutedText)' }}>
+              {t('howItWorks.delivery.timing.courier')}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 6: Return Policy Summary */}
       <section id="returns" className="py-12 md:py-16">
         <div className="rounded-lg p-8" style={{ backgroundColor: 'rgba(155, 123, 255, 0.05)', border: '1px solid var(--border)' }}>
           <h2 className="text-2xl md:text-3xl font-bold mb-4">{t('trust.returns.title')}</h2>
@@ -185,6 +232,27 @@ export default async function HowItWorksPage() {
       <section id="faq" className="py-12 md:py-16">
         <h2 className="text-2xl md:text-3xl font-bold mb-12 text-center">{t('faq.title')}</h2>
         <div className="space-y-6">
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">{t('faq.items.localPickup.question')}</h3>
+            <p style={{ color: 'var(--mutedText)' }}>
+              {t('faq.items.localPickup.answer')}
+            </p>
+          </div>
+
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">{t('faq.items.chilexpressShipping.question')}</h3>
+            <p style={{ color: 'var(--mutedText)' }}>
+              {t('faq.items.chilexpressShipping.answer')}
+            </p>
+          </div>
+
+          <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
+            <h3 className="text-lg font-semibold mb-3">{t('faq.items.shippingCost.question')}</h3>
+            <p style={{ color: 'var(--mutedText)' }}>
+              {t('faq.items.shippingCost.answer')}
+            </p>
+          </div>
+
           <div className="rounded-lg p-6" style={{ border: '1px solid var(--border)' }}>
             <h3 className="text-lg font-semibold mb-3">{t('faq.items.tracking.question')}</h3>
             <p style={{ color: 'var(--mutedText)' }}>

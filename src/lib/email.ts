@@ -25,6 +25,7 @@ interface OrderConfirmationEmailParams {
   locale?: Locale
   supportEmail?: string
   orderUrl?: string
+  deliveryMethod?: 'pickup' | 'courier'
 }
 
 // Initialize Resend client
@@ -50,6 +51,7 @@ export async function sendOrderConfirmationEmail(
     locale,
     supportEmail = 'hola@latamtcg.com',
     orderUrl,
+    deliveryMethod = 'courier', // Default to courier for backward compatibility
   } = params
 
   const resolvedLocale = resolveLocale(locale)
@@ -71,12 +73,19 @@ export async function sendOrderConfirmationEmail(
     supportEmail,
     orderUrl,
     locale: resolvedLocale,
+    deliveryMethod,
   }
 
   // Render email content using i18n templates
   const html = renderOrderHtml(emailData)
   const text = renderOrderText(emailData)
-  const subject = messages[resolvedLocale].subject
+  
+  // Use delivery method-specific subject
+  const subject = deliveryMethod === 'pickup' 
+    ? messages[resolvedLocale].subjectPickup 
+    : deliveryMethod === 'courier'
+    ? messages[resolvedLocale].subjectCourier
+    : messages[resolvedLocale].subject
 
   const emailContent = {
     to,
