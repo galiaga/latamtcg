@@ -19,7 +19,11 @@ export default function AddToCartButton({ printingId, size = 'md', title, varian
     return () => clearTimeout(t)
   }, [ok])
 
-  const add = useCallback(async () => {
+  const add = useCallback(async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     if (!printingId) return
     const finish = variant || 'normal'
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -63,7 +67,7 @@ export default function AddToCartButton({ printingId, size = 'md', title, varian
       setAdding(false)
       inFlightRef.current.delete(key)
     }
-  }, [printingId, variant, addOptimisticThenReconcile, mutate])
+  }, [printingId, variant, addOptimisticThenReconcile, mutate, t])
 
   // Use new styling for card tiles, fallback to old styling for other contexts
   const isCardTile = size === 'md' && title
@@ -100,6 +104,7 @@ export default function AddToCartButton({ printingId, size = 'md', title, varian
         zIndex: 10,
         boxShadow: '0 2px 4px rgba(0,0,0,0.2)', // Add shadow for visibility
         whiteSpace: 'nowrap', // Prevent text wrapping
+        pointerEvents: adding ? 'none' : 'auto', // Ensure button is clickable when not adding
       }}
       onMouseEnter={(e) => {
         if (!adding) {

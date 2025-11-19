@@ -181,6 +181,7 @@ export async function POST(req: NextRequest) {
             createdAt: true,
             amountCLP: true,
             metadata: true,
+            deliveryMethod: true,
           },
         })
 
@@ -213,6 +214,7 @@ export async function POST(req: NextRequest) {
             totalCLP,
             orderUrl,
             supportEmail: 'hola@latamtcg.com',
+            deliveryMethod: orderDetails.deliveryMethod || 'courier', // Default to courier for backward compatibility
             // locale is optional - defaults to 'en' via resolveLocale
           })
           console.log(`[flow/callback] Order confirmation email sent to ${orderDetails.email}`)

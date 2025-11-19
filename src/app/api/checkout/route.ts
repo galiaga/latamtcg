@@ -10,6 +10,7 @@ import { cookies } from 'next/headers'
 import { getOrCreateUserCart } from '@/lib/cart'
 import { formatDisplayName } from '@/lib/cardNames'
 import { formatCardVariant } from '@/lib/cards/formatVariant'
+import { calculateChilexpressShipping } from '@/lib/shipping/chilexpress'
 
 const CheckoutRequestSchema = z.object({
   cartId: z.string().optional(),
@@ -18,6 +19,64 @@ const CheckoutRequestSchema = z.object({
     printingId: z.string(),
     quantity: z.number().int().min(1),
   })).optional(),
+  // Delivery method and shipping data
+  deliveryMethod: z.enum(['pickup', 'courier']).optional(),
+  // For courier delivery
+  shippingRegion: z.string().optional(),
+  shippingCommune: z.string().optional(),
+  shippingAddressLine1: z.string().optional(),
+  shippingAddressLine2: z.string().optional(),
+  shippingCity: z.string().optional(),
+  shippingPostalCode: z.string().optional(),
+  shippingInstructions: z.string().optional(),
+  // For pickup delivery
+  pickupNotes: z.string().optional(),
+  // Contact info (name, phone) - can be used for both methods
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  contactPhone: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // If delivery method is pickup, firstName, lastName, and contactPhone are required
+  if (data.deliveryMethod === 'pickup') {
+    if (!data.firstName || data.firstName.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'First name is required for pickup delivery.',
+        path: ['firstName'],
+      })
+    }
+    if (!data.lastName || data.lastName.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Last name is required for pickup delivery.',
+        path: ['lastName'],
+      })
+    }
+    if (!data.contactPhone || data.contactPhone.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Contact phone is required for pickup delivery.',
+        path: ['contactPhone'],
+      })
+    }
+  }
+  // For courier, firstName and lastName are also required
+  if (data.deliveryMethod === 'courier') {
+    if (!data.firstName || data.firstName.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'First name is required for courier delivery.',
+        path: ['firstName'],
+      })
+    }
+    if (!data.lastName || data.lastName.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Last name is required for courier delivery.',
+        path: ['lastName'],
+      })
+    }
+  }
 })
 
 /**
@@ -49,7 +108,23 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { cartId, items: bodyItems, email: bodyEmail } = validated.data
+    const { 
+      cartId, 
+      items: bodyItems, 
+      email: bodyEmail,
+      deliveryMethod: bodyDeliveryMethod,
+      shippingRegion,
+      shippingCommune,
+      shippingAddressLine1,
+      shippingAddressLine2,
+      shippingCity,
+      shippingPostalCode,
+      shippingInstructions,
+      pickupNotes,
+      firstName,
+      lastName,
+      contactPhone,
+    } = validated.data
 
     // Get user (optional - supports guest checkout)
     const user = await getSessionUser()
@@ -260,13 +335,59 @@ export async function POST(req: NextRequest) {
       })
     )
 
+    // Determine delivery method (default to courier for backward compatibility)
+    const deliveryMethod = bodyDeliveryMethod || 'courier'
+    
+    // Calculate shipping cost based on delivery method
+    let shippingCLP = 0
+    let shippingCourier: string | null = null
+    let shippingRegionValue: string | null = null
+    
+    if (deliveryMethod === 'courier') {
+      // Validate required shipping fields for courier
+      if (!shippingRegion || shippingRegion.trim() === '') {
+        return NextResponse.json(
+          {
+            error: 'shipping_region_required',
+            message: 'Shipping region is required for courier delivery.',
+          },
+          { status: 400 }
+        )
+      }
+      
+      if (!shippingCommune || shippingCommune.trim() === '') {
+        return NextResponse.json(
+          {
+            error: 'shipping_commune_required',
+            message: 'Shipping commune is required for courier delivery.',
+          },
+          { status: 400 }
+        )
+      }
+      
+      if (!shippingAddressLine1 || shippingAddressLine1.trim() === '') {
+        return NextResponse.json(
+          {
+            error: 'shipping_address_required',
+            message: 'Shipping address is required for courier delivery.',
+          },
+          { status: 400 }
+        )
+      }
+      
+      // Calculate Chilexpress shipping cost
+      const quote = calculateChilexpressShipping({ region: shippingRegion })
+      shippingCLP = quote.cost
+      shippingCourier = quote.courier
+      shippingRegionValue = shippingRegion
+    } else {
+      // Pickup: no shipping cost
+      shippingCLP = 0
+      shippingCourier = null
+    }
+    
     // Calculate totals
     const subtotalCLP = enriched.reduce((sum, item) => sum + item.lineTotalCLP, 0)
-    const shippingCLP = calculateShipping(
-      subtotalCLP,
-      pricingConfig.shippingFlatClp,
-      pricingConfig.freeShippingThresholdClp
-    )
     const totalCLP = subtotalCLP + shippingCLP
 
     console.log('[checkout] Price calculation:', {
@@ -336,7 +457,7 @@ export async function POST(req: NextRequest) {
 
     // Create order and payment in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create order
+      // Create order with delivery data
       const order = await tx.order.create({
         data: {
           userId: user?.id,
@@ -344,6 +465,18 @@ export async function POST(req: NextRequest) {
           totalAmount: subtotalCLP / 100, // Store in USD equivalent for compatibility
           amountCLP: totalCLP,
           status: 'pending',
+          deliveryMethod,
+          deliveryStatus: 'pending',
+          shippingCourier,
+          shippingCost: shippingCLP,
+          shippingRegion: shippingRegionValue,
+          shippingAddressLine1: deliveryMethod === 'courier' ? shippingAddressLine1 || null : null,
+          shippingAddressLine2: deliveryMethod === 'courier' ? shippingAddressLine2 || null : null,
+          shippingCity: deliveryMethod === 'courier' ? shippingCity || null : null,
+          shippingCommune: deliveryMethod === 'courier' ? shippingCommune || null : null,
+          shippingPostalCode: deliveryMethod === 'courier' ? shippingPostalCode || null : null,
+          shippingInstructions: deliveryMethod === 'courier' ? shippingInstructions || null : null,
+          pickupNotes: deliveryMethod === 'pickup' ? pickupNotes || null : null,
           items: {
             create: enriched.map((item) => ({
               printingId: item.printingId,
@@ -356,6 +489,10 @@ export async function POST(req: NextRequest) {
             shippingCLP,
             totalCLP,
             cartId: cartIdToStore, // Store cartId for later cleanup when payment is confirmed
+            deliveryMethod,
+            firstName: firstName || null,
+            lastName: lastName || null,
+            contactPhone: contactPhone || null,
             items: enriched.map((item) => ({
               printingId: item.printingId,
               quantity: item.quantity,
