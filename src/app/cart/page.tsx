@@ -97,26 +97,42 @@ export default function CartPage() {
 
   useEffect(() => {
     // Detect auth via client (avoid hitting server route that touches DB)
+    const supabase = supabaseBrowser()
+    let mounted = true
+    
     const checkAuth = async () => {
       try {
-        const supabase = supabaseBrowser()
-        const { data } = await supabase.auth.getSession()
-        setAuthed(Boolean(data.session))
-      } catch {
-        setAuthed(false)
+        const { data, error } = await supabase.auth.getSession()
+        if (!mounted) return
+        
+        if (error) {
+          setAuthed(false)
+        } else {
+          // Check both session and user to be more robust
+          const isAuthenticated = Boolean(data?.session && data.session.user)
+          setAuthed(isAuthenticated)
+        }
+      } catch (err) {
+        if (mounted) {
+          setAuthed(false)
+        }
       }
     }
     
+    // Initial check
     checkAuth()
     refresh()
     
     // Listen for auth state changes
-    const supabase = supabaseBrowser()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setAuthed(Boolean(session))
+      if (!mounted) return
+      // Check both session and user to be more robust
+      const isAuthenticated = Boolean(session && session.user)
+      setAuthed(isAuthenticated)
     })
     
     return () => {
+      mounted = false
       subscription.unsubscribe()
     }
   }, [refresh])
@@ -647,20 +663,13 @@ export default function CartPage() {
                 >
                   {redirecting ? t('common.processing') : meetsMinimum ? t('cart.checkout') : t('cart.minimumOrderRequired')}
                 </button>
-              ) : authed === false ? (
-                <button 
-                  className="btn btn-gradient w-full" 
-                  onClick={checkoutGuest}
-                  disabled={!meetsMinimum}
-                >
-                  {meetsMinimum ? t('cart.checkoutAsGuest') : t('cart.minimumOrderRequired')}
-                </button>
               ) : (
                 <button 
                   className="btn btn-gradient w-full" 
-                  disabled
+                  onClick={checkoutGuest}
+                  disabled={!meetsMinimum || authed === null}
                 >
-                  {t('common.loading')}...
+                  {authed === null ? t('common.loading') : (meetsMinimum ? t('cart.checkoutAsGuest') : t('cart.minimumOrderRequired'))}
                 </button>
               )}
             </div>
