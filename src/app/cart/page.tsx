@@ -97,7 +97,7 @@ export default function CartPage() {
 
   useEffect(() => {
     // Detect auth via client (avoid hitting server route that touches DB)
-    (async () => {
+    const checkAuth = async () => {
       try {
         const supabase = supabaseBrowser()
         const { data } = await supabase.auth.getSession()
@@ -105,9 +105,20 @@ export default function CartPage() {
       } catch {
         setAuthed(false)
       }
-    })()
+    }
+    
+    checkAuth()
     refresh()
-    return () => {}
+    
+    // Listen for auth state changes
+    const supabase = supabaseBrowser()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthed(Boolean(session))
+    })
+    
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [refresh])
 
   async function update(printingId: string, action: 'inc' | 'set' | 'remove', quantity?: number, finish?: string) {
@@ -627,7 +638,7 @@ export default function CartPage() {
               <span className="tabular-nums">{formatPrice(total, config)}</span>
             </div>
             <div className="mt-4">
-              {authed ? (
+              {authed === true ? (
                 <button 
                   className="btn btn-gradient w-full" 
                   onClick={checkoutUser} 
@@ -636,13 +647,20 @@ export default function CartPage() {
                 >
                   {redirecting ? t('common.processing') : meetsMinimum ? t('cart.checkout') : t('cart.minimumOrderRequired')}
                 </button>
-              ) : (
+              ) : authed === false ? (
                 <button 
                   className="btn btn-gradient w-full" 
                   onClick={checkoutGuest}
                   disabled={!meetsMinimum}
                 >
                   {meetsMinimum ? t('cart.checkoutAsGuest') : t('cart.minimumOrderRequired')}
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-gradient w-full" 
+                  disabled
+                >
+                  {t('common.loading')}...
                 </button>
               )}
             </div>
