@@ -29,10 +29,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://latamtcg.com"),
   title: {
-    default: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre | LatamTCG',
+    default: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre',
     template: '%s | LatamTCG',
   },
-  description: 'Encuentra todas las cartas de Magic en inglés y compra con total confianza. LatamTCG es una plataforma profesional, segura y sin vendedores informales. Recibe siempre lo que pediste, sin riesgos.',
+  description: 'Encuentra cartas de Magic The Gathering y compra con total confianza. Plataforma profesional, segura y sin vendedores informales. Recibe siempre lo que pediste.',
   keywords: ['Magic The Gathering', 'MTG', 'cartas Magic', 'TCG', 'Latinoamérica', 'Chile', 'cartas coleccionables', 'Magic cards', 'LatamTCG'],
   authors: [{ name: 'LatamTCG' }],
   creator: 'LatamTCG',
@@ -45,8 +45,8 @@ export const metadata: Metadata = {
     locale: 'es',
     url: 'https://latamtcg.com',
     siteName: 'LatamTCG',
-    title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre | LatamTCG',
-    description: 'Encuentra todas las cartas de Magic en inglés y compra con total confianza. LatamTCG es una plataforma profesional, segura y sin vendedores informales. Recibe siempre lo que pediste, sin riesgos.',
+    title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre',
+    description: 'Encuentra cartas de Magic The Gathering y compra con total confianza. Plataforma profesional, segura y sin vendedores informales. Recibe siempre lo que pediste.',
     images: [
       {
         url: 'https://latamtcg.com/web-app-manifest-512x512.png',
@@ -58,8 +58,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre | LatamTCG',
-    description: 'Encuentra todas las cartas de Magic en inglés y compra con total confianza. LatamTCG es una plataforma profesional, segura y sin vendedores informales.',
+    title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre',
+    description: 'Encuentra cartas de Magic The Gathering y compra con total confianza. Plataforma profesional, segura y sin vendedores informales.',
     images: ['https://latamtcg.com/web-app-manifest-512x512.png'],
     // Add Twitter handles when available:
     // creator: '@latamtcg',

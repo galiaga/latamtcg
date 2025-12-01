@@ -9,19 +9,19 @@ export async function generateMetadata(): Promise<Metadata> {
   // Spanish metadata (default)
   if (locale === 'es') {
     return {
-      title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre | LatamTCG',
-      description: 'Encuentra todas las cartas de Magic en inglés y compra con total confianza. LatamTCG es una plataforma profesional, segura y sin vendedores informales. Recibe siempre lo que pediste, sin riesgos.',
+      title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre',
+      description: 'Encuentra cartas de Magic The Gathering y compra con total confianza. Plataforma profesional, segura y sin vendedores informales. Recibe siempre lo que pediste.',
       alternates: {
         canonical: 'https://latamtcg.com',
       },
       openGraph: {
-        title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre | LatamTCG',
-        description: 'Encuentra todas las cartas de Magic en inglés y compra con total confianza. LatamTCG es una plataforma profesional, segura y sin vendedores informales.',
+        title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre',
+        description: 'Encuentra cartas de Magic The Gathering y compra con total confianza. Plataforma profesional, segura y sin vendedores informales. Recibe siempre lo que pediste.',
         url: 'https://latamtcg.com',
       },
       twitter: {
-        title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre | LatamTCG',
-        description: 'Encuentra todas las cartas de Magic en inglés y compra con total confianza.',
+        title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre',
+        description: 'Encuentra cartas de Magic The Gathering y compra con total confianza. Plataforma profesional, segura y sin vendedores informales.',
       },
     }
   }
