@@ -1,6 +1,31 @@
 {
   "crons": [
     { "path": "/api/jobs/refresh-popularity", "schedule": "0 4 * * *" }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.latamtcg.com"
+        }
+      ],
+      "destination": "https://latamtcg.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-forwarded-proto",
+          "value": "http"
+        }
+      ],
+      "destination": "https://latamtcg.com/:path*",
+      "permanent": true
+    }
   ]
 }
 

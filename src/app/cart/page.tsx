@@ -106,13 +106,16 @@ export default function CartPage() {
         if (!mounted) return
         
         if (error) {
+          console.log('[Cart] Auth check error:', error)
           setAuthed(false)
         } else {
           // Check both session and user to be more robust
           const isAuthenticated = Boolean(data?.session && data.session.user)
+          console.log('[Cart] Auth state determined:', isAuthenticated, 'Session exists:', !!data?.session, 'User exists:', !!data?.session?.user)
           setAuthed(isAuthenticated)
         }
       } catch (err) {
+        console.error('[Cart] Auth check exception:', err)
         if (mounted) {
           setAuthed(false)
         }
@@ -128,6 +131,7 @@ export default function CartPage() {
       if (!mounted) return
       // Check both session and user to be more robust
       const isAuthenticated = Boolean(session && session.user)
+      console.log('[Cart] Auth state changed:', event, 'Authenticated:', isAuthenticated)
       setAuthed(isAuthenticated)
     })
     
@@ -654,12 +658,19 @@ export default function CartPage() {
               <span className="tabular-nums">{formatPrice(total, config)}</span>
             </div>
             <div className="mt-4">
+              {/* Debug: Show auth state for troubleshooting */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mb-2 text-xs text-gray-500">
+                  Auth state: {authed === null ? 'null (checking...)' : authed === true ? 'true (logged in)' : 'false (guest)'}
+                </div>
+              )}
               {authed === true ? (
                 <button 
                   className="btn btn-gradient w-full" 
                   onClick={checkoutUser} 
                   disabled={redirecting || !meetsMinimum} 
                   aria-busy={redirecting}
+                  style={{ display: 'block', visibility: 'visible' }}
                 >
                   {redirecting ? t('common.processing') : meetsMinimum ? t('cart.checkout') : t('cart.minimumOrderRequired')}
                 </button>
@@ -668,6 +679,7 @@ export default function CartPage() {
                   className="btn btn-gradient w-full" 
                   onClick={checkoutGuest}
                   disabled={!meetsMinimum || authed === null}
+                  style={{ display: 'block', visibility: 'visible' }}
                 >
                   {authed === null ? t('common.loading') : (meetsMinimum ? t('cart.checkoutAsGuest') : t('cart.minimumOrderRequired'))}
                 </button>

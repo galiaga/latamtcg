@@ -21,6 +21,24 @@ const intlMiddleware = createMiddleware(routing)
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
   
+  // Canonical domain redirects: redirect www and http to https://latamtcg.com
+  const host = req.headers.get('host') || ''
+  const protocol = req.headers.get('x-forwarded-proto') || 'https'
+  const url = req.nextUrl.clone()
+  
+  // Redirect www subdomain to non-www
+  if (host.startsWith('www.')) {
+    url.host = 'latamtcg.com'
+    url.protocol = 'https:'
+    return NextResponse.redirect(url, 301)
+  }
+  
+  // Redirect HTTP to HTTPS (Vercel usually handles this, but this is a safety measure)
+  if (protocol === 'http' && host === 'latamtcg.com') {
+    url.protocol = 'https:'
+    return NextResponse.redirect(url, 301)
+  }
+  
   // Allow cron API routes to bypass all authentication/protection
   if (pathname.startsWith('/api/cron/')) {
     console.log(`[auth] Bypassing authentication for cron route: ${pathname}`)
