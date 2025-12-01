@@ -44,7 +44,8 @@
     "vercel:ingest:update": "tsx src/scripts/vercel-ingest-update.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "seo:check": "tsx scripts/seo-check.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.17.1",
