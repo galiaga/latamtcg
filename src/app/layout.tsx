@@ -114,9 +114,9 @@ export default async function RootLayout({
                 {/* Desktop layout */}
                 <div className="hidden md:flex items-center gap-4">
                   <LeftCatalogMenu />
-                  <h1 className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
-                    <Link href="/">LatamTCG</Link>
-                  </h1>
+                  <div className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
+                    <Link href="/" aria-label="LatamTCG - Inicio">LatamTCG</Link>
+                  </div>
                   <div className="flex-1">
                     <div className="w-full">
                       <SearchBox />
@@ -131,9 +131,9 @@ export default async function RootLayout({
                   {/* Row 1: Menu + Title + Cart + User */}
                   <div className="flex items-center justify-between mb-3">
                     <LeftCatalogMenu />
-                    <h1 className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
-                      <Link href="/">LatamTCG</Link>
-                    </h1>
+                    <div className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
+                      <Link href="/" aria-label="LatamTCG - Inicio">LatamTCG</Link>
+                    </div>
                     <div className="flex items-center gap-2">
                       <HeaderCart />
                       <HeaderUser />
