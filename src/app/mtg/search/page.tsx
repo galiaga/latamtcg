@@ -5,16 +5,41 @@ import { groupedSearch } from '@/services/searchQueryGroupedSimple'
 import { parseSortParam } from '@/search/sort'
 import { buildCacheKey } from '@/lib/cache'
 import HydrationPerf from '@/components/HydrationPerf'
+import { getTranslations } from 'next-intl/server'
+import type { Metadata } from 'next'
 
-export const metadata = {
-  robots: { index: true, follow: true },
-  title: 'Search MTG',
-  alternates: {
-    canonical: '/mtg/search',
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations()
+  return {
+    title: 'Buscar cartas de Magic: The Gathering | LatamTCG',
+    description: 'Busca y encuentra cartas de Magic: The Gathering en LatamTCG. Filtra por set, rareza, tipo de impresión y más. Precios en tiempo real y calidad garantizada.',
+    robots: { 
+      index: true, 
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
+    alternates: {
+      canonical: 'https://latamtcg.com/mtg/search',
+    },
+    openGraph: {
+      title: 'Buscar cartas de Magic: The Gathering | LatamTCG',
+      description: 'Busca y encuentra cartas de Magic: The Gathering en LatamTCG. Filtra por set, rareza, tipo de impresión y más.',
+      url: 'https://latamtcg.com/mtg/search',
+    },
+    twitter: {
+      title: 'Buscar cartas de Magic: The Gathering | LatamTCG',
+      description: 'Busca y encuentra cartas de Magic: The Gathering en LatamTCG.',
+    },
+  }
 }
 
 export default async function MtgSearchPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const t = await getTranslations()
   const t0 = Date.now()
   const params = await searchParams
   const q = String(params.q || '')
@@ -49,10 +74,19 @@ export default async function MtgSearchPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="py-2">
-      <section className="px-2 md:px-4">
+      <section className="px-2 md:px-4" aria-labelledby="search-heading">
         {/* mark hydration start for client measure */}
         <script dangerouslySetInnerHTML={{ __html: "try{performance.mark('mtg-search-hydrate-start')}catch(e){}" }} />
         <HydrationPerf />
+        {/* SSR h1 heading for SEO */}
+        <h1 id="search-heading" className="sr-only">
+          {hasAnyFilter 
+            ? q.trim() 
+              ? `${t('search.searching')} "${q.trim()}" ${t('search.inMagicTheGathering')}`
+              : t('search.advancedSearch')
+            : t('search.advancedSearch')
+          }
+        </h1>
         <SafeClient>
           {hasAnyFilter ? (
             <SearchResultsGrid initialQuery={q} initialData={initialData} initialKey={initialKey} />
