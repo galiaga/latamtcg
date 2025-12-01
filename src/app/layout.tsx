@@ -29,12 +29,56 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://latamtcg.com"),
   title: {
-    default: 'LatamTCG',
-    template: 'LatamTCG | %s',
+    default: 'LatamTCG - Mercado confiable de Magic: The Gathering en Latinoamérica',
+    template: '%s | LatamTCG',
   },
-  description: 'LatamTCG',
+  description: 'Compra y vende cartas auténticas de Magic: The Gathering en LatamTCG. Calidad garantizada (LP o mejor), precios justos y entrega confiable en Chile. El mercado más confiable de TCG en Latinoamérica.',
+  keywords: ['Magic The Gathering', 'MTG', 'cartas Magic', 'TCG', 'Latinoamérica', 'Chile', 'cartas coleccionables', 'Magic cards', 'LatamTCG'],
+  authors: [{ name: 'LatamTCG' }],
+  creator: 'LatamTCG',
+  publisher: 'LatamTCG',
   alternates: {
-    canonical: "/",
+    canonical: "https://latamtcg.com",
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'es',
+    url: 'https://latamtcg.com',
+    siteName: 'LatamTCG',
+    title: 'LatamTCG - Mercado confiable de Magic: The Gathering en Latinoamérica',
+    description: 'Compra y vende cartas auténticas de Magic: The Gathering en LatamTCG. Calidad garantizada (LP o mejor), precios justos y entrega confiable en Chile.',
+    images: [
+      {
+        url: 'https://latamtcg.com/web-app-manifest-512x512.png',
+        width: 512,
+        height: 512,
+        alt: 'LatamTCG - Mercado confiable de Magic: The Gathering',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'LatamTCG - Mercado confiable de Magic: The Gathering en Latinoamérica',
+    description: 'Compra y vende cartas auténticas de Magic: The Gathering. Calidad garantizada, precios justos y entrega confiable.',
+    images: ['https://latamtcg.com/web-app-manifest-512x512.png'],
+    // Add Twitter handles when available:
+    // creator: '@latamtcg',
+    // site: '@latamtcg',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    // Add Google Search Console verification when available
+    // google: 'your-verification-code',
   },
 };
 
