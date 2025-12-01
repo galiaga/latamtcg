@@ -49,11 +49,11 @@ export default function PopularCards() {
 
   if (loading) {
     return (
-      <section className="px-4 py-8">
+      <section className="px-4 py-8" aria-labelledby="popular-cards-heading">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-2xl font-semibold">{t('popularCards.title')}</h2>
-            <span className="text-xl animate-pulse">🔥</span>
+            <h2 id="popular-cards-heading" className="text-2xl font-semibold">{t('popularCards.title')}</h2>
+            <span className="text-xl animate-pulse" aria-hidden="true">🔥</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -71,11 +71,11 @@ export default function PopularCards() {
 
   if (error) {
     return (
-      <section className="px-4 py-8">
+      <section className="px-4 py-8" aria-labelledby="popular-cards-heading">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-2xl font-semibold">{t('popularCards.title')}</h2>
-            <span className="text-xl">🔥</span>
+            <h2 id="popular-cards-heading" className="text-2xl font-semibold">{t('popularCards.title')}</h2>
+            <span className="text-xl" aria-hidden="true">🔥</span>
           </div>
           <div className="text-center py-8 text-gray-500">
             {t('popularCards.unableToLoad')}
@@ -90,11 +90,11 @@ export default function PopularCards() {
   }
 
   return (
-    <section className="px-4 pt-2 pb-8">
+    <section className="px-4 pt-2 pb-8" aria-labelledby="popular-cards-heading">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6">
-            <h2 className="text-2xl font-semibold">{t('popularCards.title')}</h2>
-            <span className="text-xl animate-pulse">🔥</span>
+            <h2 id="popular-cards-heading" className="text-2xl font-semibold">{t('popularCards.title')}</h2>
+            <span className="text-xl animate-pulse" aria-hidden="true">🔥</span>
           </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
