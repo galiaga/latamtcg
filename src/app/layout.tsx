@@ -29,10 +29,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://latamtcg.com"),
   title: {
-    default: 'LatamTCG - Mercado confiable de Magic: The Gathering en Latinoamérica',
+    default: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre | LatamTCG',
     template: '%s | LatamTCG',
   },
-  description: 'Compra y vende cartas auténticas de Magic: The Gathering en LatamTCG. Calidad garantizada (LP o mejor), precios justos y entrega confiable en Chile. El mercado más confiable de TCG en Latinoamérica.',
+  description: 'Encuentra todas las cartas de Magic en inglés y compra con total confianza. LatamTCG es una plataforma profesional, segura y sin vendedores informales. Recibe siempre lo que pediste, sin riesgos.',
   keywords: ['Magic The Gathering', 'MTG', 'cartas Magic', 'TCG', 'Latinoamérica', 'Chile', 'cartas coleccionables', 'Magic cards', 'LatamTCG'],
   authors: [{ name: 'LatamTCG' }],
   creator: 'LatamTCG',
@@ -45,8 +45,8 @@ export const metadata: Metadata = {
     locale: 'es',
     url: 'https://latamtcg.com',
     siteName: 'LatamTCG',
-    title: 'LatamTCG - Mercado confiable de Magic: The Gathering en Latinoamérica',
-    description: 'Compra y vende cartas auténticas de Magic: The Gathering en LatamTCG. Calidad garantizada (LP o mejor), precios justos y entrega confiable en Chile.',
+    title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre | LatamTCG',
+    description: 'Encuentra todas las cartas de Magic en inglés y compra con total confianza. LatamTCG es una plataforma profesional, segura y sin vendedores informales. Recibe siempre lo que pediste, sin riesgos.',
     images: [
       {
         url: 'https://latamtcg.com/web-app-manifest-512x512.png',
@@ -58,8 +58,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LatamTCG - Mercado confiable de Magic: The Gathering en Latinoamérica',
-    description: 'Compra y vende cartas auténticas de Magic: The Gathering. Calidad garantizada, precios justos y entrega confiable.',
+    title: 'Comprar Cartas de Magic en Chile | Todas las cartas, siempre | LatamTCG',
+    description: 'Encuentra todas las cartas de Magic en inglés y compra con total confianza. LatamTCG es una plataforma profesional, segura y sin vendedores informales.',
     images: ['https://latamtcg.com/web-app-manifest-512x512.png'],
     // Add Twitter handles when available:
     // creator: '@latamtcg',

@@ -39,12 +39,22 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url, 301)
   }
   
+  // Handle /en route - set English locale cookie
+  if (pathname.startsWith('/en')) {
+    const response = NextResponse.next()
+    response.cookies.set('NEXT_LOCALE', 'en', {
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      path: '/',
+    })
+    return response
+  }
+  
   // Allow cron API routes to bypass all authentication/protection
   if (pathname.startsWith('/api/cron/')) {
     console.log(`[auth] Bypassing authentication for cron route: ${pathname}`)
     return NextResponse.next()
   }
-
+  
   // Skip i18n middleware for API routes (they don't need locale handling)
   const isApiRoute = pathname.startsWith('/api/')
   
