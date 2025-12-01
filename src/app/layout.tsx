@@ -27,11 +27,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://latamtcg.com"),
   title: {
     default: 'LatamTCG',
     template: 'LatamTCG | %s',
   },
   description: 'LatamTCG',
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default async function RootLayout({

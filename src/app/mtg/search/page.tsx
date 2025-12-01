@@ -7,8 +7,11 @@ import { buildCacheKey } from '@/lib/cache'
 import HydrationPerf from '@/components/HydrationPerf'
 
 export const metadata = {
-  robots: { index: false, follow: false },
+  robots: { index: true, follow: true },
   title: 'Search MTG',
+  alternates: {
+    canonical: '/mtg/search',
+  },
 }
 
 export default async function MtgSearchPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
