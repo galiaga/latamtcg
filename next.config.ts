@@ -39,11 +39,8 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-  eslint: {
-    // Skip ESLint during production builds to avoid blocking on unrelated pre-existing errors
-    ignoreDuringBuilds: true,
-  },
   // Allow redirects from Flow payment gateway
+  // Note: eslint config removed in Next.js 16 - configure via eslint.config.mjs instead
   experimental: {
     serverActions: {
       allowedOrigins: process.env.NODE_ENV === 'development' 
