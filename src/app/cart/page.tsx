@@ -672,24 +672,56 @@ export default function CartPage() {
               <span className="tabular-nums">{formatPrice(total, config)}</span>
             </div>
             <div className="mt-4">
+              {/* Debug: Log auth state in development */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mb-2 text-xs text-gray-500">
+                  Debug: authed={String(authed)}, meetsMinimum={String(meetsMinimum)}, redirecting={String(redirecting)}
+                </div>
+              )}
               {authed === true ? (
                 <button 
                   className="btn btn-gradient w-full" 
                   onClick={checkoutUser} 
                   disabled={redirecting || !meetsMinimum} 
                   aria-busy={redirecting}
-                  style={{ display: 'block', visibility: 'visible' }}
+                  style={{ 
+                    display: 'block', 
+                    visibility: 'visible',
+                    opacity: (redirecting || !meetsMinimum) ? 0.6 : 1,
+                    pointerEvents: (redirecting || !meetsMinimum) ? 'none' : 'auto',
+                    minHeight: '44px' // Ensure button has height even when disabled
+                  }}
                 >
                   {redirecting ? t('common.processing') : meetsMinimum ? t('cart.checkout') : t('cart.minimumOrderRequired')}
                 </button>
-              ) : (
+              ) : authed === false ? (
                 <button 
                   className="btn btn-gradient w-full" 
                   onClick={checkoutGuest}
                   disabled={!meetsMinimum || authed === null}
-                  style={{ display: 'block', visibility: 'visible' }}
+                  style={{ 
+                    display: 'block', 
+                    visibility: 'visible',
+                    opacity: (!meetsMinimum || authed === null) ? 0.6 : 1,
+                    pointerEvents: (!meetsMinimum || authed === null) ? 'none' : 'auto',
+                    minHeight: '44px'
+                  }}
                 >
                   {authed === null ? t('common.loading') : (meetsMinimum ? t('cart.checkoutAsGuest') : t('cart.minimumOrderRequired'))}
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-gradient w-full" 
+                  disabled
+                  style={{ 
+                    display: 'block', 
+                    visibility: 'visible',
+                    opacity: 0.6,
+                    pointerEvents: 'none',
+                    minHeight: '44px'
+                  }}
+                >
+                  {t('common.loading')}
                 </button>
               )}
             </div>
