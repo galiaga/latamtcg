@@ -49,7 +49,7 @@ export default function PopularCards() {
 
   if (loading) {
     return (
-      <section className="px-4 py-8" aria-labelledby="popular-cards-heading">
+      <section className="px-4 pt-0 md:pt-2 pb-8" aria-labelledby="popular-cards-heading">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6">
             <h2 id="popular-cards-heading" className="text-2xl font-semibold">{t('popularCards.title')}</h2>
@@ -71,7 +71,7 @@ export default function PopularCards() {
 
   if (error) {
     return (
-      <section className="px-4 py-8" aria-labelledby="popular-cards-heading">
+      <section className="px-4 pt-0 md:pt-2 pb-8" aria-labelledby="popular-cards-heading">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6">
             <h2 id="popular-cards-heading" className="text-2xl font-semibold">{t('popularCards.title')}</h2>
@@ -90,7 +90,7 @@ export default function PopularCards() {
   }
 
   return (
-    <section className="px-4 pt-2 pb-8" aria-labelledby="popular-cards-heading">
+    <section className="px-4 pt-0 md:pt-2 pb-8" aria-labelledby="popular-cards-heading">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6">
             <h2 id="popular-cards-heading" className="text-2xl font-semibold">{t('popularCards.title')}</h2>

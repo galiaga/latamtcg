@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.42.0 — 2025-12-03
+### UX Improvements
+- **Mobile Header Layout Refinements**: Enhanced mobile navigation and search experience
+  - **Hamburger Menu Positioning**: Moved hamburger menu button to the left of the search bar on mobile, aligned with the LatamTCG logo for consistent left-edge alignment
+  - **Search Bar Integration**: Hamburger menu and search bar now share the same horizontal row on mobile, improving space utilization
+  - **Search Button Redesign**: Replaced text-based "Buscar" button with icon-only magnifying glass button inside the search field
+  - **Search Placeholder Update**: Updated placeholder text from "Buscar impresiones" to "Busca la carta que necesitas..." (Spanish) and "Search for the card you need..." (English)
+  - **Mobile Header Alignment**: Fixed horizontal alignment so hamburger icon, search bar, and logo all share consistent left-edge positioning
+
+- **Homepage Mobile Spacing Optimization**: Reduced excessive vertical spacing on mobile homepage
+  - **Hero Section**: Reduced vertical padding on mobile from `py-4` to `py-2` (desktop remains `py-10`)
+  - **Popular Cards Section**: Reduced top margin on mobile from `mt-4` to `mt-2` (desktop remains `mt-8`)
+  - **Component Padding**: Removed top padding from PopularCards component on mobile (`pt-0` on mobile, `pt-2` on desktop)
+  - **Result**: Significantly reduced vertical space between search bar and "Populares ahora 🔥" section on mobile, bringing products into view sooner
+
+### Technical Changes
+- **Layout Component Updates**: Modified `src/app/layout.tsx` for improved mobile header structure
+- **Homepage Updates**: Updated spacing in `src/app/page.tsx` and `src/app/en/page.tsx` for mobile optimization
+- **Component Updates**: Adjusted `PopularCards` component padding for mobile responsiveness
+- **Search Component**: Enhanced `SearchBox` component with icon button and improved mobile integration
+
 ## v0.41.0 — 2025-12-03
 ### Security
 - **Next.js Security Update**: Critical security vulnerability fix

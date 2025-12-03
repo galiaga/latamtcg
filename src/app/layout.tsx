@@ -154,7 +154,7 @@ export default async function RootLayout({
               <PricingProvider>
                 <CartProvider>
             {/* Global search section */}
-            <header className="py-4">
+            <header className="py-2 md:py-4">
               <div className="px-4">
                 {/* Desktop layout */}
                 <div className="hidden md:flex items-center gap-4">
@@ -173,21 +173,23 @@ export default async function RootLayout({
                 
                 {/* Mobile layout */}
                 <div className="md:hidden">
-                  {/* Row 1: Menu + Title + Cart + User */}
-                  <div className="flex items-center justify-between mb-3">
-                    <LeftCatalogMenu />
-                    <div className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
+                  {/* Row 1: Title + Cart + User */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
                       <Link href="/" aria-label="LatamTCG - Inicio">LatamTCG</Link>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <HeaderCart />
                       <HeaderUser />
                     </div>
                   </div>
                   
-                  {/* Row 2: Search */}
-                  <div className="w-full">
-                    <SearchBox />
+                  {/* Row 2: Hamburger + Search */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <LeftCatalogMenu />
+                    <div className="flex-1 min-w-0">
+                      <SearchBox />
+                    </div>
                   </div>
                 </div>
               </div>
