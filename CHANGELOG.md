@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.41.0 — 2025-12-03
+### Security
+- **Next.js Security Update**: Critical security vulnerability fix
+  - Upgraded Next.js from 15.5.3 to 16.0.7 (latest stable)
+  - Fixes CVE-2025-29927: Middleware authorization bypass vulnerability
+  - Updated eslint-config-next to match Next.js version
+  - Removed deprecated eslint configuration from next.config.ts
+  - Updated TypeScript configuration for Next.js 16 compatibility
+  - Build verified and tested successfully
+
+### Technical Changes
+- **Next.js Upgrade**: Major version upgrade to Next.js 16.0.7
+  - Removed deprecated `eslint` config from next.config.ts (now configured via eslint.config.mjs)
+  - Updated tsconfig.json: Changed jsx from "preserve" to "react-jsx"
+  - Added `.next/dev/types/**/*.ts` to TypeScript include paths
+  - All existing functionality preserved and tested
+
 ## v0.40.0 — 2025-01-15
 ### Features
 - **Complete Delivery Workflow**: Full implementation of delivery options for LatamTCG
