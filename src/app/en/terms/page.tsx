@@ -1,25 +1,26 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations();
   return {
-    title: 'Términos y condiciones | LatamTCG',
-    description: 'Lee los términos y condiciones de uso de LatamTCG. Información sobre precios, envíos, devoluciones y más.',
+    title: 'Terms & Conditions | LatamTCG',
+    description: 'Read LatamTCG terms and conditions of use. Information about pricing, shipping, returns, and more.',
     alternates: {
-      canonical: 'https://latamtcg.com/terms',
+      canonical: 'https://latamtcg.com/en/terms',
     },
   };
 }
 
 export default async function TermsPage() {
+  setRequestLocale('en');
   const t = await getTranslations();
   const email = 'hola@latamtcg.com';
   
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-2xl font-semibold text-text">{t('terms.title')}</h1>
+      <h1 className="text-3xl md:text-4xl font-bold mb-6">{t('terms.title')}</h1>
       <div className="mt-6 space-y-8 text-mutedText">
         
         <section>
@@ -109,7 +110,7 @@ export default async function TermsPage() {
           <h2 className="text-lg font-medium text-text mb-3">{t('terms.returnsRefunds')}</h2>
           <p>
             {t('terms.returnsText').split('Reembolsos y Devoluciones')[0]}
-            <Link href="/returns" className="text-primary underline hover:text-primaryHover">
+            <Link href="/en/returns" className="text-primary underline hover:text-primaryHover">
               {t('footer.refundsReturns')}
             </Link>
             {' '}{t('terms.returnsText').split('Reembolsos y Devoluciones')[1]}
@@ -154,7 +155,7 @@ export default async function TermsPage() {
           <h2 className="text-lg font-medium text-text mb-3">{t('terms.privacyPolicy')}</h2>
           <p>
             {t('terms.privacyText').split('Política de privacidad')[0]}
-            <Link href="/privacy" className="text-primary underline hover:text-primaryHover">
+            <Link href="/en/privacy" className="text-primary underline hover:text-primaryHover">
               {t('footer.privacyPolicy')}
             </Link>
             {' '}{t('terms.privacyText').split('Política de privacidad')[1]}
@@ -194,3 +195,4 @@ export default async function TermsPage() {
     </main>
   );
 }
+

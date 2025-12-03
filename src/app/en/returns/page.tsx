@@ -1,18 +1,19 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations();
   return {
-    title: 'Política de devoluciones | LatamTCG',
-    description: 'Política completa de reembolsos y devoluciones de LatamTCG. Conoce tus derechos y cómo procesar devoluciones.',
+    title: 'Return Policy | LatamTCG',
+    description: 'Complete refund and return policy for LatamTCG. Learn your rights and how to process returns.',
     alternates: {
-      canonical: 'https://latamtcg.com/returns',
+      canonical: 'https://latamtcg.com/en/returns',
     },
   };
 }
 
 export default async function ReturnsPage() {
+  setRequestLocale('en');
   const t = await getTranslations();
   const email = 'hola@latamtcg.com';
   
@@ -132,3 +133,4 @@ export default async function ReturnsPage() {
     </main>
   );
 }
+

@@ -10,17 +10,26 @@ const staticPages: Array<{
   priority: string
   changefreq: 'daily' | 'weekly' | 'monthly' | 'yearly'
 }> = [
-  { path: '', priority: '1.0', changefreq: 'daily' }, // Homepage
+  { path: '', priority: '1.0', changefreq: 'daily' }, // Homepage (ES)
+  { path: '/en', priority: '1.0', changefreq: 'daily' }, // Homepage (EN)
   { path: '/mtg/search', priority: '0.9', changefreq: 'daily' }, // Main search
   { path: '/mtg/sets', priority: '0.9', changefreq: 'weekly' }, // Sets page
   { path: '/search/advanced', priority: '0.8', changefreq: 'weekly' }, // Advanced search
   { path: '/mtg', priority: '0.8', changefreq: 'daily' }, // MTG landing page
-  { path: '/how-it-works', priority: '0.8', changefreq: 'monthly' },
-  { path: '/help', priority: '0.8', changefreq: 'monthly' },
-  { path: '/contact', priority: '0.7', changefreq: 'monthly' },
-  { path: '/returns', priority: '0.7', changefreq: 'monthly' },
-  { path: '/terms', priority: '0.6', changefreq: 'yearly' },
-  { path: '/privacy', priority: '0.6', changefreq: 'yearly' },
+  { path: '/about', priority: '0.8', changefreq: 'monthly' }, // About (ES)
+  { path: '/en/about', priority: '0.8', changefreq: 'monthly' }, // About (EN)
+  { path: '/how-it-works', priority: '0.8', changefreq: 'monthly' }, // How it works (ES)
+  { path: '/en/how-it-works', priority: '0.8', changefreq: 'monthly' }, // How it works (EN)
+  { path: '/help', priority: '0.8', changefreq: 'monthly' }, // Help (ES)
+  { path: '/en/help', priority: '0.8', changefreq: 'monthly' }, // Help (EN)
+  { path: '/contact', priority: '0.7', changefreq: 'monthly' }, // Contact (ES)
+  { path: '/en/contact', priority: '0.7', changefreq: 'monthly' }, // Contact (EN)
+  { path: '/returns', priority: '0.7', changefreq: 'monthly' }, // Returns (ES)
+  { path: '/en/returns', priority: '0.7', changefreq: 'monthly' }, // Returns (EN)
+  { path: '/terms', priority: '0.6', changefreq: 'yearly' }, // Terms (ES)
+  { path: '/en/terms', priority: '0.6', changefreq: 'yearly' }, // Terms (EN)
+  { path: '/privacy', priority: '0.6', changefreq: 'yearly' }, // Privacy (ES)
+  { path: '/en/privacy', priority: '0.6', changefreq: 'yearly' }, // Privacy (EN)
   { path: '/mass-entry', priority: '0.8', changefreq: 'weekly' },
 ]
 
