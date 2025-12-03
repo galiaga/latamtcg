@@ -7,6 +7,7 @@ import { printingHref, cardHref } from '@/lib/routes'
 import { fmtCollector } from '@/lib/format'
 import Spinner from './Spinner'
 import { useTranslations } from 'next-intl'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 
 type ApiItem = {
   kind: 'printing' | 'group'
@@ -425,11 +426,10 @@ export default function SearchBox({ placeholder }: Props) {
 
   return (
     <div ref={boxRef} className="relative w-full">
-      <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (process.env.NODE_ENV === 'development') console.debug('[search] onSubmit'); handleSearchSubmit('button') }}>
-        <span className="badge" style={{ background: 'var(--primarySoft)', borderColor: 'transparent', color: 'var(--primary)' }}>MTG</span>
+      <form className="relative" onSubmit={(e) => { e.preventDefault(); if (process.env.NODE_ENV === 'development') console.debug('[search] onSubmit'); handleSearchSubmit('button') }}>
           <input
             ref={inputRef}
-            className="input flex-1 transition-soft"
+            className="input w-full pr-12 transition-soft"
             placeholder={defaultPlaceholder}
             role="combobox"
             aria-controls={listboxId}
@@ -465,8 +465,18 @@ export default function SearchBox({ placeholder }: Props) {
             }, 150) 
           }}
         />
-        <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-300 transition-colors" aria-label={t('common.search')} disabled={!query.trim() || submitting} style={{ opacity: submitting ? 0.95 : undefined }}>
-          {submitting ? <Spinner size="sm" /> : t('common.search')}
+        <button 
+          type="submit" 
+          className="absolute right-1 top-1/2 -translate-y-1/2 z-30 p-2 rounded-lg text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
+          style={{ backgroundColor: '#9B7BFF' }}
+          aria-label={t('common.search')} 
+          disabled={!query.trim() || submitting}
+        >
+          {submitting ? (
+            <Spinner size="sm" />
+          ) : (
+            <MagnifyingGlassIcon className="w-5 h-5" />
+          )}
         </button>
       </form>
       {open && typeof document !== 'undefined' && createPortal(

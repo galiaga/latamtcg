@@ -112,8 +112,11 @@ export default function HeaderUser() {
 
   if (!user) {
     return (
-      <div className="ml-auto flex items-center gap-2">
-        <Link href="/auth" className="btn">{t('header.signIn')}</Link>
+      <div className="ml-auto flex items-center gap-1 md:gap-2">
+        <Link href="/auth" className="btn md:btn md:px-4 md:py-2 px-2 py-1.5 text-sm md:text-base flex items-center justify-center min-w-[44px] md:min-w-0">
+          <span className="hidden sm:inline">{t('header.signIn')}</span>
+          <span className="sm:hidden">👤</span>
+        </Link>
       </div>
     )
   }

@@ -22,15 +22,19 @@ export default function HeaderCart() {
 
   return (
     <div className="relative">
-      <Link href="/cart" className="btn" aria-label={showBadge ? t('cart.cartBadge', { count }) : t('common.cart')}>
+      <Link 
+        href="/cart" 
+        className="btn md:btn md:px-4 md:py-2 px-2 py-1.5 text-sm md:text-base flex items-center justify-center min-w-[44px] md:min-w-0" 
+        aria-label={showBadge ? t('cart.cartBadge', { count }) : t('common.cart')}
+      >
         {/* Simple cart glyph for now; can be swapped with an SVG later */}
         <span aria-hidden>🛒</span>
-        <span className="ml-2">{t('common.cart')}</span>
+        <span className="ml-1 md:ml-2 hidden sm:inline">{t('common.cart')}</span>
       </Link>
       {showBadge ? (
         <span
-          className="chip-badge"
-          style={{ position: 'absolute', top: -6, right: -6, boxShadow: 'var(--shadow)' }}
+          className="chip-badge text-xs"
+          style={{ position: 'absolute', top: -4, right: -4, boxShadow: 'var(--shadow)' }}
           aria-label={t('cart.itemsInCart', { count })}
           data-testid="cart-badge"
         >
