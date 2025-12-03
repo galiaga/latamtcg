@@ -97,6 +97,51 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-bg [background:var(--bg-grad)]`}
       >
+        {/* Structured Data (JSON-LD) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  '@id': 'https://latamtcg.com/#organization',
+                  name: 'LatamTCG',
+                  url: 'https://latamtcg.com',
+                  logo: 'https://latamtcg.com/web-app-manifest-512x512.png',
+                  contactPoint: {
+                    '@type': 'ContactPoint',
+                    email: 'hola@latamtcg.com',
+                    contactType: 'Customer Service',
+                    areaServed: 'CL',
+                    availableLanguage: ['es', 'en'],
+                  },
+                  sameAs: [],
+                },
+                {
+                  '@type': 'WebSite',
+                  '@id': 'https://latamtcg.com/#website',
+                  url: 'https://latamtcg.com',
+                  name: 'LatamTCG',
+                  description: 'Todas las cartas, siempre. Con total confianza. Buy Magic: The Gathering cards with complete confidence.',
+                  publisher: {
+                    '@id': 'https://latamtcg.com/#organization',
+                  },
+                  potentialAction: {
+                    '@type': 'SearchAction',
+                    target: {
+                      '@type': 'EntryPoint',
+                      urlTemplate: 'https://latamtcg.com/mtg/search?q={search_term_string}',
+                    },
+                    'query-input': 'required name=search_term_string',
+                  },
+                  inLanguage: ['es', 'en'],
+                },
+              ],
+            }),
+          }}
+        />
         {/* Defer analytics and non-critical scripts */}
         <Script id="analytics" strategy="lazyOnload">
           {`/* placeholder for analytics init */`}

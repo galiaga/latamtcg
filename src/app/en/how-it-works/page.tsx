@@ -1,19 +1,20 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import { getTranslations } from 'next-intl/server'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations();
   return {
-    title: 'Cómo funciona LatamTCG | Compra segura',
-    description: 'Aprende cómo LatamTCG asegura compras confiables de cartas de Magic. Proceso simple, seguro y transparente.',
+    title: 'How LatamTCG Works | Safe and Reliable Buying',
+    description: 'Learn how LatamTCG guarantees safe and reliable Magic card purchases. Simple, secure, and transparent process.',
     alternates: {
-      canonical: 'https://latamtcg.com/how-it-works',
+      canonical: 'https://latamtcg.com/en/how-it-works',
     },
   };
 }
 
 export default async function HowItWorksPage() {
+  setRequestLocale('en');
   const t = await getTranslations();
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6">
@@ -21,7 +22,7 @@ export default async function HowItWorksPage() {
       <nav className="py-4" aria-label="Breadcrumb">
         <ol className="flex items-center space-x-2 text-sm" style={{ color: 'var(--mutedText)' }}>
           <li>
-            <Link href="/" className="hover:opacity-80" style={{ color: 'var(--mutedText)' }}>
+            <Link href="/en" className="hover:opacity-80" style={{ color: 'var(--mutedText)' }}>
               {t('printing.home')}
             </Link>
           </li>
@@ -184,7 +185,7 @@ export default async function HowItWorksPage() {
             <h3 className="text-xl font-semibold mb-2">{t('howItWorks.delivery.protection.title')}</h3>
             <p className="text-base" style={{ color: 'var(--mutedText)' }}>
               {t('howItWorks.delivery.protection.body')}{' '}
-              <Link href="/returns" className="underline hover:opacity-80" style={{ color: '#9B7BFF' }}>
+              <Link href="/en/returns" className="underline hover:opacity-80" style={{ color: '#9B7BFF' }}>
                 {t('howItWorks.delivery.protection.link')}
               </Link>
               .
@@ -223,7 +224,7 @@ export default async function HowItWorksPage() {
           </p>
           <p className="text-sm" style={{ color: 'var(--mutedText)' }}>
             {t('trust.returns.fullDetails')}{' '}
-            <Link href="/returns" className="underline hover:opacity-80" style={{ color: '#9B7BFF' }}>
+            <Link href="/en/returns" className="underline hover:opacity-80" style={{ color: '#9B7BFF' }}>
               {t('trust.returns.policyLink')}
             </Link>
             {t('trust.returns.fullDetailsEnd', { defaultValue: '' })}
@@ -321,7 +322,7 @@ export default async function HowItWorksPage() {
           </p>
           <div className="mt-6">
             <Link 
-              href="/contact" 
+              href="/en/contact" 
               className="inline-flex items-center px-5 py-3 font-medium rounded-xl transition hover:opacity-90"
               style={{ backgroundColor: '#9B7BFF', color: 'white' }}
             >
@@ -334,13 +335,13 @@ export default async function HowItWorksPage() {
       {/* Legal Pages Links */}
       <section className="py-8 border-t" style={{ borderColor: 'var(--border)' }}>
         <div className="flex flex-wrap justify-center gap-6 text-sm">
-          <Link href="/terms" className="hover:opacity-80 underline" style={{ color: 'var(--mutedText)' }}>
+          <Link href="/en/terms" className="hover:opacity-80 underline" style={{ color: 'var(--mutedText)' }}>
             {t('footer.termsConditions')}
           </Link>
-          <Link href="/privacy" className="hover:opacity-80 underline" style={{ color: 'var(--mutedText)' }}>
+          <Link href="/en/privacy" className="hover:opacity-80 underline" style={{ color: 'var(--mutedText)' }}>
             {t('footer.privacyPolicy')}
           </Link>
-          <Link href="/returns" className="hover:opacity-80 underline" style={{ color: 'var(--mutedText)' }}>
+          <Link href="/en/returns" className="hover:opacity-80 underline" style={{ color: 'var(--mutedText)' }}>
             {t('footer.refundsReturns')}
           </Link>
         </div>
@@ -364,3 +365,4 @@ export default async function HowItWorksPage() {
     </div>
   )
 }
+

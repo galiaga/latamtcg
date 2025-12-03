@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import pkg from '../../package.json';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, getLocale } from 'next-intl/server';
 import FooterLanguageSwitcher from './FooterLanguageSwitcher';
 
 export default async function Footer() {
   const t = await getTranslations();
+  const locale = await getLocale();
   const currentYear = new Date().getFullYear();
+  const prefix = locale === 'en' ? '/en' : '';
   
   // Use version from package.json which is always available
   const version = pkg.version;
@@ -44,15 +46,7 @@ export default async function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link 
-                  href="/how-it-works#contact" 
-                  className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
-                >
-                  {t('footer.contactUs')}
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/how-it-works#faq" 
+                  href={`${prefix}/help`}
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.faq')}
@@ -60,7 +54,15 @@ export default async function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/how-it-works#returns" 
+                  href={`${prefix}/contact`}
+                  className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
+                >
+                  {t('footer.contactUs')}
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href={`${prefix}/returns`}
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.refundsReturns')}
@@ -75,7 +77,7 @@ export default async function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link 
-                  href="/how-it-works#about" 
+                  href={`${prefix}/about`}
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.aboutUs')}
@@ -83,7 +85,7 @@ export default async function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/how-it-works#how-it-works" 
+                  href={`${prefix}/how-it-works`}
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.howItWorks')}
@@ -91,7 +93,7 @@ export default async function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/terms" 
+                  href={`${prefix}/terms`}
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.termsConditions')}
@@ -99,7 +101,7 @@ export default async function Footer() {
               </li>
               <li>
                 <Link 
-                  href="/privacy" 
+                  href={`${prefix}/privacy`}
                   className="text-sm text-gray-100 hover:text-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-400 rounded transition-colors"
                 >
                   {t('footer.privacyPolicy')}

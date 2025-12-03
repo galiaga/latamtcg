@@ -1,18 +1,19 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations();
   return {
-    title: 'Contáctanos | LatamTCG',
-    description: '¿Necesitas ayuda? Contáctanos en LatamTCG. Respondemos dentro de 24 horas a todas tus consultas sobre cartas de Magic.',
+    title: 'Contact Us | LatamTCG',
+    description: 'Need help? Contact us at LatamTCG. We respond within 24 hours to all your inquiries about Magic cards.',
     alternates: {
-      canonical: 'https://latamtcg.com/contact',
+      canonical: 'https://latamtcg.com/en/contact',
     },
   };
 }
 
 export default async function ContactPage() {
+  setRequestLocale('en');
   const t = await getTranslations();
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
@@ -54,3 +55,4 @@ export default async function ContactPage() {
     </main>
   );
 }
+

@@ -1,25 +1,26 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations();
   return {
-    title: 'Política de privacidad | LatamTCG',
-    description: 'Política de privacidad de LatamTCG. Conoce cómo protegemos y manejamos tu información personal.',
+    title: 'Privacy Policy | LatamTCG',
+    description: 'LatamTCG privacy policy. Learn how we protect and handle your personal information.',
     alternates: {
-      canonical: 'https://latamtcg.com/privacy',
+      canonical: 'https://latamtcg.com/en/privacy',
     },
   };
 }
 
 export default async function PrivacyPage() {
+  setRequestLocale('en');
   const t = await getTranslations();
   const email = 'hola@latamtcg.com';
   
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-2xl font-semibold text-text">{t('privacy.title')}</h1>
+      <h1 className="text-3xl md:text-4xl font-bold mb-6">{t('privacy.title')}</h1>
       <div className="mt-6 space-y-8 text-mutedText">
         
         <section>
@@ -203,3 +204,4 @@ export default async function PrivacyPage() {
     </main>
   );
 }
+
