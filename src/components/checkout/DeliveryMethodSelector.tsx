@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import PhoneNumberField from '@/components/forms/PhoneNumberField'
 
@@ -159,11 +159,30 @@ export default function DeliveryMethodSelector({
 }: DeliveryMethodSelectorProps) {
   const t = useTranslations()
   const [localData, setLocalData] = useState<DeliveryFormData>(value)
+  const isUpdatingFromProps = useRef(false)
+
+  // Sync local state with prop value when it changes externally
+  useEffect(() => {
+    isUpdatingFromProps.current = true
+    setLocalData(value)
+    // Reset flag after state update completes
+    setTimeout(() => {
+      isUpdatingFromProps.current = false
+    }, 0)
+  }, [value])
 
   const updateField = (field: keyof DeliveryFormData, fieldValue: any) => {
-    const newData = { ...localData, [field]: fieldValue }
-    setLocalData(newData)
-    onChange(newData)
+    // Use functional update to ensure we have the latest state
+    setLocalData((prevData) => {
+      const newData = { ...prevData, [field]: fieldValue }
+      // Call onChange after state update (deferred to avoid render-time updates)
+      if (!isUpdatingFromProps.current) {
+        setTimeout(() => {
+          onChange(newData)
+        }, 0)
+      }
+      return newData
+    })
   }
 
   const setDeliveryMethod = (method: DeliveryMethod) => {
@@ -184,7 +203,10 @@ export default function DeliveryMethodSelector({
       }),
     }
     setLocalData(newData)
-    onChange(newData)
+    // Call onChange after state update (deferred to avoid render-time updates)
+    setTimeout(() => {
+      onChange(newData)
+    }, 0)
   }
 
   // Clear commune when region changes
@@ -195,7 +217,10 @@ export default function DeliveryMethodSelector({
       shippingCommune: undefined, // Clear commune when region changes
     }
     setLocalData(newData)
-    onChange(newData)
+    // Call onChange after state update (deferred to avoid render-time updates)
+    setTimeout(() => {
+      onChange(newData)
+    }, 0)
   }
 
   return (
@@ -273,8 +298,7 @@ export default function DeliveryMethodSelector({
                 value={localData.firstName || ''}
                 onChange={(e) => updateField('firstName', e.target.value)}
                 className="w-full px-3 py-2 border rounded"
-                style={{ borderColor: 'var(--border)' }}
-                required
+                style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
               />
             </div>
             <div>
@@ -286,8 +310,7 @@ export default function DeliveryMethodSelector({
                 value={localData.lastName || ''}
                 onChange={(e) => updateField('lastName', e.target.value)}
                 className="w-full px-3 py-2 border rounded"
-                style={{ borderColor: 'var(--border)' }}
-                required
+                style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
               />
             </div>
           </div>
@@ -308,8 +331,7 @@ export default function DeliveryMethodSelector({
                 value={localData.email || ''}
                 onChange={(e) => updateField('email', e.target.value)}
                 className="w-full px-3 py-2 border rounded"
-                style={{ borderColor: 'var(--border)' }}
-                required
+                style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
                 placeholder={t('checkout.enterEmailForOrderSummary')}
                 autoComplete="email"
               />
@@ -336,8 +358,7 @@ export default function DeliveryMethodSelector({
                 value={localData.firstName || ''}
                 onChange={(e) => updateField('firstName', e.target.value)}
                 className="w-full px-3 py-2 border rounded"
-                style={{ borderColor: 'var(--border)' }}
-                required
+                style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
               />
             </div>
             <div>
@@ -349,8 +370,7 @@ export default function DeliveryMethodSelector({
                 value={localData.lastName || ''}
                 onChange={(e) => updateField('lastName', e.target.value)}
                 className="w-full px-3 py-2 border rounded"
-                style={{ borderColor: 'var(--border)' }}
-                required
+                style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
               />
             </div>
           </div>
@@ -371,8 +391,7 @@ export default function DeliveryMethodSelector({
                 value={localData.email || ''}
                 onChange={(e) => updateField('email', e.target.value)}
                 className="w-full px-3 py-2 border rounded"
-                style={{ borderColor: 'var(--border)' }}
-                required
+                style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
                 placeholder={t('checkout.enterEmailForOrderSummary')}
                 autoComplete="email"
               />
@@ -392,8 +411,7 @@ export default function DeliveryMethodSelector({
               value={localData.shippingRegion || ''}
               onChange={(e) => handleRegionChange(e.target.value)}
               className="w-full px-3 py-2 border rounded"
-              style={{ borderColor: 'var(--border)' }}
-              required
+              style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
             >
               <option value="">{t('checkout.delivery.shipping.selectRegion')}</option>
               {CHILEAN_REGIONS.map((region) => (
@@ -412,8 +430,7 @@ export default function DeliveryMethodSelector({
               value={localData.shippingCommune || ''}
               onChange={(e) => updateField('shippingCommune', e.target.value)}
               className="w-full px-3 py-2 border rounded"
-              style={{ borderColor: 'var(--border)' }}
-              required
+              style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
               disabled={!localData.shippingRegion}
             >
               <option value="">{t('checkout.delivery.shipping.selectCommune')}</option>
@@ -433,8 +450,7 @@ export default function DeliveryMethodSelector({
               value={localData.shippingAddressLine1 || ''}
               onChange={(e) => updateField('shippingAddressLine1', e.target.value)}
               className="w-full px-3 py-2 border rounded"
-              style={{ borderColor: 'var(--border)' }}
-              required
+              style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
             />
           </div>
           <div>
@@ -446,7 +462,7 @@ export default function DeliveryMethodSelector({
               value={localData.shippingAddressLine2 || ''}
               onChange={(e) => updateField('shippingAddressLine2', e.target.value)}
               className="w-full px-3 py-2 border rounded"
-              style={{ borderColor: 'var(--border)' }}
+              style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
               placeholder={t('checkout.delivery.shipping.addressLine2Placeholder')}
             />
           </div>
@@ -459,7 +475,7 @@ export default function DeliveryMethodSelector({
               value={localData.shippingCity || ''}
               onChange={(e) => updateField('shippingCity', e.target.value)}
               className="w-full px-3 py-2 border rounded"
-              style={{ borderColor: 'var(--border)' }}
+              style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
               placeholder={t('checkout.delivery.shipping.cityPlaceholder')}
             />
           </div>
@@ -472,7 +488,7 @@ export default function DeliveryMethodSelector({
               value={localData.shippingPostalCode || ''}
               onChange={(e) => updateField('shippingPostalCode', e.target.value)}
               className="w-full px-3 py-2 border rounded"
-              style={{ borderColor: 'var(--border)' }}
+              style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
               placeholder={t('checkout.delivery.shipping.postalCodePlaceholder')}
             />
           </div>
@@ -484,7 +500,7 @@ export default function DeliveryMethodSelector({
               value={localData.shippingInstructions || ''}
               onChange={(e) => updateField('shippingInstructions', e.target.value)}
               className="w-full px-3 py-2 border rounded"
-              style={{ borderColor: 'var(--border)' }}
+              style={{ borderColor: 'var(--border)', backgroundColor: 'white' }}
               rows={2}
               placeholder={t('checkout.delivery.shipping.instructionsPlaceholder')}
             />

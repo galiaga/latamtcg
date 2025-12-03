@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { SWRConfig } from 'swr'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/components/CartProvider'
@@ -47,6 +47,13 @@ export default function CartPage() {
   const [deliveryData, setDeliveryData] = useState<DeliveryFormData>({
     deliveryMethod: 'courier',
   })
+  // Use a ref to always have the latest deliveryData for validation
+  const deliveryDataRef = useRef<DeliveryFormData>(deliveryData)
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    deliveryDataRef.current = deliveryData
+  }, [deliveryData])
   const showSkeleton = useDelayedFlag(150, loading && !hasLoadedOnce)
   const subtotal = useMemo(() => items.reduce((sum, it) => sum + it.lineTotal, 0), [items])
   
@@ -314,25 +321,32 @@ export default function CartPage() {
       return
     }
     
-    // Validate delivery data first
-    if (!deliveryData.firstName || !deliveryData.firstName.trim()) {
+    // Validate delivery data first - use ref to ensure we have the latest data
+    const currentDeliveryData = deliveryDataRef.current
+    
+    // Debug: log current deliveryData to help diagnose issues
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[checkoutGuest] deliveryData:', currentDeliveryData)
+    }
+    
+    if (!currentDeliveryData.firstName || !currentDeliveryData.firstName.trim()) {
       alert(t('checkout.delivery.validation.firstNameRequired'))
       return
     }
-    if (!deliveryData.lastName || !deliveryData.lastName.trim()) {
+    if (!currentDeliveryData.lastName || !currentDeliveryData.lastName.trim()) {
       alert(t('checkout.delivery.validation.lastNameRequired'))
       return
     }
     
     // For pickup orders, check if email is already in deliveryData
-    if (deliveryData.deliveryMethod === 'pickup') {
-      if (!deliveryData.contactPhone) {
+    if (currentDeliveryData.deliveryMethod === 'pickup') {
+      if (!currentDeliveryData.contactPhone) {
         alert(t('checkout.delivery.contact.phoneRequired'))
         return
       }
       // Validate Chilean phone format
-      if (deliveryData.contactPhone.startsWith('+56')) {
-        const digitsAfterCode = deliveryData.contactPhone.replace('+56', '')
+      if (currentDeliveryData.contactPhone.startsWith('+56')) {
+        const digitsAfterCode = currentDeliveryData.contactPhone.replace('+56', '')
         if (digitsAfterCode.length !== 9 || !/^\d{9}$/.test(digitsAfterCode)) {
           alert(t('checkout.delivery.contact.phoneInvalidChile'))
           return
@@ -340,15 +354,15 @@ export default function CartPage() {
       }
       
       // Check if email is provided in the form
-      if (deliveryData.email && deliveryData.email.trim()) {
+      if (currentDeliveryData.email && currentDeliveryData.email.trim()) {
         // Validate email format
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailPattern.test(deliveryData.email.trim())) {
+        if (!emailPattern.test(currentDeliveryData.email.trim())) {
           alert(t('checkout.enterValidEmail'))
           return
         }
         // Email is in the form, proceed directly
-        await handleGuestEmailCollected(deliveryData.email.trim())
+        await handleGuestEmailCollected(currentDeliveryData.email.trim())
         return
       } else {
         // Email not provided, show error
@@ -358,30 +372,30 @@ export default function CartPage() {
     }
     
     // For courier orders, check if email is provided in the form
-    if (deliveryData.deliveryMethod === 'courier') {
-      if (!deliveryData.shippingRegion) {
+    if (currentDeliveryData.deliveryMethod === 'courier') {
+      if (!currentDeliveryData.shippingRegion) {
         alert(t('checkout.delivery.validation.regionRequired'))
         return
       }
-      if (!deliveryData.shippingCommune) {
+      if (!currentDeliveryData.shippingCommune) {
         alert(t('checkout.delivery.validation.communeRequired'))
         return
       }
-      if (!deliveryData.shippingAddressLine1) {
+      if (!currentDeliveryData.shippingAddressLine1) {
         alert(t('checkout.delivery.validation.addressRequired'))
         return
       }
       
       // Check if email is provided in the form
-      if (deliveryData.email && deliveryData.email.trim()) {
+      if (currentDeliveryData.email && currentDeliveryData.email.trim()) {
         // Validate email format
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailPattern.test(deliveryData.email.trim())) {
+        if (!emailPattern.test(currentDeliveryData.email.trim())) {
           alert(t('checkout.enterValidEmail'))
           return
         }
         // Email is in the form, proceed directly
-        await handleGuestEmailCollected(deliveryData.email.trim())
+        await handleGuestEmailCollected(currentDeliveryData.email.trim())
         return
       } else {
         // Email not provided, show error
@@ -658,12 +672,6 @@ export default function CartPage() {
               <span className="tabular-nums">{formatPrice(total, config)}</span>
             </div>
             <div className="mt-4">
-              {/* Debug: Show auth state for troubleshooting */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mb-2 text-xs text-gray-500">
-                  Auth state: {authed === null ? 'null (checking...)' : authed === true ? 'true (logged in)' : 'false (guest)'}
-                </div>
-              )}
               {authed === true ? (
                 <button 
                   className="btn btn-gradient w-full" 

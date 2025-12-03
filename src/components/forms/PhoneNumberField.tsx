@@ -139,7 +139,7 @@ export default function PhoneNumberField({
             border: 1px solid var(--border);
             border-radius: 6px;
             font-size: 1rem;
-            background-color: var(--surface);
+            background-color: white;
             color: var(--text);
             outline: none;
             transition: border-color 0.2s;
@@ -176,7 +176,7 @@ export default function PhoneNumberField({
             padding: 4px 8px;
             border: 1px solid var(--border);
             border-radius: 4px;
-            background-color: var(--surface);
+            background-color: white;
             color: var(--text);
             font-size: 0.875rem;
             cursor: pointer;
@@ -185,7 +185,7 @@ export default function PhoneNumberField({
           }
           
           .phone-input .PhoneInputCountrySelect:hover {
-            background-color: var(--surface-2);
+            background-color: #f5f5f5;
           }
           
           .phone-input .PhoneInputCountrySelect:focus {

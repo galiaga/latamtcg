@@ -27,19 +27,19 @@ export default async function EnglishHome() {
   setRequestLocale('en')
   
   return (
-    <div className="py-8">
+    <div className="py-4">
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
-        <section className="text-center py-4 px-4" aria-labelledby="hero-heading">
-          <h1 id="hero-heading" className="text-4xl md:text-5xl font-bold mb-4" style={{ letterSpacing: '-0.02em' }}>
+        <section className="text-center px-4 pt-2 pb-4" aria-labelledby="hero-heading">
+          <h1 id="hero-heading" className="text-4xl md:text-5xl font-bold text-center mb-3" style={{ letterSpacing: '-0.02em' }}>
             Every card, always. With complete confidence.
           </h1>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-6">
+          <p className="max-w-2xl mx-auto text-center text-lg text-gray-700 mt-4">
             Buy Magic: The Gathering cards with a safe, professional, and fully reliable process. Getting exactly what you need has never been this trustworthy.
           </p>
           
           {/* Bullet List */}
-          <ul className="text-left max-w-2xl mx-auto mb-6 space-y-3 text-base text-gray-700">
+          <ul className="text-left max-w-2xl mx-auto mt-4 space-y-3 text-base text-gray-700">
             <li className="flex items-start">
               <span className="mr-3 text-primary">•</span>
               <span>Access 99% of the global card catalog</span>
@@ -62,7 +62,7 @@ export default async function EnglishHome() {
             </li>
           </ul>
           
-          <div className="mt-6">
+          <div className="mt-4">
             <RandomButton />
           </div>
         </section>
