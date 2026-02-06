@@ -345,6 +345,12 @@
     "title": "Popular Right Now",
     "unableToLoad": "Unable to load popular cards. Please try again later."
   },
+  "mostExpensiveRecent": {
+    "title": "Most Expensive Recent Cards",
+    "subtitle": "Highest-priced cards added in the last 60 days",
+    "previousCards": "View previous cards",
+    "nextCards": "View more cards"
+  },
   "printing": {
     "home": "Home",
     "mtg": "MTG",

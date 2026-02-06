@@ -604,6 +604,12 @@
     "title": "Populares ahora",
     "unableToLoad": "No se pueden cargar las cartas populares. Por favor, intenta de nuevo más tarde."
   },
+  "mostExpensiveRecent": {
+    "title": "Cartas más caras recientes",
+    "subtitle": "Las cartas más valiosas agregadas en los últimos 60 días",
+    "previousCards": "Ver cartas anteriores",
+    "nextCards": "Ver más cartas"
+  },
   "printing": {
     "home": "Inicio",
     "mtg": "MTG",
