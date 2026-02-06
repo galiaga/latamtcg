@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.43.0 — 2026-02-05
+### Features
+- **Most Expensive Recent Cards Carousel**: New hero carousel on homepage showcasing the 10 most expensive cards added in the last 60 days
+  - **Prominent Placement**: Carousel appears immediately below the header as the first content section on the home page
+  - **Auto-Scrolling Animation**: Smooth, continuous auto-scroll with responsive speed based on screen size
+    - Mobile (< 640px): 0.2 pixels/frame for optimal viewing with 2-3 visible cards
+    - Tablet (640px-1024px): 0.3 pixels/frame for 4-5 visible cards
+    - Desktop (> 1024px): 0.4 pixels/frame for 6+ visible cards
+  - **Smart Pause/Resume**: Auto-scroll pauses on hover, focus, drag, or click interactions
+  - **Seamless Infinite Loop**: Cards duplicate for continuous scrolling without visible jumps
+  - **Business Logic**: Filters cards by `createdAt >= now() - 60 days` and `priceUsd > 0`, ordered by price DESC then createdAt DESC
+  - **Navigation**: Clicking a card navigates to the set page with price sorting (`/mtg/search?set={setCode}&sort=price_desc&page=1`)
+  - **Accessibility**: Full keyboard navigation (Arrow keys, Home, End), ARIA labels, and focus states
+  - **Internationalization**: Full Spanish/English support with proper i18n strings
+
+### Technical Changes
+- **New API Endpoint**: `GET /api/cards/most-expensive-recent` with caching headers (5min cache, 10min stale-while-revalidate)
+- **New Component**: `MostExpensiveRecentCardsCarousel` with SWR data fetching and skeleton loaders
+- **New Helper**: `getMostExpensiveRecentCards()` in `src/lib/cards.ts` for reusable Prisma queries
+- **Homepage Updates**: Modified `src/app/page.tsx` and `src/app/en/page.tsx` to include carousel as first section
+- **i18n Updates**: Added `mostExpensiveRecent` translation keys to `messages/es.json` and `messages/en.json`
+
 ## v0.42.0 — 2025-12-03
 ### UX Improvements
 - **Mobile Header Layout Refinements**: Enhanced mobile navigation and search experience

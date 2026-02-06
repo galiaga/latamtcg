@@ -1,4 +1,5 @@
 import PopularCards from '@/components/PopularCards'
+import MostExpensiveRecentCardsCarousel from '@/components/MostExpensiveRecentCardsCarousel'
 import { getLocale } from 'next-intl/server'
 import type { Metadata } from 'next'
 import { 
@@ -60,6 +61,9 @@ export default async function Home() {
     return (
       <div className="py-4">
         <div className="max-w-7xl mx-auto">
+          {/* Most Expensive Recent Cards Carousel - FIRST SECTION */}
+          <MostExpensiveRecentCardsCarousel />
+
           {/* Hero Section - Search Focused */}
           <section className="text-center px-4 py-2 md:py-10" aria-labelledby="hero-heading">
             <h1 id="hero-heading" className="text-2xl md:text-4xl lg:text-5xl font-semibold md:font-bold text-center mb-2 md:mb-3" style={{ letterSpacing: '-0.02em' }}>
@@ -144,6 +148,9 @@ export default async function Home() {
   return (
     <div className="py-4">
       <div className="max-w-7xl mx-auto">
+        {/* Most Expensive Recent Cards Carousel - FIRST SECTION */}
+        <MostExpensiveRecentCardsCarousel />
+
         {/* Hero Section - Search Focused */}
         <section className="text-center px-4 py-2 md:py-10" aria-labelledby="hero-heading">
           <h1 id="hero-heading" className="text-2xl md:text-4xl lg:text-5xl font-semibold md:font-bold text-center mb-2 md:mb-3" style={{ letterSpacing: '-0.02em' }}>
