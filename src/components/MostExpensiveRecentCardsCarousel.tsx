@@ -178,7 +178,7 @@ export default function MostExpensiveRecentCardsCarousel() {
     if (!el) return
 
     function onPointerDown(e: PointerEvent) {
-      if (e.button !== 0) return
+      if (e.button !== 0 || !el) return
       setIsPaused(true)
       pointerState.current.id = e.pointerId
       pointerState.current.startX = e.clientX
@@ -191,7 +191,7 @@ export default function MostExpensiveRecentCardsCarousel() {
     }
 
     function onPointerMove(e: PointerEvent) {
-      if (pointerState.current.id !== e.pointerId) return
+      if (pointerState.current.id !== e.pointerId || !el) return
       const dx = e.clientX - pointerState.current.startX
       if (Math.abs(dx) > 6) {
         pointerState.current.moved = true
@@ -202,7 +202,7 @@ export default function MostExpensiveRecentCardsCarousel() {
     }
 
     function endDrag(e: PointerEvent) {
-      if (pointerState.current.id !== e.pointerId) return
+      if (pointerState.current.id !== e.pointerId || !el) return
       try {
         el.releasePointerCapture(e.pointerId)
       } catch {}
