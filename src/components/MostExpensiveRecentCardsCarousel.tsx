@@ -40,6 +40,7 @@ export default function MostExpensiveRecentCardsCarousel() {
   const [canRight, setCanRight] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const hasStartedRef = useRef<boolean>(false)
   const autoScrollRef = useRef<number | null>(null)
   const lastScrollTimeRef = useRef<number>(Date.now())
   const scrollSpeedRef = useRef<number>(0.3) // pixels per frame - smooth and elegant
@@ -102,9 +103,8 @@ export default function MostExpensiveRecentCardsCarousel() {
 
   // Auto-scroll animation with seamless infinite loop
   useEffect(() => {
-    const el = listRef.current
-    // Don't start if skeleton is showing, data isn't ready, or interactions are happening
-    if (!el || !data?.cards.length || isPaused || dragging || showSkeleton) {
+    // Early exit conditions
+    if (!data?.cards.length || showSkeleton) {
       if (autoScrollRef.current) {
         cancelAnimationFrame(autoScrollRef.current)
         autoScrollRef.current = null
@@ -112,13 +112,17 @@ export default function MostExpensiveRecentCardsCarousel() {
       return
     }
 
+    const el = listRef.current
+    if (!el) return
+
     // Calculate the width of one set of cards (before duplication)
     const cardWidth = 280
     const gap = 16
     const singleSetWidth = data.cards.length * (cardWidth + gap) - gap
 
     const animate = () => {
-      if (!el || isPaused || dragging) {
+      // Check if we should continue
+      if (!el || isPaused || dragging || !data?.cards.length) {
         if (autoScrollRef.current) {
           cancelAnimationFrame(autoScrollRef.current)
           autoScrollRef.current = null
@@ -126,93 +130,71 @@ export default function MostExpensiveRecentCardsCarousel() {
         return
       }
 
-      // Wait for element to be properly rendered (Safari/Edge fix)
-      // Check both scrollWidth and that children are actually rendered
-      if (el.scrollWidth === 0 || el.clientWidth === 0 || el.scrollWidth <= el.clientWidth) {
+      // Ensure element has dimensions
+      if (el.scrollWidth === 0 || el.clientWidth === 0) {
         autoScrollRef.current = requestAnimationFrame(animate)
         return
       }
 
       const scrollLeft = el.scrollLeft
+      const maxScroll = el.scrollWidth - el.clientWidth
 
-      // Check if we've scrolled past the first set of cards (halfway point)
-      // This ensures seamless loop when cards are duplicated
-      if (!isResettingRef.current && scrollLeft >= singleSetWidth - 5) {
+      // Handle seamless loop reset
+      if (maxScroll > 0 && !isResettingRef.current && scrollLeft >= singleSetWidth - 2) {
         isResettingRef.current = true
-        // Smoothly reset to beginning without visible jump
-        // Use requestAnimationFrame to ensure smooth transition
-        requestAnimationFrame(() => {
-          if (el && !isPaused && !dragging) {
-            // Calculate the exact offset to maintain visual continuity
-            const offset = scrollLeft - singleSetWidth
-            el.scrollLeft = Math.max(0, offset)
-            isResettingRef.current = false
-            // Small delay to ensure browser processes the scroll change (Safari/Edge fix)
-            setTimeout(() => {
-              if (el && !isPaused && !dragging) {
-                autoScrollRef.current = requestAnimationFrame(animate)
-              }
-            }, 16) // ~1 frame delay
-          } else {
-            isResettingRef.current = false
-          }
-        })
-        return
-      }
-
-      if (isResettingRef.current) {
-        // Wait for reset to complete
+        // Reset position seamlessly
+        el.scrollLeft = scrollLeft - singleSetWidth
+        isResettingRef.current = false
         autoScrollRef.current = requestAnimationFrame(animate)
         return
       }
 
-      // Continuous smooth scrolling with responsive speed
-      el.scrollLeft += scrollSpeedRef.current
+      // Only scroll if there's room
+      if (maxScroll > 0 && scrollLeft < maxScroll - 1) {
+        el.scrollLeft += scrollSpeedRef.current
+      }
 
+      // Continue animation
       autoScrollRef.current = requestAnimationFrame(animate)
     }
 
-    // Wait for DOM to be ready and element to have dimensions (Safari/Edge fix)
-    const startAnimation = () => {
-      // Double-check element is ready and has proper dimensions
-      // Safari/Edge may need more time to calculate scrollWidth with duplicated content
-      if (!el || el.scrollWidth === 0 || el.clientWidth === 0) {
-        // Retry after a short delay
-        setTimeout(startAnimation, 100)
+    // Start animation after element is ready
+    const tryStart = () => {
+      if (!el) {
+        setTimeout(tryStart, 100)
         return
       }
 
-      // Ensure we have enough content to scroll (at least 2x the viewport width for seamless loop)
-      const expectedMinWidth = data.cards.length * (cardWidth + gap) * 2 - gap
-      if (el.scrollWidth < expectedMinWidth * 0.9) {
-        // Content not fully rendered yet, retry
-        setTimeout(startAnimation, 100)
+      // Check if element is ready
+      if (el.scrollWidth === 0 || el.clientWidth === 0) {
+        setTimeout(tryStart, 100)
         return
       }
 
-      lastScrollTimeRef.current = Date.now()
-      // Reset scroll position to start
+      // Check if we have scrollable content (with duplicated cards)
+      if (el.scrollWidth <= el.clientWidth) {
+        setTimeout(tryStart, 100)
+        return
+      }
+
+      // Start animation
       el.scrollLeft = 0
       isResettingRef.current = false
-      // Start animation
+      hasStartedRef.current = true
       autoScrollRef.current = requestAnimationFrame(animate)
     }
 
-    // Start after ensuring element is rendered
-    // Safari/Edge may need more time, so we use requestAnimationFrame to ensure DOM is ready
-    const startDelay = setTimeout(() => {
-      requestAnimationFrame(() => {
-        setTimeout(startAnimation, 200)
-      })
-    }, 100)
+    // Start after a delay to ensure DOM is ready
+    const startTimer = setTimeout(tryStart, 500)
 
     return () => {
-      clearTimeout(startDelay)
+      clearTimeout(startTimer)
       if (autoScrollRef.current) {
         cancelAnimationFrame(autoScrollRef.current)
         autoScrollRef.current = null
       }
       isResettingRef.current = false
+      hasStartedRef.current = false
     }
   }, [data?.cards.length, isPaused, dragging, showSkeleton])
 
@@ -363,10 +345,21 @@ export default function MostExpensiveRecentCardsCarousel() {
                 cursor: dragging ? 'grabbing' : 'grab',
                 scrollBehavior: 'auto', // Use auto for smooth programmatic scrolling
               }}
-              onMouseEnter={() => setIsPaused(true)}
-              onMouseLeave={() => setIsPaused(false)}
-              onFocus={() => setIsPaused(true)}
-              onBlur={() => setIsPaused(false)}
+              onMouseEnter={() => {
+                setIsPaused(true)
+              }}
+              onMouseLeave={() => {
+                setIsPaused(false)
+              }}
+              onFocus={() => {
+                setIsPaused(true)
+              }}
+              onBlur={(e) => {
+                // Only unpause if focus is moving outside the carousel
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setIsPaused(false)
+                }
+              }}
               onKeyDown={(e) => {
                 const el = listRef.current
                 if (!el) return
