@@ -1,71 +1,117 @@
 import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { cardNameToSlug } from '@/lib/cardSlug'
 
 const baseUrl = 'https://latamtcg.com'
 
-// Main public pages with priorities and change frequencies
-// Priority: 1.0 = homepage, 0.9 = main features, 0.8 = important pages, 0.7 = secondary pages
-// changefreq values: always, hourly, daily, weekly, monthly, yearly, never
+// SEO-relevant static pages only
+// Excluded: /cart, /orders, /auth, /mtg/search, /mtg/[oracleId] (these have noindex or redirect)
 const staticPages: Array<{
   path: string
   priority: string
   changefreq: 'daily' | 'weekly' | 'monthly' | 'yearly'
 }> = [
-  { path: '', priority: '1.0', changefreq: 'daily' }, // Homepage (ES)
-  { path: '/en', priority: '1.0', changefreq: 'daily' }, // Homepage (EN)
-  { path: '/mtg/search', priority: '0.9', changefreq: 'daily' }, // Main search
-  { path: '/mtg/sets', priority: '0.9', changefreq: 'weekly' }, // Sets page
-  { path: '/search/advanced', priority: '0.8', changefreq: 'weekly' }, // Advanced search
-  { path: '/mtg', priority: '0.8', changefreq: 'daily' }, // MTG landing page
-  { path: '/about', priority: '0.8', changefreq: 'monthly' }, // About (ES)
-  { path: '/en/about', priority: '0.8', changefreq: 'monthly' }, // About (EN)
-  { path: '/how-it-works', priority: '0.8', changefreq: 'monthly' }, // How it works (ES)
-  { path: '/en/how-it-works', priority: '0.8', changefreq: 'monthly' }, // How it works (EN)
-  { path: '/help', priority: '0.8', changefreq: 'monthly' }, // Help (ES)
-  { path: '/en/help', priority: '0.8', changefreq: 'monthly' }, // Help (EN)
-  { path: '/contact', priority: '0.7', changefreq: 'monthly' }, // Contact (ES)
-  { path: '/en/contact', priority: '0.7', changefreq: 'monthly' }, // Contact (EN)
-  { path: '/returns', priority: '0.7', changefreq: 'monthly' }, // Returns (ES)
-  { path: '/en/returns', priority: '0.7', changefreq: 'monthly' }, // Returns (EN)
-  { path: '/terms', priority: '0.6', changefreq: 'yearly' }, // Terms (ES)
-  { path: '/en/terms', priority: '0.6', changefreq: 'yearly' }, // Terms (EN)
-  { path: '/privacy', priority: '0.6', changefreq: 'yearly' }, // Privacy (ES)
-  { path: '/en/privacy', priority: '0.6', changefreq: 'yearly' }, // Privacy (EN)
-  { path: '/mass-entry', priority: '0.8', changefreq: 'weekly' },
+  { path: '', priority: '1.0', changefreq: 'daily' }, // Homepage
+  { path: '/mtg', priority: '0.9', changefreq: 'daily' }, // MTG landing page
 ]
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  // Get current date in ISO 8601 format for lastmod
-  const lastmod = new Date().toISOString().split('T')[0]
+function escapeXml(url: string): string {
+  return url
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
 
-  const urls = staticPages.map(({ path, priority, changefreq }) => {
-    const url = `${baseUrl}${path === '' ? '/' : path}`
-    // Escape XML special characters in URL (though URLs should be safe)
-    const escapedUrl = url
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;')
-    
-    return `  <url>
+function formatUrlEntry(url: string, lastmod: string, priority: string, changefreq: string): string {
+  const escapedUrl = escapeXml(url)
+  return `  <url>
     <loc>${escapedUrl}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
   </url>`
-  })
+}
 
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+export async function GET() {
+  try {
+    // Get current date in ISO 8601 format for lastmod
+    const lastmod = new Date().toISOString().split('T')[0]
+
+    // Build static page URLs
+    const staticUrls = staticPages.map(({ path, priority, changefreq }) => {
+      const url = `${baseUrl}${path === '' ? '/' : path}`
+      return formatUrlEntry(url, lastmod, priority, changefreq)
+    })
+
+    // Fetch unique card names for dynamic card pages
+    // Only include cards that are paper, English, and have at least one price
+    // Group by card name (not oracleId) to get unique card slugs
+    const uniqueCards = await prisma.mtgCard.findMany({
+      where: {
+        isPaper: true,
+        lang: 'en',
+        name: { not: '' }, // Exclude empty names
+        OR: [
+          { priceUsd: { not: null } },
+          { priceUsdFoil: { not: null } },
+          { priceUsdEtched: { not: null } },
+        ],
+      },
+      select: {
+        name: true,
+      },
+      distinct: ['name'],
+      orderBy: {
+        name: 'asc',
+      },
+    })
+
+    // Build dynamic card page URLs using card slugs
+    const cardUrls = uniqueCards.map(({ name }) => {
+      const cardSlug = cardNameToSlug(name)
+      const url = `${baseUrl}/mtg/card/${encodeURIComponent(cardSlug)}`
+      // Card pages have lower priority than main pages
+      return formatUrlEntry(url, lastmod, '0.7', 'weekly')
+    })
+
+    // Combine all URLs
+    const allUrls = [...staticUrls, ...cardUrls]
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join('\n')}
+${allUrls.join('\n')}
 </urlset>`
 
-  return new NextResponse(xml, {
-    headers: {
-      'Content-Type': 'application/xml; charset=utf-8',
-    },
-  })
+    return new NextResponse(xml, {
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400', // Cache for 1 hour, stale for 24 hours
+      },
+    })
+  } catch (error) {
+    console.error('[sitemap] Error generating sitemap:', error)
+    // Return a minimal sitemap with just static pages on error
+    const lastmod = new Date().toISOString().split('T')[0]
+    const staticUrls = staticPages.map(({ path, priority, changefreq }) => {
+      const url = `${baseUrl}${path === '' ? '/' : path}`
+      return formatUrlEntry(url, lastmod, priority, changefreq)
+    })
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticUrls.join('\n')}
+</urlset>`
+
+    return new NextResponse(xml, {
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+      },
+      status: 200, // Still return 200 to avoid breaking sitemap submission
+    })
+  }
 }
 
