@@ -1,5 +1,23 @@
 import SearchBox from '@/components/SearchBox'
 import SafeClient from '@/components/SafeClient'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Magic: The Gathering | LatamTCG',
+  description: 'Explora y compra cartas de Magic: The Gathering. Todas las cartas, siempre.',
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: 'https://latamtcg.com/mtg',
+  },
+  openGraph: {
+    title: 'Magic: The Gathering | LatamTCG',
+    description: 'Explora y compra cartas de Magic: The Gathering. Todas las cartas, siempre.',
+    url: 'https://latamtcg.com/mtg',
+  },
+}
 
 export default function MtgSearchPage() {
   return (

@@ -6,6 +6,7 @@ import { getScryfallNormalUrl, getScryfallSmallUrl } from '@/lib/images'
 import { usePricing } from './PricingProvider'
 import { getDisplayPrice, formatPrice } from '@/lib/pricingClient'
 import { useTranslations } from 'next-intl'
+import { cardNameToSlug } from '@/lib/cardSlug'
 
 type PrintingItem = {
   id: string
@@ -244,7 +245,7 @@ export default function OtherPrintingsCarousel({
           })}
 
           {filtered.length > 16 ? (
-            <Link href={`/mtg/${oracleId}`} role="option" className="snap-start flex min-w-[300px] items-center justify-center gap-3 rounded-2xl border px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+            <Link href={`/mtg/card/${encodeURIComponent(cardNameToSlug(items[0]?.name || ''))}`} role="option" className="snap-start flex min-w-[300px] items-center justify-center gap-3 rounded-2xl border px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
               style={{ background: 'var(--card)', borderColor: 'var(--border)', boxShadow: 'var(--shadow)', color: 'var(--text)' }}>
               {t('card.viewAllPrintings')}
             </Link>

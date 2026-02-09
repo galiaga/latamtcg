@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.44.0 — 2026-02-08
+### SEO & Indexing
+- **Card Route Canonical URLs**: Implemented permanent redirect from `/mtg/[oracleId]` to `/mtg/card/[cardSlug]` for SEO optimization
+  - **Canonical Route**: `/mtg/card/[cardSlug]` is now the only indexable route for card pages
+  - **Permanent Redirect**: `/mtg/[oracleId]` routes now redirect permanently (308) to slug-based routes
+  - **User-Friendly URLs**: Card pages now use readable slugs (e.g., `/mtg/card/lightning-bolt`) instead of UUIDs
+  - **Slug Generation**: New utility `cardNameToSlug()` converts card names to URL-safe slugs (lowercase, hyphens)
+  - **Database Lookup**: `getCardSlugFromOracleId()` function looks up card names from oracleId for redirect mapping
+  - **Sitemap Updates**: Sitemap now includes only `/mtg/card/[cardSlug]` entries, excluding oracleId routes
+  - **Component Updates**: `OtherPrintingsCarousel` component updated to link to slug routes
+  - **Metadata**: OracleId route has `noindex` metadata (redirect pages shouldn't be indexed)
+
+- **Google Indexation Fixes**: Addressed 12 pages showing "Crawled - currently not indexed" status
+  - **Robots.txt Updates**: Added disallow rules for static assets (`/_next/`, `/favicon.ico`, `/api/`, `/_vercel/`)
+  - **Missing Metadata**: Added `noindex` metadata to user-specific pages (`/cart`, `/orders`, `/auth`)
+  - **Canonical Tags**: Ensured all indexable pages have proper canonical tags pointing to `https://latamtcg.com`
+  - **Sitemap Cleanup**: Removed non-indexable pages from sitemap (`/mtg/search`, `/cart`, `/orders`, `/auth`)
+
+### Technical Changes
+- **New Utility**: `src/lib/cardSlug.ts` - Card name to slug conversion and oracleId lookup functions
+- **Route Updates**: `src/app/mtg/[oracleId]/page.tsx` - Now redirects instead of rendering content
+- **Sitemap Updates**: `src/app/sitemap.xml/route.ts` - Generates slug-based URLs from card names
+- **Layout Files**: Added `src/app/cart/layout.tsx` and `src/app/auth/layout.tsx` for metadata
+- **Metadata Updates**: Enhanced metadata on `/mtg`, `/mtg/card/[cardSlug]`, `/orders` pages
+- **Documentation**: Added comprehensive SEO analysis and implementation documentation
+
 ## v0.43.0 — 2026-02-05
 ### Features
 - **Most Expensive Recent Cards Carousel**: New hero carousel on homepage showcasing the 10 most expensive cards added in the last 60 days

@@ -5,8 +5,14 @@ Disallow: /
 User-agent: AhrefsBot
 Disallow: /
 
-# Allow all other crawlers
+# Block static assets and API routes from being crawled
 User-agent: *
+Disallow: /_next/
+Disallow: /favicon.ico
+Disallow: /api/
+Disallow: /_vercel/
+
+# Allow all other pages
 Allow: /
 
 # Sitemap location

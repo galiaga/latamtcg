@@ -2,6 +2,19 @@ import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/supabase'
 import { getPricingConfig, getDisplayPriceServer } from '@/lib/pricingData'
 import { formatPriceServer } from '@/lib/pricing'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Mis Pedidos | LatamTCG',
+  description: 'Revisa el estado de tus pedidos de cartas Magic: The Gathering',
+  robots: { 
+    index: false, // User-specific pages should NOT be indexed
+    follow: true 
+  },
+  alternates: {
+    canonical: 'https://latamtcg.com/orders',
+  },
+}
 
 export default async function OrdersPage() {
   const user = await getSessionUser()
