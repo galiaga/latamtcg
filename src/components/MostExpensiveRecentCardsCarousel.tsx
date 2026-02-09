@@ -389,7 +389,7 @@ export default function MostExpensiveRecentCardsCarousel() {
                 const handleClick = (e: React.MouseEvent) => {
                   e.preventDefault()
                   setIsPaused(true)
-                  router.push(`/mtg/search?set=${encodeURIComponent(card.setCode)}&sort=price_desc&page=1`)
+                  router.push(`/mtg/printing/${card.id}`)
                   setTimeout(() => setIsPaused(false), 2000)
                 }
 
