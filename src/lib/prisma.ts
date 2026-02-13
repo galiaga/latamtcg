@@ -43,14 +43,13 @@ const datasourceUrl = withConnectionLimit(process.env.DATABASE_URL, poolSize)
 export const prisma: PrismaClient = global.prismaGlobal ?? new PrismaClient({
   log: ['warn', 'error'],
   datasources: datasourceUrl ? { db: { url: datasourceUrl } } : undefined,
-  // Add transaction timeout
   transactionOptions: {
-    timeout: 30000, // 30 seconds
+    timeout: 30000,
   },
 })
 
-if (process.env.NODE_ENV !== 'production') {
-  global.prismaGlobal = prisma
-}
+// Cache on global in all environments so serverless reuses one client per worker.
+// Without this, production created a new PrismaClient per request → connection pool exhaustion.
+global.prismaGlobal = prisma
 
 
