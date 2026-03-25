@@ -1,4 +1,4 @@
-import { getPricingConfig, getDisplayPriceServer } from '@/lib/pricingData';
+import { getPricingConfig, getDisplayPriceServer, type PricingConfig } from '@/lib/pricingData';
 import { getTranslations } from 'next-intl/server';
 
 export type VariantInfo = { 
@@ -11,9 +11,11 @@ export type VariantInfo = {
 // Alias for compatibility with VariantSelector
 export type VariantOption = VariantInfo;
 
-export async function getVariantsForCard(card: any): Promise<VariantInfo[]> {
-  // Get pricing configuration to compute CLP prices
-  const config = await getPricingConfig();
+export async function getVariantsForCard(
+  card: any,
+  configOverride?: PricingConfig
+): Promise<VariantInfo[]> {
+  const config = configOverride ?? (await getPricingConfig());
   const t = await getTranslations();
   
   const variants: VariantInfo[] = [];

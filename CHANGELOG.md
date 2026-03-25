@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.45.0 — 2026-03-24
+### SEO — Structured data (JSON-LD)
+- **Hub page (`/mtg/card/[cardSlug]`)**: Replaced single-product `Product` schema with **`CollectionPage`** + **`ItemList`**. Each `ListItem` references a printing PDP (`Product` stub with name, url, image).
+- **Printing PDP (`/mtg/printing/[printingId]`)**: **`Product`** + **`Offer`** (CLP or USD from pricing config, availability, canonical URL) aligned with the visible default variant.
+- **Initial HTML**: Moved **`main`** and **`Footer`** outside `SafeClient` (`Suspense`) so page-level JSON-LD and RSC output appear in the document HTML for crawlers and “View Source”, not only in the streamed flight payload.
+- **Helpers**: `src/lib/jsonLd/serialize.ts`, `mtgCardHub.ts`, `mtgPrintingProduct.ts`, `buildPrintingProductJsonLd.ts`; removed `mtgCardProduct.ts` hub-only Product builder.
+- **`getVariantsForCard`**: Optional `PricingConfig` argument to avoid duplicate config fetches on the printing page.
+
 ## v0.44.0 — 2026-02-08
 ### SEO & Indexing
 - **Card Route Canonical URLs**: Implemented permanent redirect from `/mtg/[oracleId]` to `/mtg/card/[cardSlug]` for SEO optimization

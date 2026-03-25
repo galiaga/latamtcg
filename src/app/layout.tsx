@@ -148,61 +148,63 @@ export default async function RootLayout({
         </Script>
         {/* Global providers and client-only sections */}
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <SafeClient>
-            <LoadingProvider>
-              <GlobalProgress />
-              <PricingProvider>
-                <CartProvider>
-            {/* Global search section */}
-            <header className="py-2 md:py-4">
-              <div className="px-4">
-                {/* Desktop layout */}
-                <div className="hidden md:flex items-center gap-4">
-                  <LeftCatalogMenu />
-                  <div className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
-                    <Link href="/" aria-label="LatamTCG - Inicio">LatamTCG</Link>
-                  </div>
-                  <div className="flex-1">
-                    <div className="w-full">
-                      <SearchBox />
+          <LoadingProvider>
+            <PricingProvider>
+              <CartProvider>
+                {/*
+                  SafeClient = Suspense: keep only the chrome that may suspend (e.g. useSearchParams).
+                  Page {children} stay OUTSIDE Suspense so JSON-LD and RSC HTML appear in the initial document.
+                */}
+                <SafeClient>
+                  <GlobalProgress />
+                  {/* Global search section */}
+                  <header className="py-2 md:py-4">
+                    <div className="px-4">
+                      {/* Desktop layout */}
+                      <div className="hidden md:flex items-center gap-4">
+                        <LeftCatalogMenu />
+                        <div className="text-2xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
+                          <Link href="/" aria-label="LatamTCG - Inicio">LatamTCG</Link>
+                        </div>
+                        <div className="flex-1">
+                          <div className="w-full">
+                            <SearchBox />
+                          </div>
+                        </div>
+                        <HeaderCart />
+                        <HeaderUser />
+                      </div>
+
+                      {/* Mobile layout */}
+                      <div className="md:hidden">
+                        {/* Row 1: Title + Cart + User */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
+                            <Link href="/" aria-label="LatamTCG - Inicio">LatamTCG</Link>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <HeaderCart />
+                            <HeaderUser />
+                          </div>
+                        </div>
+
+                        {/* Row 2: Hamburger + Search */}
+                        <div className="flex items-center gap-2 mt-2">
+                          <LeftCatalogMenu />
+                          <div className="flex-1 min-w-0">
+                            <SearchBox />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <HeaderCart />
-                  <HeaderUser />
-                </div>
-                
-                {/* Mobile layout */}
-                <div className="md:hidden">
-                  {/* Row 1: Title + Cart + User */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-xl font-bold whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>
-                      <Link href="/" aria-label="LatamTCG - Inicio">LatamTCG</Link>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <HeaderCart />
-                      <HeaderUser />
-                    </div>
-                  </div>
-                  
-                  {/* Row 2: Hamburger + Search */}
-                  <div className="flex items-center gap-2 mt-2">
-                    <LeftCatalogMenu />
-                    <div className="flex-1 min-w-0">
-                      <SearchBox />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </header>
-            <div style={{ borderTop: '1px solid var(--divider)' }} />
-            <main className="px-4">
-              {children}
-            </main>
-            <Footer />
-                </CartProvider>
-              </PricingProvider>
-            </LoadingProvider>
-          </SafeClient>
+                  </header>
+                  <div style={{ borderTop: '1px solid var(--divider)' }} />
+                </SafeClient>
+                <main className="px-4">{children}</main>
+                <Footer />
+              </CartProvider>
+            </PricingProvider>
+          </LoadingProvider>
         </NextIntlClientProvider>
       </body>
     </html>

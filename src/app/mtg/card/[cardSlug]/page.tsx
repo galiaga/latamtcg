@@ -2,11 +2,8 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import SearchResultsGrid from '@/components/SearchResultsGrid'
 import type { Metadata } from 'next'
-import { getPricingConfig } from '@/lib/pricingData'
-import {
-  buildMtgCardGroupProductJsonLd,
-  serializeJsonLd,
-} from '@/lib/jsonLd/mtgCardProduct'
+import { buildMtgCardHubCollectionJsonLd } from '@/lib/jsonLd/mtgCardHub'
+import { serializeJsonLd } from '@/lib/jsonLd/serialize'
 
 const SITE_ORIGIN = 'https://latamtcg.com'
 
@@ -42,33 +39,43 @@ export default async function CardPage(props: { params: Promise<{ cardSlug: stri
   const count = await prisma.mtgCard.count({ where: { name: { equals: name, mode: 'insensitive' }, isPaper: true } })
   if (count === 0) return notFound()
 
-  const [printings, pricingConfig] = await Promise.all([
-    prisma.mtgCard.findMany({
-      where: { name: { equals: name, mode: 'insensitive' }, isPaper: true },
-      select: {
-        scryfallId: true,
-        priceUsd: true,
-        priceUsdFoil: true,
-        priceUsdEtched: true,
-        computedPriceClp: true,
-      },
-    }),
-    getPricingConfig(),
-  ])
+  const printings = await prisma.mtgCard.findMany({
+    where: { name: { equals: name, mode: 'insensitive' }, isPaper: true },
+    select: {
+      scryfallId: true,
+      name: true,
+      flavorName: true,
+      finishes: true,
+      promoTypes: true,
+      frameEffects: true,
+      borderColor: true,
+      releasedAt: true,
+      setCode: true,
+      collectorNumber: true,
+    },
+    orderBy: [{ releasedAt: 'desc' }, { setCode: 'asc' }, { collectorNumber: 'asc' }],
+  })
 
-  const productJsonLd = buildMtgCardGroupProductJsonLd({
-    cardName: name,
-    cardSlug,
+  const hubJsonLd = buildMtgCardHubCollectionJsonLd({
     siteOrigin: SITE_ORIGIN,
-    printings,
-    config: pricingConfig,
+    cardSlug,
+    hubDisplayName: name,
+    items: printings.map((p) => ({
+      scryfallId: p.scryfallId,
+      name: p.name,
+      flavorName: p.flavorName,
+      finishes: p.finishes ?? [],
+      promoTypes: p.promoTypes ?? [],
+      frameEffects: p.frameEffects ?? [],
+      borderColor: p.borderColor,
+    })),
   })
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(productJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(hubJsonLd) }}
       />
       <div className="p-6 space-y-4">
         <h1 className="text-xl font-semibold">{name}</h1>
@@ -77,5 +84,3 @@ export default async function CardPage(props: { params: Promise<{ cardSlug: stri
     </>
   )
 }
-
-

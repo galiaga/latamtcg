@@ -15,6 +15,9 @@ import { VariantSectionClient } from './VariantSectionClient'
 import { CardImageWithShine } from './CardImageWithShine'
 import ShareButtons from '@/components/ShareButtons'
 import { getTranslations } from 'next-intl/server'
+import { getPricingConfig } from '@/lib/pricingData'
+import { buildPrintingProductJsonLdForPage } from '@/lib/jsonLd/buildPrintingProductJsonLd'
+import { serializeJsonLd } from '@/lib/jsonLd/serialize'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -129,11 +132,20 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
   const t = await getTranslations()
   const t0 = Date.now()
   if (process.env.NODE_ENV !== 'production') console.debug('[printing-page] rendering', printingId)
-  const data = await getPrintingById(printingId)
+  const [data, pricingConfig] = await Promise.all([
+    getPrintingById(printingId),
+    getPricingConfig(),
+  ])
 
-  // Compute variants and resolve initial variant for PriceBlock
-  const variants = await getVariantsForCard(data);
-  const initialVariant = await resolveInitialVariant(variants);
+  const variants = await getVariantsForCard(data, pricingConfig)
+  const initialVariant = await resolveInitialVariant(variants)
+
+  const productJsonLd = await buildPrintingProductJsonLdForPage({
+    printingId,
+    data,
+    pricingConfig,
+    initialVariant,
+  })
 
   // Fetch current price to display last update when history is disabled
   const finish: 'nonfoil' | 'foil' | 'etched' = (data.finishes?.includes('nonfoil') ? 'nonfoil' : (data.finishes?.includes('foil') ? 'foil' : 'etched')) as any
@@ -197,7 +209,12 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
 
   try { console.log(JSON.stringify({ event: 'printing.ms', id: printingId, ms: Date.now() - t0 })) } catch {}
   return (
-    <div className="p-2 md:p-6 space-y-3 md:space-y-6">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(productJsonLd) }}
+      />
+      <div className="p-2 md:p-6 space-y-3 md:space-y-6">
       <nav aria-label="breadcrumb" className="text-sm" style={{ color: 'var(--mutedText)' }}>
         {/* Mobile: Compact breadcrumb with ellipsis */}
         <div className="md:hidden">
@@ -367,7 +384,8 @@ export default async function PrintingPage(props: { params: Promise<{ printingId
         currentId={String(data.id)}
         oracleId={String(data.oracleId)}
       />
-    </div>
+      </div>
+    </>
   )
 }
 
